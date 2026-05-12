@@ -18,8 +18,9 @@ type AppConfig struct {
 	Name    string `mapstructure:"APP_NAME"`
 	Version string `mapstructure:"APP_VERSION"`
 	Env     string `mapstructure:"APP_ENV"`
-	Port    int    `mapstructure:"APP_PORT"`
-	Debug   bool   `mapstructure:"APP_DEBUG"`
+	Port           int      `mapstructure:"APP_PORT"`
+	Debug          bool     `mapstructure:"APP_DEBUG"`
+	AllowedOrigins []string `mapstructure:"APP_CORS_ALLOWED_ORIGINS"`
 }
 
 type DBConfig struct {
@@ -78,6 +79,7 @@ func setDefaults() {
 	viper.SetDefault("APP_ENV", "development")
 	viper.SetDefault("APP_PORT", 8000)
 	viper.SetDefault("APP_DEBUG", false)
+	viper.SetDefault("APP_CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000", "http://localhost:5173"})
 
 	// DB
 	viper.SetDefault("DB_HOST", "localhost")

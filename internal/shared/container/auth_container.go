@@ -19,5 +19,5 @@ func newAuthHandler(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *http.A
 	refreshJWT := jwt.NewJWTUtil(cfg.JWT.SecretRefresh, cfg.JWT.Issuer)
 
 	authUsecase := usecase.NewAuthUsecase(userRepo, accessJWT, refreshJWT, cfg, logger)
-	return http.NewAuthHandler(authUsecase)
+	return http.NewAuthHandler(authUsecase, cfg)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/response"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -65,6 +66,14 @@ func NewApp() (*App, error) {
 }
 
 func (a *App) SetupRoutes() {
+	// 1. CORS Middleware
+	a.Fiber.Use(cors.New(cors.Config{
+		AllowOrigins:     a.Config.App.AllowedOrigins,
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowCredentials: true,
+	}))
+
 	a.Fiber.Get("/health", func(c fiber.Ctx) error {
 		return response.Success(c, "Service is healthy", fiber.Map{
 			"status":  "ok",
