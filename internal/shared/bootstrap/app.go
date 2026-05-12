@@ -47,7 +47,7 @@ func NewApp() (*App, error) {
 	zapLogger.Info("Database connection established")
 
 	// 4. Initialize Container
-	ctn := container.NewContainer(db, zapLogger)
+	ctn := container.NewContainer(db, cfg, zapLogger)
 
 	// 5. Initialize Fiber
 	fiberApp := fiber.New(fiber.Config{
@@ -75,6 +75,10 @@ func (a *App) SetupRoutes() {
 	// API Group
 	api := a.Fiber.Group("/api")
 	v1 := api.Group("/v1")
+
+	// Auth Routes
+	authRoutes := v1.Group("/auth")
+	authRoutes.Post("/login", a.Container.AuthHandler.Login)
 
 	// User Routes
 	userRoutes := v1.Group("/users")
