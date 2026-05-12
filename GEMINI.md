@@ -8,5 +8,6 @@
 ### 🎯 Context
 
 - ERP for Digital Printing.
-- Stack: Go · Fiber v2 · GORM · PostgreSQL · Zap.
+- Stack: Go · Fiber v3 · GORM · PostgreSQL · Zap.
 - Flow: DILARANG auto-run app (`go run`). Manual only.
+- Coding Style: Wajib pakai `any`, dilarang pakai `interface{}`.

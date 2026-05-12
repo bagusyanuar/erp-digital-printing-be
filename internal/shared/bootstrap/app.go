@@ -1,0 +1,103 @@
+package bootstrap
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/config"
+	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/database"
+	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/logger"
+	"github.com/bagusyanuar/erp-digital-printing-be/pkg/response"
+
+	"github.com/gofiber/fiber/v3"
+	"go.uber.org/zap"
+	"gorm.io/gorm"
+)
+
+type App struct {
+	Config *config.Config
+	Logger *zap.Logger
+	DB     *gorm.DB
+	Fiber  *fiber.App
+}
+
+func NewApp() (*App, error) {
+	// 1. Load Config
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// 2. Initialize Logger
+	zapLogger, err := logger.NewLogger(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize logger: %w", err)
+	}
+
+	// 3. Initialize Database
+	db, err := database.NewDatabase(cfg)
+	if err != nil {
+		zapLogger.Sync()
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	zapLogger.Info("Database connection established")
+
+	// 4. Initialize Fiber
+	fiberApp := fiber.New(fiber.Config{
+		AppName:      cfg.App.Name,
+		ErrorHandler: NewGlobalErrorHandler(zapLogger),
+	})
+
+	return &App{
+		Config: cfg,
+		Logger: zapLogger,
+		DB:     db,
+		Fiber:  fiberApp,
+	}, nil
+}
+
+func (a *App) SetupRoutes() {
+	a.Fiber.Get("/health", func(c fiber.Ctx) error {
+		return response.Success(c, "Service is healthy", fiber.Map{
+			"status":  "ok",
+			"version": a.Config.App.Version,
+		}, nil)
+	})
+}
+
+func (a *App) Start() error {
+	a.SetupRoutes()
+
+	listenAddr := fmt.Sprintf(":%d", a.Config.App.Port)
+	a.Logger.Info("Starting server",
+		zap.String("app", a.Config.App.Name),
+		zap.String("addr", listenAddr),
+		zap.String("env", a.Config.App.Env),
+	)
+
+	return a.Fiber.Listen(listenAddr)
+}
+
+func (a *App) Shutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 1. Shutdown Fiber
+	if err := a.Fiber.ShutdownWithContext(ctx); err != nil {
+		a.Logger.Error("Error shutting down Fiber", zap.Error(err))
+	}
+
+	// 2. Close DB Connection
+	sqlDB, err := a.DB.DB()
+	if err == nil {
+		if err := sqlDB.Close(); err != nil {
+			a.Logger.Error("Error closing database connection", zap.Error(err))
+		}
+	}
+
+	// 3. Sync Logger
+	a.Logger.Info("Server shutdown complete")
+	a.Logger.Sync()
+}
