@@ -1,0 +1,11 @@
+// Internal users schema with UUID v4
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  username varchar(50) [unique, not null]
+  password varchar(255) [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Master data for internal users. RBAC will be implemented in separate tables.'
+}

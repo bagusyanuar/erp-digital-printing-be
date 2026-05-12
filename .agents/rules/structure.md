@@ -1,24 +1,26 @@
-# 📂 Project Structure & DI Rules - ERP Digital Printing
+# 📂 Modular Clean Architecture - ERP Digital Printing
 
-### 🏗 Folder Hierarchy
-*   **`cmd/`**: Entry point aplikasi (misal: `cmd/api/main.go`).
-*   **`internal/domain/`**: Business entities & interfaces (Pure Go, no external libs).
-*   **`internal/usecase/`**: Business logic.
-*   **`internal/repository/`**: Database persistence (GORM).
-*   **`internal/delivery/http/`**: Fiber handlers & routing.
-*   **`internal/shared/`**: Global components (Config, DB, Logger).
-*   **`internal/shared/container/`**: Dependency Injection container (wiring).
+### 🏗 Modular Hierarchy
+Aplikasi dibagi per **Module** di dalam folder `internal/`. Setiap module mengimplementasikan Clean Architecture sendiri.
+
+*   **`internal/<module>/domain/`**: Business entities & interfaces.
+*   **`internal/<module>/usecase/`**: Business logic.
+*   **`internal/<module>/repository/`**: Database persistence (GORM).
+*   **`internal/<module>/delivery/http/`**: Fiber handlers & routing.
+*   **`internal/shared/`**: Global components (Config, DB, Logger, Container).
 
 ### 💉 Dependency Injection (DI)
-*   **Location**: Semua wiring logic wajib ada di `internal/shared/container`.
+*   **Location**: Wiring antar layer per module dilakukan di Constructor masing-masing layer.
+*   **Container**: Wiring antar module dilakukan di `internal/shared/container/`.
+    *   Wajib gunakan file terpisah per module (misal: `user_container.go`).
+    *   `container.go` bertindak sebagai **Aggregator**.
+*   **Package Alias**: Wajib gunakan alias saat import handler di `container.go` (contoh: `userHttp`) untuk menghindari konflik penamaan package `http`.
 *   **Pattern**: Gunakan Constructor (`New...`) di tiap layer.
-*   **Registration**: Module baru wajib didaftarkan di container agar bisa di-bootstrap di `main.go`.
-*   **Anti-Pattern**: Dilarang melakukan hard-code instansiasi database atau repository di dalam Usecase. Semua wajib di-inject via interface.
 
 ### 🚀 Bootstrap Flow
 1.  Initialize **Config** & **Logger**.
 2.  Open **DB Connection**.
 3.  Call **Container** untuk wiring semua module.
 4.  Setup **Fiber App** & **Middleware**.
-5.  Register **Routes** dari Handler.
+5.  Register **Routes** dari Module Handler.
 6.  Graceful **Shutdown**.

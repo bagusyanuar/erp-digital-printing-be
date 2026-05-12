@@ -8,6 +8,7 @@ import (
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/config"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/database"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/logger"
+	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/container"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/response"
 
 	"github.com/gofiber/fiber/v3"
@@ -16,10 +17,11 @@ import (
 )
 
 type App struct {
-	Config *config.Config
-	Logger *zap.Logger
-	DB     *gorm.DB
-	Fiber  *fiber.App
+	Config    *config.Config
+	Logger    *zap.Logger
+	DB        *gorm.DB
+	Fiber     *fiber.App
+	Container *container.Container
 }
 
 func NewApp() (*App, error) {
@@ -44,17 +46,21 @@ func NewApp() (*App, error) {
 
 	zapLogger.Info("Database connection established")
 
-	// 4. Initialize Fiber
+	// 4. Initialize Container
+	ctn := container.NewContainer(db, zapLogger)
+
+	// 5. Initialize Fiber
 	fiberApp := fiber.New(fiber.Config{
 		AppName:      cfg.App.Name,
 		ErrorHandler: NewGlobalErrorHandler(zapLogger),
 	})
 
 	return &App{
-		Config: cfg,
-		Logger: zapLogger,
-		DB:     db,
-		Fiber:  fiberApp,
+		Config:    cfg,
+		Logger:    zapLogger,
+		DB:        db,
+		Fiber:     fiberApp,
+		Container: ctn,
 	}, nil
 }
 
@@ -65,6 +71,18 @@ func (a *App) SetupRoutes() {
 			"version": a.Config.App.Version,
 		}, nil)
 	})
+
+	// API Group
+	api := a.Fiber.Group("/api")
+	v1 := api.Group("/v1")
+
+	// User Routes
+	userRoutes := v1.Group("/users")
+	userRoutes.Post("/", a.Container.UserHandler.Create)
+	userRoutes.Get("/", a.Container.UserHandler.FindAll)
+	userRoutes.Get("/:id", a.Container.UserHandler.FindByID)
+	userRoutes.Put("/:id", a.Container.UserHandler.Update)
+	userRoutes.Delete("/:id", a.Container.UserHandler.Delete)
 }
 
 func (a *App) Start() error {

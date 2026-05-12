@@ -12,12 +12,12 @@ import (
 )
 
 func NewDatabase(cfg *config.Config) (*gorm.DB, error) {
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=Asia/Jakarta",
-		cfg.DB.Host,
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s&TimeZone=Asia/Jakarta",
 		cfg.DB.User,
 		cfg.DB.Password,
-		cfg.DB.Name,
+		cfg.DB.Host,
 		cfg.DB.Port,
+		cfg.DB.Name,
 		cfg.DB.SSLMode,
 	)
 
