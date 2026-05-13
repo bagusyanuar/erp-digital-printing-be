@@ -27,8 +27,17 @@ Tambahkan domain berikut ke file `/etc/hosts` Anda:
 ```
 
 ### Menjalankan Aplikasi
+
+**Mode Development (Local Build):**
+Gunakan ini di Mac untuk membangun aplikasi dari source code lokal:
 ```bash
-docker compose up --build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+**Mode Production (Server / GHCR Image):**
+Gunakan ini di server untuk menarik image langsung dari GitHub:
+```bash
+docker compose up -d
 ```
 Aplikasi dapat diakses di: `https://api.made-printing.local`
 

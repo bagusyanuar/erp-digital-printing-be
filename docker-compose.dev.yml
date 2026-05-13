@@ -1,0 +1,6 @@
+services:
+  app:
+    build: .
+    image: erp-app:local
+    # In development, we might want to mount volumes for live reload if needed, 
+    # but for now we just want to enable local building.
