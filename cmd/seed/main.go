@@ -41,17 +41,26 @@ func main() {
 	}
 
 	// 2. Seed Roles
-	superAdminRole := rbacDomain.Role{Name: "administrator", Description: "Super Administrator - Full Access"}
-	adminRole := rbacDomain.Role{Name: "admin", Description: "Administrative Staff"}
-	designerRole := rbacDomain.Role{Name: "designer", Description: "Designer Staff"}
+	roleNames := []string{"administrator", "admin", "designer"}
+	roleDescriptions := map[string]string{
+		"administrator": "Super Administrator - Full Access",
+		"admin":         "Administrative Staff",
+		"designer":      "Designer Staff",
+	}
 
-	roles := []rbacDomain.Role{superAdminRole, adminRole, designerRole}
-	for _, r := range roles {
+	for _, name := range roleNames {
+		role := rbacDomain.Role{Name: name, Description: roleDescriptions[name]}
 		db.Clauses(clause.OnConflict{
 			Columns:   []clause.Column{{Name: "name"}},
 			DoUpdates: clause.AssignmentColumns([]string{"description"}),
-		}).Create(&r)
+		}).Create(&role)
 	}
+
+	// Fetch roles to get IDs
+	var superAdminRole, adminRole, designerRole rbacDomain.Role
+	db.Where("name = ?", "administrator").First(&superAdminRole)
+	db.Where("name = ?", "admin").First(&adminRole)
+	db.Where("name = ?", "designer").First(&designerRole)
 
 	// 3. Link Roles to Permissions
 	// Admin: Manage users & products
@@ -75,6 +84,9 @@ func main() {
 		Columns:   []clause.Column{{Name: "username"}},
 		DoUpdates: clause.AssignmentColumns([]string{"password"}),
 	}).Create(&adminUser)
+
+	// Fetch user to get ID
+	db.Where("username = ?", "administrator").First(&adminUser)
 
 	// 5. Link User to Role
 	db.Model(&adminUser).Association("Roles").Replace(&superAdminRole)
