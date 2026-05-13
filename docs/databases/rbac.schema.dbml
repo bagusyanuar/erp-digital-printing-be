@@ -1,0 +1,48 @@
+// RBAC Schema for Multi-Role Support with Casbin
+Table roles {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(50) [unique, not null]
+  description text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+}
+
+Table user_roles {
+  user_id uuid [pk]
+  role_id uuid [pk]
+  created_at timestamp [default: `now()`]
+}
+
+Table permissions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(100) [unique, not null]
+  resource varchar(50) [not null] // e.g., 'users'
+  action varchar(20) [not null]   // e.g., 'create', 'read'
+  description text
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+}
+
+Table role_permissions {
+  role_id uuid [pk]
+  permission_id uuid [pk]
+  created_at timestamp [default: `now()`]
+}
+
+// Casbin Engine Table (Managed by Adapter)
+Table casbin_rule {
+  id bigserial [pk]
+  ptype varchar(100)
+  v0 varchar(100)
+  v1 varchar(100)
+  v2 varchar(100)
+  v3 varchar(100)
+  v4 varchar(100)
+  v5 varchar(100)
+}
+
+Ref: user_roles.user_id > users.id
+Ref: user_roles.role_id > roles.id
+Ref: role_permissions.role_id > roles.id
+Ref: role_permissions.permission_id > permissions.id

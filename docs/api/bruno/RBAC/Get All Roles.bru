@@ -1,0 +1,49 @@
+meta {
+  name: Get All Roles
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/rbac/roles
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+docs {
+  # Get All Roles
+  
+  Endpoint untuk mengambil semua daftar role beserta permission yang dimilikinya.
+  
+  ### Sample Success Response:
+  ```json
+  {
+    "message": "Roles fetched successfully",
+    "data": [
+      {
+        "id": "uuid-1",
+        "name": "administrator",
+        "description": "Super Administrator",
+        "permissions": []
+      },
+      {
+        "id": "uuid-2",
+        "name": "designer",
+        "description": "Designer Staff",
+        "permissions": [
+          {
+            "id": "perm-1",
+            "name": "products:read",
+            "resource": "products",
+            "action": "read"
+          }
+        ]
+      }
+    ]
+  }
+  ```
+}

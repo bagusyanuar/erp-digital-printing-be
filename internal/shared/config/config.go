@@ -10,8 +10,9 @@ import (
 type Config struct {
 	App AppConfig `mapstructure:",squash"`
 	DB  DBConfig  `mapstructure:",squash"`
-	JWT JWTConfig `mapstructure:",squash"`
-	Log LogConfig `mapstructure:",squash"`
+	JWT    JWTConfig    `mapstructure:",squash"`
+	Log    LogConfig    `mapstructure:",squash"`
+	Casbin CasbinConfig `mapstructure:",squash"`
 }
 
 type AppConfig struct {
@@ -47,6 +48,10 @@ type LogConfig struct {
 	MaxAge     int    `mapstructure:"LOG_MAX_AGE"`
 	Compress   bool   `mapstructure:"LOG_COMPRESS"`
 	Level      string `mapstructure:"LOG_LEVEL"`
+}
+
+type CasbinConfig struct {
+	ModelPath string `mapstructure:"CASBIN_MODEL_PATH"`
 }
 
 func LoadConfig() (*Config, error) {
@@ -99,6 +104,9 @@ func setDefaults() {
 	viper.SetDefault("LOG_MAX_AGE", 7)
 	viper.SetDefault("LOG_COMPRESS", true)
 	viper.SetDefault("LOG_LEVEL", "info")
+
+	// Casbin
+	viper.SetDefault("CASBIN_MODEL_PATH", "configs/rbac_model.conf")
 }
 
 func (c *Config) validate() error {

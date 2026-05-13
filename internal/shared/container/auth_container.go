@@ -10,12 +10,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func newAuthHandler(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *http.AuthHandler {
+func newAuthHandler(db *gorm.DB, cfg *config.Config, logger *zap.Logger, accessJWT jwt.JWTUtil) *http.AuthHandler {
 	// We reuse user repository for authentication
 	userRepo := userRepository.NewUserRepository(db)
 	
-	// Create separate JWT utilities for access and refresh tokens
-	accessJWT := jwt.NewJWTUtil(cfg.JWT.Secret, cfg.JWT.Issuer)
+	// Create separate JWT utility for refresh tokens
 	refreshJWT := jwt.NewJWTUtil(cfg.JWT.SecretRefresh, cfg.JWT.Issuer)
 
 	authUsecase := usecase.NewAuthUsecase(userRepo, accessJWT, refreshJWT, cfg, logger)

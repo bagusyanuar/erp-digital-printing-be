@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/bagusyanuar/erp-digital-printing-be/internal/rbac/domain"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -12,9 +13,10 @@ type User struct {
 	ID        uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Username  string     `gorm:"unique;not null" json:"username"`
 	Password  string     `gorm:"not null" json:"-"`
-	CreatedAt time.Time  `json:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at"`
-	DeletedAt *time.Time `gorm:"index" json:"deleted_at,omitempty"`
+	CreatedAt time.Time     `json:"created_at"`
+	UpdatedAt time.Time     `json:"updated_at"`
+	DeletedAt *time.Time    `gorm:"index" json:"deleted_at,omitempty"`
+	Roles     []domain.Role `gorm:"many2many:user_roles;" json:"roles,omitempty"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {

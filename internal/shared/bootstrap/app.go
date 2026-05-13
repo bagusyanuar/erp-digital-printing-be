@@ -9,6 +9,7 @@ import (
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/database"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/logger"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/container"
+	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/middleware"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/response"
 
 	"github.com/gofiber/fiber/v3"
@@ -85,17 +86,27 @@ func (a *App) SetupRoutes() {
 	api := a.Fiber.Group("/api")
 	v1 := api.Group("/v1")
 
-	// Auth Routes
+	// Auth Routes (Public)
 	authRoutes := v1.Group("/auth")
 	authRoutes.Post("/login", a.Container.AuthHandler.Login)
 
+	// Protected Routes (Auth + RBAC)
+	protected := v1.Group("/", middleware.AuthMiddleware(a.Container.JWTUtil), middleware.RBACMiddleware(a.Container.Casbin))
+
 	// User Routes
-	userRoutes := v1.Group("/users")
+	userRoutes := protected.Group("/users")
 	userRoutes.Post("/", a.Container.UserHandler.Create)
 	userRoutes.Get("/", a.Container.UserHandler.FindAll)
 	userRoutes.Get("/:id", a.Container.UserHandler.FindByID)
 	userRoutes.Put("/:id", a.Container.UserHandler.Update)
 	userRoutes.Delete("/:id", a.Container.UserHandler.Delete)
+
+	// RBAC Management Routes
+	rbacRoutes := protected.Group("/rbac")
+	rbacRoutes.Post("/roles", a.Container.RBACHandler.CreateRole)
+	rbacRoutes.Get("/roles", a.Container.RBACHandler.FindAllRoles)
+	rbacRoutes.Delete("/roles/:id", a.Container.RBACHandler.DeleteRole)
+	rbacRoutes.Post("/assign-role", a.Container.RBACHandler.AssignRoleToUser)
 }
 
 func (a *App) Start() error {
