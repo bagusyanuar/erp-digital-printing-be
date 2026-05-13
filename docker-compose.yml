@@ -2,6 +2,7 @@ services:
   db:
     image: postgres:16-alpine
     container_name: erp-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password123}
@@ -12,24 +13,29 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - erp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-db_erp_printing}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   app:
-    build: .
+    image: ghcr.io/bagusyanuar/erp-digital-printing-be:latest
     container_name: erp-app
+    restart: unless-stopped
     env_file: .env
     environment:
       DB_HOST: db
-      DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-password123}
-      DB_NAME: ${DB_NAME:-db_erp_printing}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - erp-network
 
   nginx:
     image: nginx:alpine
     container_name: erp-nginx
+    restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
