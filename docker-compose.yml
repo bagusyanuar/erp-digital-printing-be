@@ -26,6 +26,7 @@ services:
     env_file: .env
     environment:
       DB_HOST: db
+      DB_PASSWORD: ${DB_PASSWORD:-password123}
     depends_on:
       db:
         condition: service_healthy
