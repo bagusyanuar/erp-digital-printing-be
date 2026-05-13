@@ -41,6 +41,11 @@ docker compose up -d
 ```
 Aplikasi dapat diakses di: `https://api.made-printing.local`
 
+> [!TIP]
+> **Kapan menggunakan `--build`?**
+> - Gunakan flag `--build` (contoh: `up --build`) jika Anda melakukan perubahan pada file `.go`, `go.mod`, atau file konfigurasi di folder `configs/`.
+> - Jika tidak ada perubahan kode dan hanya ingin menjalankan aplikasi di background, gunakan flag `-d` (contoh: `up -d`).
+
 ---
 
 ## 2. CI/CD - GitHub Container Registry (GHCR)
