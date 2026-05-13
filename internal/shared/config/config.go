@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -61,9 +62,16 @@ func LoadConfig() (*Config, error) {
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
 	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Bind all keys to environment variables so Unmarshal works without a config file
+	bindAllEnvKeys()
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Printf("[CONFIG] Warning: %v\n", err)
+		// Only log warning if not in Docker/Production where ENV is used
+		if viper.GetString("APP_ENV") != "production" {
+			fmt.Printf("[CONFIG] Warning: %v\n", err)
+		}
 	}
 
 	var config Config
@@ -107,6 +115,19 @@ func setDefaults() {
 
 	// Casbin
 	viper.SetDefault("CASBIN_MODEL_PATH", "configs/rbac_model.conf")
+}
+
+func bindAllEnvKeys() {
+	keys := []string{
+		"APP_NAME", "APP_VERSION", "APP_ENV", "APP_PORT", "APP_DEBUG", "APP_CORS_ALLOWED_ORIGINS",
+		"DB_HOST", "DB_PORT", "DB_USER", "DB_PASSWORD", "DB_NAME", "DB_SSLMODE",
+		"JWT_ISSUER", "JWT_SECRET", "JWT_EXPIRATION", "JWT_SECRET_REFRESH", "JWT_EXPIRATION_REFRESH",
+		"LOG_FILE", "LOG_MAX_SIZE", "LOG_MAX_BACKUPS", "LOG_MAX_AGE", "LOG_COMPRESS", "LOG_LEVEL",
+		"CASBIN_MODEL_PATH",
+	}
+	for _, key := range keys {
+		viper.BindEnv(key)
+	}
 }
 
 func (c *Config) validate() error {

@@ -1,0 +1,13 @@
+.git
+.github
+.vscode
+.antigravity
+.gemini
+.logs
+tmp
+bin
+vendor
+Dockerfile
+docker-compose.yml
+.env
+*.log
