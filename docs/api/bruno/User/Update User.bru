@@ -1,0 +1,40 @@
+meta {
+  name: Update User
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/users/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {
+    "username": "updated_username",
+    "password": "new_password_if_needed"
+  }
+}
+
+docs {
+  # Update User
+  
+  Memperbarui data user. Password opsional, jika diisi akan di-hash ulang.
+  
+  ### Sample Success Response:
+  ```json
+  {
+    "message": "User updated successfully",
+    "data": {
+      "id": "uuid-string",
+      "username": "updated_username",
+      "updated_at": "2026-05-13T10:10:00Z"
+    }
+  }
+  ```
+}

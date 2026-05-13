@@ -28,6 +28,9 @@ func NewCasbinHelper(db *gorm.DB, modelPath string) (*CasbinHelper, error) {
 		return nil, fmt.Errorf("failed to load casbin policy: %w", err)
 	}
 
+	// Enable AutoSave to persist changes to DB immediately
+	enforcer.EnableAutoSave(true)
+
 	return &CasbinHelper{
 		Enforcer: enforcer,
 	}, nil

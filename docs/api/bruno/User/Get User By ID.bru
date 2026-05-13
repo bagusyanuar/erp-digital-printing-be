@@ -1,0 +1,40 @@
+meta {
+  name: Get User By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/users/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Get User By ID
+  
+  Mendapatkan detail user berdasarkan UUID.
+  
+  ### Sample Success Response:
+  ```json
+  {
+    "message": "User fetched successfully",
+    "data": {
+      "id": "uuid-string",
+      "username": "staff_designer",
+      "roles": [
+        {
+          "id": "role-uuid",
+          "name": "designer"
+        }
+      ],
+      "created_at": "2026-05-13T10:00:00Z",
+      "updated_at": "2026-05-13T10:00:00Z"
+    }
+  }
+  ```
+}

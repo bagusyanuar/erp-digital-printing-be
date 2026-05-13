@@ -29,6 +29,8 @@ func AuthMiddleware(jwtUtil jwt.JWTUtil) fiber.Handler {
 		// Store user info in locals
 		c.Locals("user_id", claims.UserID)
 		c.Locals("username", claims.Username)
+		c.Locals("roles", claims.Roles)
+		c.Locals("permissions", claims.Permissions)
 
 		return c.Next()
 	}

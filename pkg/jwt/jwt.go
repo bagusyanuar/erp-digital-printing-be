@@ -10,12 +10,14 @@ import (
 
 type Claims struct {
 	UserID   uuid.UUID `json:"user_id"`
-	Username string    `json:"username"`
+	Username    string    `json:"username"`
+	Roles       []string  `json:"roles"`
+	Permissions []string  `json:"permissions"`
 	jwt.RegisteredClaims
 }
 
 type JWTUtil interface {
-	GenerateToken(userID uuid.UUID, username string, duration time.Duration) (string, error)
+	GenerateToken(userID uuid.UUID, username string, roles []string, perms []string, duration time.Duration) (string, error)
 	ParseToken(tokenString string) (*Claims, error)
 }
 
@@ -31,10 +33,12 @@ func NewJWTUtil(secretKey string, issuer string) JWTUtil {
 	}
 }
 
-func (j *jwtUtil) GenerateToken(userID uuid.UUID, username string, duration time.Duration) (string, error) {
+func (j *jwtUtil) GenerateToken(userID uuid.UUID, username string, roles []string, perms []string, duration time.Duration) (string, error) {
 	claims := &Claims{
-		UserID:   userID,
-		Username: username,
+		UserID:      userID,
+		Username:    username,
+		Roles:       roles,
+		Permissions: perms,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

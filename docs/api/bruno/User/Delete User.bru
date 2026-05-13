@@ -1,0 +1,29 @@
+meta {
+  name: Delete User
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/users/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Delete User
+  
+  Menghapus user secara permanen dari database.
+  
+  ### Sample Success Response:
+  ```json
+  {
+    "message": "User deleted successfully",
+    "data": null
+  }
+  ```
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/auth/refresh
+  body: none
+  auth: none
+}
+
+docs {
+  # Refresh Token API
+  
+  Endpoint untuk memperbarui Access Token menggunakan Refresh Token yang disimpan di **HttpOnly Cookie**.
+  
+  ### Behavior:
+  1. Mengambil `refresh_token` dari Cookie.
+  2. Melakukan **Token Rotation** (mengeluarkan Access Token baru DAN Refresh Token baru).
+  3. Mengupdate Cookie dengan Refresh Token yang baru.
+  
+  ### Sample Success Response:
+  ```json
+  {
+    "message": "Token refreshed successfully",
+    "data": {
+      "access_token": "new-access-token-string"
+    }
+  }
+  ```
+}
