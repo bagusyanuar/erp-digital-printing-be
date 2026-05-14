@@ -1,0 +1,31 @@
+meta {
+  name: Update Reseller
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/resellers/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {
+    "name": "Biro Cetak Sejahtera Updated",
+    "email": "biro.update@example.com",
+    "phone": "081234567891",
+    "address": "Jl. Baru No. 456",
+    "credit_limit": 10000000
+  }
+}
+
+docs {
+  # Update Reseller
+  
+  Memperbarui data reseller yang sudah ada.
+}

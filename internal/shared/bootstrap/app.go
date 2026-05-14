@@ -108,6 +108,14 @@ func (a *App) SetupRoutes() {
 	rbacRoutes.Get("/roles", a.Container.RBACHandler.FindAllRoles)
 	rbacRoutes.Delete("/roles/:id", a.Container.RBACHandler.DeleteRole)
 	rbacRoutes.Post("/assign-role", a.Container.RBACHandler.AssignRoleToUser)
+
+	// Reseller Routes
+	resellerRoutes := protected.Group("/resellers")
+	resellerRoutes.Post("/", a.Container.ResellerHandler.Create)
+	resellerRoutes.Get("/", a.Container.ResellerHandler.FindAll)
+	resellerRoutes.Get("/:id", a.Container.ResellerHandler.FindByID)
+	resellerRoutes.Put("/:id", a.Container.ResellerHandler.Update)
+	resellerRoutes.Delete("/:id", a.Container.ResellerHandler.Delete)
 }
 
 func (a *App) Start() error {

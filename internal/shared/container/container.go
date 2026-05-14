@@ -4,6 +4,7 @@ import (
 	authHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/auth/delivery/http"
 	rbacHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/rbac/delivery/http"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/config"
+	resellerHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/reseller/delivery/http"
 	userHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/user/delivery/http"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/casbin"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/jwt"
@@ -14,7 +15,8 @@ import (
 type Container struct {
 	UserHandler *userHttp.UserHandler
 	AuthHandler *authHttp.AuthHandler
-	RBACHandler *rbacHttp.RBACHandler
+	RBACHandler     *rbacHttp.RBACHandler
+	ResellerHandler *resellerHttp.ResellerHandler
 	JWTUtil     jwt.JWTUtil
 	Casbin      *casbin.CasbinHelper
 }
@@ -30,8 +32,9 @@ func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Containe
 	return &Container{
 		UserHandler: newUserHandler(db, logger),
 		AuthHandler: newAuthHandler(db, cfg, logger, jwtUtil),
-		RBACHandler: newRBACHandler(db, csb, logger),
-		JWTUtil:     jwtUtil,
-		Casbin:      csb,
+		RBACHandler:     newRBACHandler(db, csb, logger),
+		ResellerHandler: newResellerHandler(db, logger),
+		JWTUtil:         jwtUtil,
+		Casbin:          csb,
 	}
 }

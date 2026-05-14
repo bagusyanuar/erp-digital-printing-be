@@ -1,0 +1,27 @@
+meta {
+  name: Create Reseller
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/resellers
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Biro Cetak Sejahtera",
+    "email": "biro.sejahtera@example.com",
+    "phone": "081234567890",
+    "address": "Jl. Raya Printing No. 123",
+    "credit_limit": 5000000
+  }
+}
+
+docs {
+  # Create Reseller
+  
+  Menambahkan reseller / biro baru ke sistem.
+}

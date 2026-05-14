@@ -1,0 +1,21 @@
+meta {
+  name: Delete Reseller
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/resellers/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Delete Reseller
+  
+  Menghapus reseller (soft delete).
+}
