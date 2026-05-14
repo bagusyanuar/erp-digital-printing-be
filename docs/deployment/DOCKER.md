@@ -84,3 +84,35 @@ Setiap build dari Git Tag akan menghasilkan image dengan tag:
   ```bash
   docker compose down -v --rmi all
   ```
+
+---
+
+## 4. Remote Migration & Seeding (VPS)
+
+Jika aplikasi berjalan di VPS dan Anda ingin melakukan migrasi atau seeding tanpa menginstall Go di server:
+
+### Step 1: Buka SSH Tunnel
+Jalankan di terminal Mac Anda:
+```bash
+ssh -L 5433:localhost:5432 user@ip-vps-anda
+```
+*Biarkan terminal ini tetap terbuka.*
+
+### Step 2: Konfigurasi .env Lokal
+Pastikan `.env` di Mac Anda mengarah ke port tunnel:
+```env
+DB_HOST=localhost
+DB_PORT=5433
+DB_PASSWORD=password_db_vps
+```
+
+### Step 3: Jalankan Command
+Jalankan dari terminal Mac Anda:
+```bash
+make migrate-up
+make db-seed
+```
+
+### Step 4: Verifikasi
+Gunakan DBeaver atau Bruno untuk mengecek data di `localhost:5433`. Jika sudah selesai, tutup koneksi SSH di Step 1.
+
