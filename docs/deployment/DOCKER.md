@@ -1,118 +1,76 @@
 # Deployment Guide - Docker & GHCR
 
-Panduan untuk menjalankan aplikasi ERP Digital Printing menggunakan Docker dan otomatisasi deployment ke GitHub Container Registry (GHCR).
+Panduan untuk membangun Docker image secara mandiri dan menjalankan aplikasi dalam container.
 
-## 1. Local Development (HTTPS)
+## 1. Membangun Image Secara Lokal
 
-Aplikasi dijalankan menggunakan Docker Compose dengan Nginx sebagai Reverse Proxy untuk mendukung HTTPS lokal.
-
-### Persiapan SSL (mkcert)
-Gunakan `mkcert` untuk membuat sertifikat SSL yang valid di lokal:
+Jika Anda ingin mencoba membangun (build) image secara manual di mesin lokal:
 
 ```bash
-# Buat folder cert jika belum ada
-mkdir -p docker/nginx/cert
-
-# Generate sertifikat wildcard
-mkcert -cert-file docker/nginx/cert/made-printing.local.pem \
-       -key-file docker/nginx/cert/made-printing.local-key.pem \
-       "*.made-printing.local" made-printing.local localhost 127.0.0.1
+docker build -t erp-app:local .
 ```
-
-### Domain Mapping
-Tambahkan domain berikut ke file `/etc/hosts` Anda:
-
-```text
-127.0.0.1 api.made-printing.local
-```
-
-### Menjalankan Aplikasi
-
-**Mode Development (Local Build):**
-Gunakan ini di Mac untuk membangun aplikasi dari source code lokal:
-```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-```
-
-**Mode Production (Server / GHCR Image):**
-Gunakan ini di server untuk menarik image langsung dari GitHub:
-```bash
-docker compose up -d
-```
-Aplikasi dapat diakses di: `https://api.made-printing.local`
-
-> [!TIP]
-> **Kapan menggunakan `--build`?**
-> - Gunakan flag `--build` (contoh: `up --build`) jika Anda melakukan perubahan pada file `.go`, `go.mod`, atau file konfigurasi di folder `configs/`.
-> - Jika tidak ada perubahan kode dan hanya ingin menjalankan aplikasi di background, gunakan flag `-d` (contoh: `up -d`).
 
 ---
 
-## 2. CI/CD - GitHub Container Registry (GHCR)
+## 2. Menjalankan Container Mandiri (Standalone)
 
-Aplikasi dikonfigurasi untuk otomatis membangun dan mengirim (push) Docker image ke GHCR hanya ketika ada **Git Tag** baru.
+Jika Anda ingin menjalankan backend di dalam Docker tetapi menggunakan **Database Lokal (DBngin/Native)** di Mac:
+
+### Langkah 1: Persiapan .env
+Pastikan `.env` Anda menggunakan host khusus agar container bisa mengakses localhost Mac:
+```env
+DB_HOST=host.docker.internal
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=
+DB_NAME=db_erp_printing
+```
+
+### Langkah 2: Jalankan Container
+```bash
+docker run -d \
+  --name erp-backend \
+  -p 8000:8000 \
+  --env-file .env \
+  --add-host=host.docker.internal:host-gateway \
+  erp-app:local
+```
+
+---
+
+## 3. CI/CD - GitHub Container Registry (GHCR)
+
+Aplikasi otomatis dibangun dan dikirim ke GHCR ketika ada **Git Tag** baru.
 
 ### Cara Melakukan Release
-1. Pastikan kode sudah di-push ke branch `main`.
-2. Buat tag baru dengan format `v*.*.*`:
+1. Push kode ke branch `main`.
+2. Buat tag baru:
    ```bash
    git tag v1.0.0
    git push origin v1.0.0
    ```
-3. GitHub Actions akan otomatis mendeteksi tag tersebut dan memulai proses build.
-4. Image hasil build akan tersedia di: `ghcr.io/<username>/erp-digital-printing-be`
-
-### Tagging Strategy
-Setiap build dari Git Tag akan menghasilkan image dengan tag:
-- `v1.0.0` (sesuai versi tag)
-- `1.0` (minor version)
-- `latest` (selalu menunjuk ke versi tag terbaru)
+3. Image akan tersedia di: `ghcr.io/bagusyanuar/erp-digital-printing-be:latest`
 
 ---
 
-## 3. Perintah Dasar Docker
+## 4. Orchestration (Production)
 
-- **Melihat Log**:
-  ```bash
-  docker compose logs -f app
-  ```
-- **Menghentikan Aplikasi**:
-  ```bash
-  docker compose down
-  ```
-- **Membersihkan Image & Volume**:
-  ```bash
-  docker compose down -v --rmi all
-  ```
+Untuk keperluan deployment skala produksi (BE + FE + Nginx + DB), silakan merujuk ke repository deployment terpisah:
+👉 `erp-digital-printing-deploy`
 
 ---
 
-## 4. Remote Migration & Seeding (VPS)
+## 5. Remote Migration & Seeding (VPS)
 
-Jika aplikasi berjalan di VPS dan Anda ingin melakukan migrasi atau seeding tanpa menginstall Go di server:
+Jika aplikasi sudah berjalan di VPS dan ingin melakukan migrasi dari Mac:
 
-### Step 1: Buka SSH Tunnel
-Jalankan di terminal Mac Anda:
+### Step 1: SSH Tunnel
 ```bash
-ssh -L 5433:localhost:5432 user@ip-vps-anda
-```
-*Biarkan terminal ini tetap terbuka.*
-
-### Step 2: Konfigurasi .env Lokal
-Pastikan `.env` di Mac Anda mengarah ke port tunnel:
-```env
-DB_HOST=localhost
-DB_PORT=5433
-DB_PASSWORD=password_db_vps
+ssh -L 5433:localhost:5432 user@ip-vps
 ```
 
-### Step 3: Jalankan Command
-Jalankan dari terminal Mac Anda:
+### Step 2: Jalankan Command
 ```bash
-make migrate-up
-make db-seed
+make migrate-up DB_PORT=5433
+make db-seed DB_PORT=5433
 ```
-
-### Step 4: Verifikasi
-Gunakan DBeaver atau Bruno untuk mengecek data di `localhost:5433`. Jika sudah selesai, tutup koneksi SSH di Step 1.
-
