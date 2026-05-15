@@ -70,6 +70,7 @@ func (h *AuthHandler) Logout(c fiber.Ctx) error {
 		HTTPOnly: true,
 		Secure:   true,
 		SameSite: "None",
+		Partitioned: true,
 		Path:     "/",
 	})
 
@@ -84,6 +85,7 @@ func (h *AuthHandler) setRefreshTokenCookie(c fiber.Ctx, token string) {
 		HTTPOnly: true,
 		Secure:   true,   // Wajib true kalau SameSite=None
 		SameSite: "None", // Biar cookie nggak hilang pas reload di cross-site context
+		Partitioned: true, // Tambah partitioned biar nggak kena blokir third-party browser
 		Path:     "/",
 	})
 }
