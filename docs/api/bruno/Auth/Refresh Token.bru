@@ -10,6 +10,13 @@ post {
   auth: none
 }
 
+script:post-response {
+  const data = res.getBody();
+  if (data.data && data.data.access_token) {
+    bru.setEnvVar("accessToken", data.data.access_token);
+  }
+}
+
 docs {
   # Refresh Token API
   
