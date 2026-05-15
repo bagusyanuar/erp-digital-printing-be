@@ -90,6 +90,7 @@ func (a *App) SetupRoutes() {
 	authRoutes := v1.Group("/auth")
 	authRoutes.Post("/login", a.Container.AuthHandler.Login)
 	authRoutes.Post("/refresh", a.Container.AuthHandler.RefreshToken)
+	authRoutes.Post("/logout", a.Container.AuthHandler.Logout)
 
 	// Protected Routes (Auth + RBAC)
 	protected := v1.Group("/", middleware.AuthMiddleware(a.Container.JWTUtil), middleware.RBACMiddleware(a.Container.Casbin))

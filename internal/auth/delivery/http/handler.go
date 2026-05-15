@@ -62,14 +62,28 @@ func (h *AuthHandler) RefreshToken(c fiber.Ctx) error {
 	}, nil)
 }
 
+func (h *AuthHandler) Logout(c fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "None",
+		Path:     "/",
+	})
+
+	return response.Success[any](c, "Logout successful", nil, nil)
+}
+
 func (h *AuthHandler) setRefreshTokenCookie(c fiber.Ctx, token string) {
 	c.Cookie(&fiber.Cookie{
 		Name:     "refresh_token",
 		Value:    token,
 		Expires:  time.Now().Add(time.Hour * 24 * 30),
 		HTTPOnly: true,
-		Secure:   h.cfg.App.Env == "production",
-		SameSite: "Lax",
+		Secure:   true,   // Wajib true kalau SameSite=None
+		SameSite: "None", // Biar cookie nggak hilang pas reload di cross-site context
 		Path:     "/",
 	})
 }
