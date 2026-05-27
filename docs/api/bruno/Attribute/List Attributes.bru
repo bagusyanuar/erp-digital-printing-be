@@ -1,0 +1,32 @@
+meta {
+  name: List Attributes
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/attributes?page=1&limit=10&search=&sort_by=created_at&sort_order=desc
+  body: none
+  auth: inherit
+}
+
+query {
+  page: 1
+  limit: 10
+  search: 
+  sort_by: created_at
+  sort_order: desc
+}
+
+docs {
+  # List Attributes
+  
+  Mendapatkan daftar semua spesifikasi atribut dengan dukungan pagination, searching, dan sorting.
+  
+  ### Query Parameters:
+  - `page`: Nomor halaman (default: 1)
+  - `limit`: Jumlah data per halaman (default: 10)
+  - `search`: Kata kunci pencarian (name, code)
+  - `sort_by`: Kolom pengurutan (default: created_at)
+  - `sort_order`: Urutan (asc/desc, default: desc)
+}

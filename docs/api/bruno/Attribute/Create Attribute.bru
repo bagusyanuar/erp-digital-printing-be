@@ -1,0 +1,30 @@
+meta {
+  name: Create Attribute
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/attributes
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Gramasi",
+    "value_type": "text"
+  }
+}
+
+docs {
+  # Create Attribute
+  
+  Menambahkan atribut master baru ke sistem. Atribut code akan di-generate otomatis menjadi lowercase snake_case (misal: "Bahan Kertas" -> "bahan_kertas").
+  
+  ### Validasi `value_type`:
+  - `text`
+  - `number`
+  - `boolean`
+  - `options`
+}

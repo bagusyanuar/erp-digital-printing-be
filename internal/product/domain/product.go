@@ -10,6 +10,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// UOM Constants
+const (
+	UomPcs   = "pcs"
+	UomM2    = "m2"
+	UomMLari = "m_lari"
+	UomBox   = "box"
+)
+
 // Product model
 type Product struct {
 	ID         uuid.UUID               `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
@@ -127,3 +135,20 @@ type ProductUsecase interface {
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
+
+type AttributeRepository interface {
+	Create(ctx context.Context, attribute *Attribute) error
+	FindByID(ctx context.Context, id uuid.UUID) (*Attribute, error)
+	FindAll(ctx context.Context, params request.PaginationParam, search string) ([]Attribute, int64, error)
+	Update(ctx context.Context, attribute *Attribute) error
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+
+type AttributeUsecase interface {
+	Create(ctx context.Context, attribute *Attribute) error
+	FindByID(ctx context.Context, id uuid.UUID) (*Attribute, error)
+	FindAll(ctx context.Context, params request.PaginationParam, search string) ([]Attribute, int64, error)
+	Update(ctx context.Context, attribute *Attribute) error
+	Delete(ctx context.Context, id uuid.UUID) error
+}
+

@@ -1,0 +1,21 @@
+meta {
+  name: Get Attribute By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/attributes/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Get Attribute By ID
+  
+  Mendapatkan detail atribut berdasarkan ID (UUID).
+}

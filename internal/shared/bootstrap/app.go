@@ -125,6 +125,14 @@ func (a *App) SetupRoutes() {
 	categoryRoutes.Get("/:id", a.Container.CategoryHandler.FindByID)
 	categoryRoutes.Put("/:id", a.Container.CategoryHandler.Update)
 	categoryRoutes.Delete("/:id", a.Container.CategoryHandler.Delete)
+
+	// Attribute Routes
+	attributeRoutes := protected.Group("/attributes")
+	attributeRoutes.Post("/", a.Container.AttributeHandler.Create)
+	attributeRoutes.Get("/", a.Container.AttributeHandler.FindAll)
+	attributeRoutes.Get("/:id", a.Container.AttributeHandler.FindByID)
+	attributeRoutes.Put("/:id", a.Container.AttributeHandler.Update)
+	attributeRoutes.Delete("/:id", a.Container.AttributeHandler.Delete)
 }
 
 func (a *App) Start() error {

@@ -1,0 +1,21 @@
+meta {
+  name: Delete Attribute
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/attributes/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Delete Attribute
+  
+  Melakukan soft-delete pada data atribut berdasarkan ID (UUID).
+}

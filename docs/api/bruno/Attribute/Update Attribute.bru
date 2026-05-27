@@ -1,0 +1,28 @@
+meta {
+  name: Update Attribute
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/attributes/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {
+    "name": "Bahan Kertas Baru",
+    "value_type": "text"
+  }
+}
+
+docs {
+  # Update Attribute
+  
+  Memperbarui data atribut master yang sudah ada. Kode atribut akan di-generate ulang secara otomatis.
+}
