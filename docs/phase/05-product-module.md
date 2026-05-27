@@ -32,11 +32,11 @@ Implement core product schema with EAV (Entity-Attribute-Value), Tiered Pricing 
 - [x] Define Repository & Usecase Interfaces for Products & Bundles.
 
 ### 3. Core Product CRUD & EAV Engine
-- [ ] Implement Product Repository (GORM) with preloading of variants and EAV attribute values.
-- [ ] Implement Usecase logic for Product management (creating default variant upon product creation).
-- [ ] Create HTTP Handlers and DTOs for Products & Variants.
-- [ ] Register module in DI Container & Router bootstrap.
-- [ ] Create Bruno API Collection for Product Module.
+- [x] Implement Product Repository (GORM) with preloading of variants and EAV attribute values.
+- [x] Implement Usecase logic for Product management (creating default variant upon product creation).
+- [x] Create HTTP Handlers and DTOs for Products & Variants.
+- [x] Register module in DI Container & Router bootstrap.
+- [x] Create Bruno API Collection for Product Module.
 
 ## Technical Details
 - **Database Sequence**: Create `customer_levels` before `products` and `price_tiers` to avoid FK errors.

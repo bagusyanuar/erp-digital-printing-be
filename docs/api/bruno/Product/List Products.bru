@@ -1,0 +1,34 @@
+meta {
+  name: List Products
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/products?page=1&limit=10&search=&category_id=&sort_by=created_at&sort_order=desc
+  body: none
+  auth: inherit
+}
+
+query {
+  page: 1
+  limit: 10
+  search: 
+  category_id: 
+  sort_by: created_at
+  sort_order: desc
+}
+
+docs {
+  # List Products
+  
+  Mendapatkan daftar semua produk beserta seluruh varian kustom, spesifikasi EAV, dan harga berjenjangnya.
+  
+  ### Query Parameters:
+  - `page`: Nomor halaman (default: 1)
+  - `limit`: Jumlah data per halaman (default: 10)
+  - `search`: Kata kunci pencarian (name, sku)
+  - `category_id`: Filter berdasarkan UUID Kategori (opsional)
+  - `sort_by`: Kolom pengurutan (default: created_at)
+  - `sort_order`: Urutan (asc/desc, default: desc)
+}

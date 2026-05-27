@@ -1,0 +1,21 @@
+meta {
+  name: Delete Product
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/products/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Delete Product
+  
+  Melakukan soft-delete pada data produk beserta seluruh varian kustom, spesifikasi, dan harga berjenjangnya (cascade delete).
+}

@@ -133,6 +133,15 @@ func (a *App) SetupRoutes() {
 	attributeRoutes.Get("/:id", a.Container.AttributeHandler.FindByID)
 	attributeRoutes.Put("/:id", a.Container.AttributeHandler.Update)
 	attributeRoutes.Delete("/:id", a.Container.AttributeHandler.Delete)
+
+	// Product & Variant Routes
+	productRoutes := protected.Group("/products")
+	productRoutes.Post("/", a.Container.ProductHandler.Create)
+	productRoutes.Get("/", a.Container.ProductHandler.FindAll)
+	productRoutes.Get("/:id", a.Container.ProductHandler.FindByID)
+	productRoutes.Put("/:id", a.Container.ProductHandler.Update)
+	productRoutes.Delete("/:id", a.Container.ProductHandler.Delete)
+	productRoutes.Post("/:product_id/variants", a.Container.ProductHandler.CreateVariant)
 }
 
 func (a *App) Start() error {

@@ -15,14 +15,15 @@ import (
 )
 
 type Container struct {
-	UserHandler     *userHttp.UserHandler
-	AuthHandler     *authHttp.AuthHandler
-	RBACHandler     *rbacHttp.RBACHandler
-	ResellerHandler *resellerHttp.ResellerHandler
-	CategoryHandler  *categoryHttp.CategoryHandler
-	AttributeHandler *productHttp.AttributeHandler
-	JWTUtil          jwt.JWTUtil
-	Casbin           *casbin.CasbinHelper
+	UserHandler      *userHttp.UserHandler
+	AuthHandler      *authHttp.AuthHandler
+	RBACHandler      *rbacHttp.RBACHandler
+	ResellerHandler  *resellerHttp.ResellerHandler
+	CategoryHandler   *categoryHttp.CategoryHandler
+	AttributeHandler  *productHttp.AttributeHandler
+	ProductHandler    *productHttp.ProductHandler
+	JWTUtil           jwt.JWTUtil
+	Casbin            *casbin.CasbinHelper
 }
 
 func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Container {
@@ -34,13 +35,14 @@ func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Containe
 	}
 
 	return &Container{
-		UserHandler:     newUserHandler(db, logger),
-		AuthHandler:     newAuthHandler(db, cfg, logger, jwtUtil),
-		RBACHandler:     newRBACHandler(db, csb, logger),
-		ResellerHandler: newResellerHandler(db, logger),
-		CategoryHandler:  newCategoryHandler(db, logger),
-		AttributeHandler: newAttributeHandler(db, logger),
-		JWTUtil:          jwtUtil,
-		Casbin:           csb,
+		UserHandler:      newUserHandler(db, logger),
+		AuthHandler:      newAuthHandler(db, cfg, logger, jwtUtil),
+		RBACHandler:      newRBACHandler(db, csb, logger),
+		ResellerHandler:  newResellerHandler(db, logger),
+		CategoryHandler:   newCategoryHandler(db, logger),
+		AttributeHandler:  newAttributeHandler(db, logger),
+		ProductHandler:    newProductHandler(db, logger),
+		JWTUtil:           jwtUtil,
+		Casbin:            csb,
 	}
 }

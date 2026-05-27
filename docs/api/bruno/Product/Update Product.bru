@@ -1,0 +1,31 @@
+meta {
+  name: Update Product
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/products/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {
+    "category_id": "UUID_KATEGORI_DISINI",
+    "name": "Brosur A5 Art Paper 150gr Updated",
+    "sku": "BRS-A5-AP150",
+    "uom": "pcs",
+    "base_price": 550
+  }
+}
+
+docs {
+  # Update Product
+  
+  Memperbarui data produk utama yang sudah ada.
+}

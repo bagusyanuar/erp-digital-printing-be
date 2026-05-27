@@ -13,3 +13,9 @@ func newAttributeHandler(db *gorm.DB, logger *zap.Logger) *productHttp.Attribute
 	attributeUsecase := usecase.NewAttributeUsecase(attributeRepo, logger)
 	return productHttp.NewAttributeHandler(attributeUsecase)
 }
+
+func newProductHandler(db *gorm.DB, logger *zap.Logger) *productHttp.ProductHandler {
+	productRepo := repository.NewProductRepository(db)
+	productUsecase := usecase.NewProductUsecase(productRepo, logger)
+	return productHttp.NewProductHandler(productUsecase)
+}

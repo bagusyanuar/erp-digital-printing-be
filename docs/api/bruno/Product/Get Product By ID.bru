@@ -1,0 +1,21 @@
+meta {
+  name: Get Product By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/products/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Get Product By ID
+  
+  Mendapatkan detail data produk berdasarkan ID (UUID) lengkap dengan data preloaded Kategori, Varian, spesifikasi EAV (Attributes), dan pricing tiers.
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Create Product
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/products
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "category_id": "ec086107-5c32-477d-bbce-bb0f1b1413d3",
+    "name": "Art Papper 150",
+    "sku": "ART-PAPPER-150",
+    "uom": "pcs",
+    "base_price": 500
+  }
+}
+
+docs {
+  # Create Product (Stepper Step 1)
+  
+  Menyimpan data produk utama baru. Backend akan secara otomatis membuat 1 varian default (`is_default = true`, `additional_cost = 0`) agar produk siap dipasang pricing tier di step berikutnya.
+}
