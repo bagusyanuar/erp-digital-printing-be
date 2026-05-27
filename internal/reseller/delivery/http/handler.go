@@ -26,11 +26,12 @@ func (h *ResellerHandler) Create(c fiber.Ctx) error {
 	}
 
 	reseller := &domain.Reseller{
-		Name:        req.Name,
-		Email:       req.Email,
-		Phone:       req.Phone,
-		Address:     req.Address,
-		CreditLimit: req.CreditLimit,
+		CustomerLevelID: req.CustomerLevelID,
+		Name:            req.Name,
+		Email:           req.Email,
+		Phone:           req.Phone,
+		Address:         req.Address,
+		CreditLimit:     req.CreditLimit,
 	}
 
 	if err := h.resellerUsecase.Create(c.Context(), reseller); err != nil {
@@ -97,6 +98,7 @@ func (h *ResellerHandler) Update(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusNotFound, "Reseller not found", err.Error())
 	}
 
+	reseller.CustomerLevelID = req.CustomerLevelID
 	reseller.Name = req.Name
 	reseller.Email = req.Email
 	reseller.Phone = req.Phone

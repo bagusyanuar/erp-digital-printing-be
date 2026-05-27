@@ -7,6 +7,8 @@ import (
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/config"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/database"
 	userDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/user/domain"
+	productDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/product/domain"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -94,7 +96,28 @@ func main() {
 	// 6. Sync to Casbin
 	syncCasbin(db)
 
-	log.Println("✅ Seeding RBAC completed: Roles (administrator, admin, designer) created")
+	// 7. Seed Customer Levels
+	customerLevels := []productDomain.CustomerLevel{
+		{
+			ID:                 uuid.MustParse("b3c8f3a3-b26a-4638-b7f2-841a54774844"),
+			Name:               "End User",
+			DiscountPercentage: 0,
+		},
+		{
+			ID:                 uuid.MustParse("d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154"),
+			Name:               "Reseller",
+			DiscountPercentage: 0,
+		},
+	}
+
+	for _, cl := range customerLevels {
+		db.Clauses(clause.OnConflict{
+			Columns:   []clause.Column{{Name: "id"}},
+			DoUpdates: clause.AssignmentColumns([]string{"name", "discount_percentage"}),
+		}).Create(&cl)
+	}
+
+	log.Println("✅ Seeding RBAC & Customer Levels completed: End User & Reseller created")
 }
 
 func syncCasbin(db *gorm.DB) {

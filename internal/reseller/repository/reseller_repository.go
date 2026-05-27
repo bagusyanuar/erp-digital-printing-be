@@ -23,7 +23,7 @@ func (r *resellerRepository) Create(ctx context.Context, reseller *domain.Resell
 
 func (r *resellerRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Reseller, error) {
 	var reseller domain.Reseller
-	if err := r.db.WithContext(ctx).First(&reseller, "id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("CustomerLevel").First(&reseller, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &reseller, nil
@@ -45,7 +45,8 @@ func (r *resellerRepository) FindAll(ctx context.Context, params request.Paginat
 		return nil, 0, err
 	}
 
-	if err := db.Limit(params.GetLimit()).
+	if err := db.Preload("CustomerLevel").
+		Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order(params.GetSort()).
 		Find(&resellers).Error; err != nil {

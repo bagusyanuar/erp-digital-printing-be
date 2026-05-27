@@ -1,6 +1,7 @@
 // Reseller schema for biro/partners
 Table resellers {
   id uuid [pk, default: `gen_random_uuid()`]
+  customer_level_id uuid [null]
   name varchar(255) [not null]
   email varchar(255) [unique, null]
   phone varchar(20) [null]
@@ -12,3 +13,5 @@ Table resellers {
 
   Note: 'Master data for resellers / biro transactions'
 }
+
+Ref: resellers.customer_level_id > customer_levels.id [delete: restrict]

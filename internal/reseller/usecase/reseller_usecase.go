@@ -22,6 +22,10 @@ func NewResellerUsecase(resellerRepo domain.ResellerRepository, logger *zap.Logg
 }
 
 func (u *resellerUsecase) Create(ctx context.Context, reseller *domain.Reseller) error {
+	if reseller.CustomerLevelID == nil || *reseller.CustomerLevelID == uuid.Nil {
+		defaultLevelID := uuid.MustParse("d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154")
+		reseller.CustomerLevelID = &defaultLevelID
+	}
 	return u.resellerRepo.Create(ctx, reseller)
 }
 

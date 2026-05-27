@@ -1,0 +1,111 @@
+// Product module schema (EAV, Pricing Tiers, and Bundling)
+
+Table products {
+  id uuid [pk, default: `gen_random_uuid()`]
+  category_id uuid [not null]
+  name varchar(255) [not null]
+  sku varchar(100) [unique, not null]
+  uom varchar(50) [not null]
+  base_price decimal(15,2) [not null, default: 0]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Master data for products'
+}
+
+Table attributes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  code varchar(100) [unique, not null]
+  value_type varchar(50) [not null] // text, number, boolean, options
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'EAV Attribute definitions'
+}
+
+Table product_variants {
+  id uuid [pk, default: `gen_random_uuid()`]
+  product_id uuid [not null]
+  variant_name varchar(255) [not null]
+  additional_cost decimal(15,2) [not null, default: 0]
+  is_default boolean [not null, default: false]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Product variations'
+}
+
+Table product_attribute_values {
+  id uuid [pk, default: `gen_random_uuid()`]
+  product_variant_id uuid [not null]
+  attribute_id uuid [not null]
+  value text [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'EAV values linked to variants'
+}
+
+Table customer_levels {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(100) [not null]
+  discount_percentage decimal(5,2) [not null, default: 0]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Customer tier levels'
+}
+
+Table price_tiers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  product_variant_id uuid [not null]
+  customer_level_id uuid [not null]
+  min_qty int [not null]
+  max_qty int [null]
+  price_per_unit decimal(15,2) [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Tiered and customer level pricing'
+}
+
+Table bundles {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  sku varchar(100) [unique, not null]
+  base_price decimal(15,2) [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Fixed price product bundles'
+}
+
+Table bundle_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  bundle_id uuid [not null]
+  product_variant_id uuid [not null]
+  qty int [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Items within a bundle'
+}
+
+// Relationships
+Ref: products.category_id > categories.id [delete: restrict]
+Ref: product_variants.product_id > products.id [delete: cascade]
+Ref: product_attribute_values.product_variant_id > product_variants.id [delete: cascade]
+Ref: product_attribute_values.attribute_id > attributes.id [delete: restrict]
+Ref: price_tiers.product_variant_id > product_variants.id [delete: cascade]
+Ref: price_tiers.customer_level_id > customer_levels.id [delete: restrict]
+Ref: bundle_items.bundle_id > bundles.id [delete: cascade]
+Ref: bundle_items.product_variant_id > product_variants.id [delete: restrict]
