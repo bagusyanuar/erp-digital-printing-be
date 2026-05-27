@@ -1,0 +1,23 @@
+meta {
+  name: Create Category
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/categories
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Banner/Spanduk"
+  }
+}
+
+docs {
+  # Create Category
+  
+  Menambahkan kategori baru ke sistem.
+}

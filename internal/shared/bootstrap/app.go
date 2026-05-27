@@ -117,6 +117,14 @@ func (a *App) SetupRoutes() {
 	resellerRoutes.Get("/:id", a.Container.ResellerHandler.FindByID)
 	resellerRoutes.Put("/:id", a.Container.ResellerHandler.Update)
 	resellerRoutes.Delete("/:id", a.Container.ResellerHandler.Delete)
+
+	// Category Routes
+	categoryRoutes := protected.Group("/categories")
+	categoryRoutes.Post("/", a.Container.CategoryHandler.Create)
+	categoryRoutes.Get("/", a.Container.CategoryHandler.FindAll)
+	categoryRoutes.Get("/:id", a.Container.CategoryHandler.FindByID)
+	categoryRoutes.Put("/:id", a.Container.CategoryHandler.Update)
+	categoryRoutes.Delete("/:id", a.Container.CategoryHandler.Delete)
 }
 
 func (a *App) Start() error {

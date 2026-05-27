@@ -1,0 +1,27 @@
+meta {
+  name: Update Category
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/categories/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {
+    "name": "Sticker Vinyl"
+  }
+}
+
+docs {
+  # Update Category
+  
+  Memperbarui nama kategori berdasarkan UUID ID.
+}

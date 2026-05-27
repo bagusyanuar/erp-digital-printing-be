@@ -2,9 +2,10 @@ package container
 
 import (
 	authHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/auth/delivery/http"
+	categoryHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/category/delivery/http"
 	rbacHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/rbac/delivery/http"
-	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/config"
 	resellerHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/reseller/delivery/http"
+	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/config"
 	userHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/user/delivery/http"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/casbin"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/jwt"
@@ -13,12 +14,13 @@ import (
 )
 
 type Container struct {
-	UserHandler *userHttp.UserHandler
-	AuthHandler *authHttp.AuthHandler
+	UserHandler     *userHttp.UserHandler
+	AuthHandler     *authHttp.AuthHandler
 	RBACHandler     *rbacHttp.RBACHandler
 	ResellerHandler *resellerHttp.ResellerHandler
-	JWTUtil     jwt.JWTUtil
-	Casbin      *casbin.CasbinHelper
+	CategoryHandler *categoryHttp.CategoryHandler
+	JWTUtil         jwt.JWTUtil
+	Casbin          *casbin.CasbinHelper
 }
 
 func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Container {
@@ -30,10 +32,11 @@ func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Containe
 	}
 
 	return &Container{
-		UserHandler: newUserHandler(db, logger),
-		AuthHandler: newAuthHandler(db, cfg, logger, jwtUtil),
+		UserHandler:     newUserHandler(db, logger),
+		AuthHandler:     newAuthHandler(db, cfg, logger, jwtUtil),
 		RBACHandler:     newRBACHandler(db, csb, logger),
 		ResellerHandler: newResellerHandler(db, logger),
+		CategoryHandler: newCategoryHandler(db, logger),
 		JWTUtil:         jwtUtil,
 		Casbin:          csb,
 	}

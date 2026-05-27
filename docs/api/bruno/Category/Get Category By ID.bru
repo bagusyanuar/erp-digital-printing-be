@@ -1,0 +1,21 @@
+meta {
+  name: Get Category By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/categories/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Get Category By ID
+  
+  Mendapatkan detail data kategori berdasarkan UUID ID.
+}

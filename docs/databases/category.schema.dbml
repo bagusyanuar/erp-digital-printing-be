@@ -1,0 +1,10 @@
+// Category schema for products, materials, and other classifications
+Table categories {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Master data for categories'
+}

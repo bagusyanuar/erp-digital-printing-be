@@ -1,0 +1,21 @@
+meta {
+  name: Delete Category
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/categories/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Delete Category
+  
+  Menghapus kategori secara soft delete berdasarkan UUID ID.
+}
