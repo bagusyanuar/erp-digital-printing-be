@@ -63,15 +63,24 @@ func (r *attributeRepository) Update(ctx context.Context, attribute *domain.Attr
 		}
 	}()
 
-	if err := tx.Save(attribute).Error; err != nil {
+	// 1. Save attribute fields only, skip Options association
+	if err := tx.Omit("Options").Save(attribute).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Always sync options relationship. If empty, GORM will clear the relation.
-	if err := tx.Model(attribute).Association("Options").Replace(attribute.Options); err != nil {
+	// 2. Hard-delete existing options for this attribute
+	if err := tx.Unscoped().Where("attribute_id = ?", attribute.ID).Delete(&domain.AttributeOption{}).Error; err != nil {
 		tx.Rollback()
 		return err
+	}
+
+	// 3. Batch-insert new options if any
+	if len(attribute.Options) > 0 {
+		if err := tx.Create(&attribute.Options).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 
 	return tx.Commit().Error
