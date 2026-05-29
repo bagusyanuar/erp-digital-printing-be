@@ -25,16 +25,29 @@ func (h *AttributeHandler) Create(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
+	var options []domain.AttributeOption
+	if req.ValueType == "options" {
+		for _, optVal := range req.Options {
+			if optVal != "" {
+				options = append(options, domain.AttributeOption{
+					Value: optVal,
+				})
+			}
+		}
+	}
+
 	attribute := &domain.Attribute{
 		Name:      req.Name,
 		ValueType: req.ValueType,
+		Options:   options,
 	}
 
 	if err := h.attributeUsecase.Create(c.Context(), attribute); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to create attribute", err.Error())
 	}
 
-	return response.Created(c, "Attribute created successfully", attribute)
+	res := mapToAttributeRes(attribute)
+	return response.Created(c, "Attribute created successfully", res)
 }
 
 func (h *AttributeHandler) FindAll(c fiber.Ctx) error {
@@ -50,6 +63,11 @@ func (h *AttributeHandler) FindAll(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch attributes", err.Error())
 	}
 
+	resList := make([]dto.AttributeRes, 0)
+	for i := range attributes {
+		resList = append(resList, mapToAttributeRes(&attributes[i]))
+	}
+
 	meta := response.Meta{
 		Pagination: &response.Pagination{
 			TotalItems:  total,
@@ -59,7 +77,7 @@ func (h *AttributeHandler) FindAll(c fiber.Ctx) error {
 		},
 	}
 
-	return response.Success(c, "Attributes fetched successfully", attributes, meta)
+	return response.Success(c, "Attributes fetched successfully", resList, meta)
 }
 
 func (h *AttributeHandler) FindByID(c fiber.Ctx) error {
@@ -74,7 +92,8 @@ func (h *AttributeHandler) FindByID(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusNotFound, "Attribute not found", err.Error())
 	}
 
-	return response.Success(c, "Attribute fetched successfully", attribute, nil)
+	res := mapToAttributeRes(attribute)
+	return response.Success(c, "Attribute fetched successfully", res, nil)
 }
 
 func (h *AttributeHandler) Update(c fiber.Ctx) error {
@@ -94,14 +113,27 @@ func (h *AttributeHandler) Update(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusNotFound, "Attribute not found", err.Error())
 	}
 
+	var options []domain.AttributeOption
+	if req.ValueType == "options" {
+		for _, optVal := range req.Options {
+			if optVal != "" {
+				options = append(options, domain.AttributeOption{
+					Value: optVal,
+				})
+			}
+		}
+	}
+
 	attribute.Name = req.Name
 	attribute.ValueType = req.ValueType
+	attribute.Options = options
 
 	if err := h.attributeUsecase.Update(c.Context(), attribute); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to update attribute", err.Error())
 	}
 
-	return response.Success(c, "Attribute updated successfully", attribute, nil)
+	res := mapToAttributeRes(attribute)
+	return response.Success(c, "Attribute updated successfully", res, nil)
 }
 
 func (h *AttributeHandler) Delete(c fiber.Ctx) error {
@@ -116,4 +148,23 @@ func (h *AttributeHandler) Delete(c fiber.Ctx) error {
 	}
 
 	return response.Success[any](c, "Attribute deleted successfully", nil, nil)
+}
+
+func mapToAttributeRes(attr *domain.Attribute) dto.AttributeRes {
+	opts := make([]dto.AttributeOptionRes, 0)
+	for _, opt := range attr.Options {
+		opts = append(opts, dto.AttributeOptionRes{
+			ID:    opt.ID,
+			Value: opt.Value,
+		})
+	}
+	return dto.AttributeRes{
+		ID:        attr.ID,
+		Name:      attr.Name,
+		Code:      attr.Code,
+		ValueType: attr.ValueType,
+		Options:   opts,
+		CreatedAt: attr.CreatedAt.Format("2006-01-02 15:04:05"),
+		UpdatedAt: attr.UpdatedAt.Format("2006-01-02 15:04:05"),
+	}
 }

@@ -100,6 +100,17 @@ Table bundle_items {
   Note: 'Items within a bundle'
 }
 
+Table attribute_options {
+  id uuid [pk, default: `gen_random_uuid()`]
+  attribute_id uuid [not null]
+  value varchar(255) [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Options for attributes with type options'
+}
+
 // Relationships
 Ref: products.category_id > categories.id [delete: restrict]
 Ref: product_variants.product_id > products.id [delete: cascade]
@@ -109,3 +120,4 @@ Ref: price_tiers.product_variant_id > product_variants.id [delete: cascade]
 Ref: price_tiers.customer_level_id > customer_levels.id [delete: restrict]
 Ref: bundle_items.bundle_id > bundles.id [delete: cascade]
 Ref: bundle_items.product_variant_id > product_variants.id [delete: restrict]
+Ref: attribute_options.attribute_id > attributes.id [delete: cascade]

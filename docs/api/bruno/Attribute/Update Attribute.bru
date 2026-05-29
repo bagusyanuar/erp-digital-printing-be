@@ -16,8 +16,12 @@ params:path {
 
 body:json {
   {
-    "name": "Bahan Kertas Baru",
-    "value_type": "text"
+    "name": "Sisi",
+    "value_type": "options",
+    "options": [
+      "1 Sisi (Depan Saja)",
+      "2 Sisi (Bolak Balik)"
+    ]
   }
 }
 
@@ -25,4 +29,6 @@ docs {
   # Update Attribute
   
   Memperbarui data atribut master yang sudah ada. Kode atribut akan di-generate ulang secara otomatis.
+  
+  Jika `value_type` bernilai `options`, array `options` yang dikirim akan me-replace semua opsi lama secara atomik.
 }

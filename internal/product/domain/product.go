@@ -63,18 +63,36 @@ func (pv *ProductVariant) BeforeCreate(tx *gorm.DB) error {
 
 // Attribute model (EAV definition)
 type Attribute struct {
-	ID        uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	Name      string         `gorm:"type:varchar(255);not null" json:"name"`
-	Code      string         `gorm:"type:varchar(100);unique;not null" json:"code"`
-	ValueType string         `gorm:"type:varchar(50);not null" json:"value_type"` // text, number, boolean, options
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+	ID        uuid.UUID         `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Name      string            `gorm:"type:varchar(255);not null" json:"name"`
+	Code      string            `gorm:"type:varchar(100);unique;not null" json:"code"`
+	ValueType string            `gorm:"type:varchar(50);not null" json:"value_type"` // text, number, boolean, options
+	Options   []AttributeOption `gorm:"foreignKey:AttributeID;constraint:OnDelete:CASCADE" json:"options,omitempty"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
+	DeletedAt gorm.DeletedAt    `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (a *Attribute) BeforeCreate(tx *gorm.DB) error {
 	if a.ID == uuid.Nil {
 		a.ID = uuid.New()
+	}
+	return nil
+}
+
+// AttributeOption model
+type AttributeOption struct {
+	ID          uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	AttributeID uuid.UUID      `gorm:"type:uuid;not null" json:"attribute_id"`
+	Value       string         `gorm:"type:varchar(255);not null" json:"value"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (ao *AttributeOption) BeforeCreate(tx *gorm.DB) error {
+	if ao.ID == uuid.Nil {
+		ao.ID = uuid.New()
 	}
 	return nil
 }

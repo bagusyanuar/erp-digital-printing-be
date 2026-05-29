@@ -23,7 +23,7 @@ func (r *attributeRepository) Create(ctx context.Context, attribute *domain.Attr
 
 func (r *attributeRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Attribute, error) {
 	var attribute domain.Attribute
-	if err := r.db.WithContext(ctx).First(&attribute, "id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("Options").First(&attribute, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &attribute, nil
@@ -44,7 +44,8 @@ func (r *attributeRepository) FindAll(ctx context.Context, params request.Pagina
 		return nil, 0, err
 	}
 
-	if err := db.Limit(params.GetLimit()).
+	if err := db.Preload("Options").
+		Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order(params.GetSort()).
 		Find(&attributes).Error; err != nil {
@@ -55,7 +56,25 @@ func (r *attributeRepository) FindAll(ctx context.Context, params request.Pagina
 }
 
 func (r *attributeRepository) Update(ctx context.Context, attribute *domain.Attribute) error {
-	return r.db.WithContext(ctx).Save(attribute).Error
+	tx := r.db.WithContext(ctx).Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Save(attribute).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Always sync options relationship. If empty, GORM will clear the relation.
+	if err := tx.Model(attribute).Association("Options").Replace(attribute.Options); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }
 
 func (r *attributeRepository) Delete(ctx context.Context, id uuid.UUID) error {

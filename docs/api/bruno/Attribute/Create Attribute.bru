@@ -12,8 +12,12 @@ post {
 
 body:json {
   {
-    "name": "Gramasi",
-    "value_type": "text"
+    "name": "Sisi",
+    "value_type": "options",
+    "options": [
+      "1 Sisi",
+      "2 Sisi"
+    ]
   }
 }
 
@@ -21,6 +25,8 @@ docs {
   # Create Attribute
   
   Menambahkan atribut master baru ke sistem. Atribut code akan di-generate otomatis menjadi lowercase snake_case (misal: "Bahan Kertas" -> "bahan_kertas").
+  
+  Jika `value_type` bernilai `options`, sertakan array `options` berisi opsi pilihan.
   
   ### Validasi `value_type`:
   - `text`

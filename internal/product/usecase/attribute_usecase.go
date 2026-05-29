@@ -25,6 +25,9 @@ func NewAttributeUsecase(attributeRepo domain.AttributeRepository, logger *zap.L
 
 func (u *attributeUsecase) Create(ctx context.Context, attribute *domain.Attribute) error {
 	attribute.Code = slugify(attribute.Name)
+	if attribute.ValueType != "options" {
+		attribute.Options = nil
+	}
 	return u.attributeRepo.Create(ctx, attribute)
 }
 
@@ -38,6 +41,9 @@ func (u *attributeUsecase) FindAll(ctx context.Context, params request.Paginatio
 
 func (u *attributeUsecase) Update(ctx context.Context, attribute *domain.Attribute) error {
 	attribute.Code = slugify(attribute.Name)
+	if attribute.ValueType != "options" {
+		attribute.Options = nil
+	}
 	return u.attributeRepo.Update(ctx, attribute)
 }
 
