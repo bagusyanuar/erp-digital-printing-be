@@ -10,7 +10,7 @@ get {
   auth: inherit
 }
 
-query {
+params:query {
   page: 1
   limit: 10
   search: 
@@ -29,4 +29,94 @@ docs {
   - `search`: Kata kunci pencarian (name, email, phone, address)
   - `sort_by`: Kolom pengurutan (default: created_at)
   - `sort_order`: Urutan (asc/desc, default: desc)
+}
+
+example {
+  name: success 200
+  
+  request: {
+    url: {{base_url}}/resellers?page=1&limit=10&search=&sort_by=created_at&sort_order=desc
+    method: GET
+    mode: none
+    params:query: {
+      page: 1
+      limit: 10
+      search: 
+      sort_by: created_at
+      sort_order: desc
+    }
+  }
+  
+  response: {
+    headers: {
+      date: Thu, 28 May 2026 14:04:07 GMT
+      content-type: application/json; charset=utf-8
+      content-length: 1295
+      vary: Origin
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "message": "Resellers fetched successfully",
+          "data": [
+            {
+              "id": "c058f6c7-3b1c-4987-8cd5-dc407aaa70e7",
+              "customer_level_id": "d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154",
+              "customer_level": {
+                "id": "d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154",
+                "name": "Reseller",
+                "discount_percentage": 0,
+                "created_at": "2026-05-27T12:39:56.883533+07:00",
+                "updated_at": "2026-05-27T12:39:56.883533+07:00",
+                "deleted_at": null
+              },
+              "name": "Joni Biro",
+              "email": "biro.joni@gmail.com",
+              "phone": "081234567890",
+              "address": "Jl. Raya Printing No. 123",
+              "credit_limit": 5000000,
+              "created_at": "2026-05-27T12:48:01.68057+07:00",
+              "updated_at": "2026-05-27T12:48:01.68057+07:00",
+              "deleted_at": null
+            },
+            {
+              "id": "b57de49f-0e16-4057-b93e-dc91a7a6b934",
+              "customer_level_id": "d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154",
+              "customer_level": {
+                "id": "d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154",
+                "name": "Reseller",
+                "discount_percentage": 0,
+                "created_at": "2026-05-27T12:39:56.883533+07:00",
+                "updated_at": "2026-05-27T12:39:56.883533+07:00",
+                "deleted_at": null
+              },
+              "name": "Biro Cetak Sejahtera",
+              "email": "biro.sejahtera@example.com",
+              "phone": "081234567890",
+              "address": "Jl. Raya Printing No. 123",
+              "credit_limit": 5000000,
+              "created_at": "2026-05-14T12:52:33.778328+07:00",
+              "updated_at": "2026-05-14T12:52:33.778328+07:00",
+              "deleted_at": null
+            }
+          ],
+          "meta": {
+            "pagination": {
+              "total_items": 2,
+              "total_pages": 1,
+              "current_page": 1,
+              "limit": 10
+            }
+          }
+        }
+      '''
+    }
+  }
 }
