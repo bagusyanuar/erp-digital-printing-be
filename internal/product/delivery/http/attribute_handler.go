@@ -118,7 +118,8 @@ func (h *AttributeHandler) Update(c fiber.Ctx) error {
 		for _, optVal := range req.Options {
 			if optVal != "" {
 				options = append(options, domain.AttributeOption{
-					Value: optVal,
+					AttributeID: attribute.ID,
+					Value:       optVal,
 				})
 			}
 		}
