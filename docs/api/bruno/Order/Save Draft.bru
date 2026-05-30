@@ -13,8 +13,6 @@ post {
 body:json {
   {
     "designer_id": "00000000-0000-0000-0000-000000000000",
-    "customer_name": "Anto Printer",
-    "customer_phone": "081234567890",
     "notes": "Tolong di-check ketajaman warnanya",
     "items": [
       {
@@ -32,12 +30,10 @@ body:json {
 docs {
   # Save Draft Order
   
-  Digunakan oleh Designer untuk menyimpan order baru sebagai DRAFT. Pada status DRAFT, harga belum dihitung secara final dan data masih fleksibel untuk diedit.
+  Digunakan oleh Designer untuk menyimpan order baru sebagai DRAFT. Pada status DRAFT, harga belum dihitung secara final dan data masih fleksibel untuk diedit. Designer TIDAK perlu menginput informasi identitas customer (customer_name/customer_phone) karena itu merupakan tanggung jawab Kasir saat pembayaran.
   
   ### Request Body:
   - `designer_id`: UUID dari User ber-role Designer (Required)
-  - `customer_name`: Nama customer (Optional)
-  - `customer_phone`: Nomor telepon customer (Optional)
   - `notes`: Catatan umum order (Optional)
   - `items`: List item order (Required, minimal 1)
     - `product_variant_id`: ID varian produk (Required)

@@ -24,8 +24,6 @@ func NewOrderHandler(orderUsecase domain.OrderUsecase) *OrderHandler {
 func buildOrderFromReq(req *dto.CreateOrderReq) *domain.Order {
 	order := &domain.Order{
 		DesignerID:    req.DesignerID,
-		CustomerName:  req.CustomerName,
-		CustomerPhone: req.CustomerPhone,
 		Notes:         req.Notes,
 	}
 
