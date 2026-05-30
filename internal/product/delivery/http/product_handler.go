@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/product/delivery/http/dto"
@@ -33,13 +34,51 @@ func (h *ProductHandler) Create(c fiber.Ctx) error {
 		BasePrice:  req.BasePrice,
 	}
 
+	// Map nested variants from request if provided
+	if len(req.Variants) > 0 {
+		product.Variants = make([]domain.ProductVariant, len(req.Variants))
+		for i, v := range req.Variants {
+			variant := domain.ProductVariant{
+				VariantName:    v.VariantName,
+				AdditionalCost: v.AdditionalCost,
+				IsDefault:      false,
+			}
+
+			// Map attributes
+			if len(v.Attributes) > 0 {
+				variant.AttributeValues = make([]domain.ProductAttributeValue, len(v.Attributes))
+				for j, a := range v.Attributes {
+					variant.AttributeValues[j] = domain.ProductAttributeValue{
+						AttributeID: a.AttributeID,
+						Value:       a.Value,
+					}
+				}
+			}
+
+			// Map price tiers
+			if len(v.PriceTiers) > 0 {
+				variant.PriceTiers = make([]domain.PriceTier, len(v.PriceTiers))
+				for j, t := range v.PriceTiers {
+					variant.PriceTiers[j] = domain.PriceTier{
+						CustomerLevelID: t.CustomerLevelID,
+						MinQty:          t.MinQty,
+						MaxQty:          t.MaxQty,
+						PricePerUnit:    t.PricePerUnit,
+					}
+				}
+			}
+
+			product.Variants[i] = variant
+		}
+	}
+
 	if err := h.productUsecase.Create(c.Context(), product); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to create product", err.Error())
 	}
 
 	// Map to response
 	res := mapProductToRes(product)
-	return response.Created(c, "Product created successfully with default variant", res)
+	return response.Created(c, "Product created successfully", res)
 }
 
 func (h *ProductHandler) FindByID(c fiber.Ctx) error {
@@ -183,6 +222,38 @@ func (h *ProductHandler) CreateVariant(c fiber.Ctx) error {
 	}
 
 	return response.Created(c, "Variant created successfully", mapVariantToRes(variant))
+}
+
+func (h *ProductHandler) CheckPrice(c fiber.Ctx) error {
+	variantIDStr := c.Query("variant_id")
+	customerLevelIDStr := c.Query("customer_level_id")
+	qtyStr := c.Query("qty")
+
+	if variantIDStr == "" || customerLevelIDStr == "" || qtyStr == "" {
+		return response.Error(c, fiber.StatusBadRequest, "Missing required query parameters", "variant_id, customer_level_id, and qty are required")
+	}
+
+	variantID, err := uuid.Parse(variantIDStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid variant_id", err.Error())
+	}
+
+	customerLevelID, err := uuid.Parse(customerLevelIDStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid customer_level_id", err.Error())
+	}
+
+	qty := 0
+	if _, err := fmt.Sscanf(qtyStr, "%d", &qty); err != nil || qty <= 0 {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid qty", "qty must be a positive integer")
+	}
+
+	result, err := h.productUsecase.CheckPrice(c.Context(), variantID, customerLevelID, qty)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, "Price not found for given parameters", err.Error())
+	}
+
+	return response.Success(c, "Price checked successfully", result, nil)
 }
 
 // Helpers mapping

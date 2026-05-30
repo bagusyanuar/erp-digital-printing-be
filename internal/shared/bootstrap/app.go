@@ -138,6 +138,7 @@ func (a *App) SetupRoutes() {
 	productRoutes := protected.Group("/products")
 	productRoutes.Post("/", a.Container.ProductHandler.Create)
 	productRoutes.Get("/", a.Container.ProductHandler.FindAll)
+	productRoutes.Get("/check-price", a.Container.ProductHandler.CheckPrice)
 	productRoutes.Get("/:id", a.Container.ProductHandler.FindByID)
 	productRoutes.Put("/:id", a.Container.ProductHandler.Update)
 	productRoutes.Delete("/:id", a.Container.ProductHandler.Delete)

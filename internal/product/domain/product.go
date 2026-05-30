@@ -44,6 +44,7 @@ func (p *Product) BeforeCreate(tx *gorm.DB) error {
 type ProductVariant struct {
 	ID              uuid.UUID               `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	ProductID       uuid.UUID               `gorm:"type:uuid;not null" json:"product_id"`
+	Product         Product                 `gorm:"foreignKey:ProductID" json:"product,omitempty"`
 	VariantName     string                  `gorm:"type:varchar(255);not null" json:"variant_name"`
 	AdditionalCost  float64                 `gorm:"type:decimal(15,2);not null;default:0" json:"additional_cost"`
 	IsDefault       bool                    `gorm:"type:boolean;not null;default:false" json:"is_default"`
@@ -137,6 +138,17 @@ func (pt *PriceTier) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// PriceCheckResult holds the result of a price check query
+type PriceCheckResult struct {
+	ProductName       string  `json:"product_name"`
+	VariantName       string  `json:"variant_name"`
+	CustomerLevelName string  `json:"customer_level_name"`
+	Qty               int     `json:"qty"`
+	PricePerUnit      float64 `json:"price_per_unit"`
+	AdditionalCost    float64 `json:"additional_cost"`
+	TotalPrice        float64 `json:"total_price"`
+}
+
 // Interfaces
 type ProductRepository interface {
 	Create(ctx context.Context, product *Product) error
@@ -145,6 +157,7 @@ type ProductRepository interface {
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	CreateVariant(ctx context.Context, variant *ProductVariant) error
+	CheckPrice(ctx context.Context, variantID uuid.UUID, customerLevelID uuid.UUID, qty int) (*PriceCheckResult, error)
 }
 
 type ProductUsecase interface {
@@ -154,6 +167,7 @@ type ProductUsecase interface {
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	CreateVariant(ctx context.Context, variant *ProductVariant) error
+	CheckPrice(ctx context.Context, variantID uuid.UUID, customerLevelID uuid.UUID, qty int) (*PriceCheckResult, error)
 }
 
 type AttributeRepository interface {

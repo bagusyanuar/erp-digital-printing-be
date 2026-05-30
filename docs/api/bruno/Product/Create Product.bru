@@ -13,15 +13,43 @@ post {
 body:json {
   {
     "category_id": "ec086107-5c32-477d-bbce-bb0f1b1413d3",
-    "name": "Art Papper 150",
-    "sku": "ART-PAPPER-150",
+    "name": "Art Paper 150",
+    "sku": "ART-PAPER-150",
     "uom": "pcs",
-    "base_price": 500
+    "base_price": 500,
+    "variants": [
+      {
+        "variant_name": "1 Sisi",
+        "additional_cost": 0,
+        "attributes": [
+          {
+            "attribute_id": "df4a420b-b8e6-4718-8298-2fb2a2d534a8",
+            "value": "1 Sisi"
+          }
+        ],
+        "price_tiers": [
+          {
+            "customer_level_id": "b3c8f3a3-b26a-4638-b7f2-841a54774844",
+            "min_qty": 1,
+            "max_qty": 10,
+            "price_per_unit": 40000
+          },
+          {
+            "customer_level_id": "b3c8f3a3-b26a-4638-b7f2-841a54774844",
+            "min_qty": 11,
+            "max_qty": null,
+            "price_per_unit": 35000
+          }
+        ]
+      }
+    ]
   }
 }
 
 docs {
-  # Create Product (Stepper Step 1)
+  # Create Product
   
-  Menyimpan data produk utama baru. Backend akan secara otomatis membuat 1 varian default (`is_default = true`, `additional_cost = 0`) agar produk siap dipasang pricing tier di step berikutnya.
+  Menyimpan data produk baru. Mendukung pembuatan produk dengan atau tanpa varian kustom, spesifikasi EAV (attributes), dan pricing tiers secara atomic (nested dalam satu request).
+  
+  Jika properti `variants` dikosongkan atau null, backend secara otomatis membuat 1 varian default (`is_default = true`, `additional_cost = 0`) agar produk siap dipasang pricing tier di endpoint tersendiri.
 }

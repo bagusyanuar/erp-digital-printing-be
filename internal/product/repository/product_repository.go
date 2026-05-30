@@ -88,3 +88,36 @@ func (r *productRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (r *productRepository) CreateVariant(ctx context.Context, variant *domain.ProductVariant) error {
 	return r.db.WithContext(ctx).Create(variant).Error
 }
+
+func (r *productRepository) CheckPrice(ctx context.Context, variantID uuid.UUID, customerLevelID uuid.UUID, qty int) (*domain.PriceCheckResult, error) {
+	var priceTier domain.PriceTier
+
+	err := r.db.WithContext(ctx).
+		Preload("CustomerLevel").
+		Where("product_variant_id = ? AND customer_level_id = ? AND min_qty <= ?", variantID, customerLevelID, qty).
+		Where("max_qty >= ? OR max_qty IS NULL", qty).
+		First(&priceTier).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var variant domain.ProductVariant
+	err = r.db.WithContext(ctx).
+		Preload("Product").
+		First(&variant, "id = ?", variantID).Error
+	if err != nil {
+		return nil, err
+	}
+
+	pricePerUnit := priceTier.PricePerUnit + variant.AdditionalCost
+
+	return &domain.PriceCheckResult{
+		ProductName:       variant.Product.Name,
+		VariantName:       variant.VariantName,
+		CustomerLevelName: priceTier.CustomerLevel.Name,
+		Qty:               qty,
+		PricePerUnit:      pricePerUnit,
+		AdditionalCost:    variant.AdditionalCost,
+		TotalPrice:        pricePerUnit * float64(qty),
+	}, nil
+}

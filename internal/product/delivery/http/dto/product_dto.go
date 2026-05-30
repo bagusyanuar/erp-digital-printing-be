@@ -3,11 +3,12 @@ package dto
 import "github.com/google/uuid"
 
 type CreateProductReq struct {
-	CategoryID uuid.UUID `json:"category_id" validate:"required"`
-	Name       string    `json:"name" validate:"required"`
-	SKU        string    `json:"sku" validate:"required"`
-	UOM        string    `json:"uom" validate:"required,oneof=pcs m2 m_lari box"`
-	BasePrice  float64   `json:"base_price" validate:"required,numeric,gte=0"`
+	CategoryID uuid.UUID          `json:"category_id" validate:"required"`
+	Name       string             `json:"name" validate:"required"`
+	SKU        string             `json:"sku" validate:"required"`
+	UOM        string             `json:"uom" validate:"required,oneof=pcs m2 m_lari box"`
+	BasePrice  float64            `json:"base_price" validate:"required,numeric,gte=0"`
+	Variants   []CreateVariantReq `json:"variants" validate:"omitempty,dive"`
 }
 
 type UpdateProductReq struct {
