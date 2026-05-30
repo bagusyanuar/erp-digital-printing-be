@@ -1,0 +1,75 @@
+// Order, Job Entry and Transaction management schema
+
+Table orders {
+  id uuid [pk, default: `gen_random_uuid()`]
+  job_number varchar(100) [unique, not null]
+  invoice_number varchar(100) [unique, null]
+  reseller_id uuid [null]
+  designer_id uuid [not null]
+  customer_name varchar(255) [null]
+  customer_phone varchar(20) [null]
+  status varchar(50) [not null, default: 'DRAFT'] // DRAFT, PENDING_PAYMENT, IN_PRODUCTION, READY_FOR_PICKUP, COMPLETED, CANCELLED
+  payment_status varchar(50) [not null, default: 'UNPAID'] // UNPAID, DOWN_PAYMENT, PAID
+  notes text [null]
+  
+  total_additional_cost decimal(15,2) [default: 0]
+  total_product_price decimal(15,2) [default: 0]
+  grand_total decimal(15,2) [default: 0]
+  amount_paid decimal(15,2) [default: 0]
+  
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Main order & transactions table including Job Entry drafts'
+}
+
+Table order_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [not null]
+  product_variant_id uuid [not null]
+  uom varchar(50) [not null]
+  length_cm decimal(10,2) [null]
+  width_cm decimal(10,2) [null]
+  quantity int [not null]
+  design_file_url text [null]
+  production_notes text [null]
+  
+  price_per_unit decimal(15,2) [default: 0]
+  additional_cost decimal(15,2) [default: 0]
+  subtotal decimal(15,2) [default: 0]
+  
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Individual items for job tickets and orders'
+}
+
+Table finishings {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  price decimal(15,2) [not null, default: 0]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Master data for printing finishing options (e.g. laminasi, mata ayam)'
+}
+
+Table order_item_finishings {
+  order_item_id uuid [not null]
+  finishing_id uuid [not null]
+
+  indexes {
+    (order_item_id, finishing_id) [pk]
+  }
+}
+
+// Relationships
+Ref: orders.reseller_id > resellers.id [delete: restrict]
+Ref: orders.designer_id > users.id [delete: restrict]
+Ref: order_items.order_id > orders.id [delete: cascade]
+Ref: order_items.product_variant_id > product_variants.id [delete: restrict]
+Ref: order_item_finishings.order_item_id > order_items.id [delete: cascade]
+Ref: order_item_finishings.finishing_id > finishings.id [delete: restrict]

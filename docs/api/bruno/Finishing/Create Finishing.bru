@@ -1,0 +1,28 @@
+meta {
+  name: Create Finishing
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/finishings
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Laminating Glossy",
+    "price": 1500
+  }
+}
+
+docs {
+  # Create Finishing
+  
+  Menambahkan jenis finishing baru ke sistem.
+  
+  ### Request Body:
+  - `name`: Nama finishing (misal: "Laminating Doff", "Laminating Glossy", "Mata Ayam")
+  - `price`: Biaya tambahan per unit finishing
+}

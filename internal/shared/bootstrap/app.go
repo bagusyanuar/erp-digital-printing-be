@@ -143,6 +143,20 @@ func (a *App) SetupRoutes() {
 	productRoutes.Put("/:id", a.Container.ProductHandler.Update)
 	productRoutes.Delete("/:id", a.Container.ProductHandler.Delete)
 	productRoutes.Post("/:product_id/variants", a.Container.ProductHandler.CreateVariant)
+
+	// Order & Job Entry Routes
+	orderRoutes := protected.Group("/orders")
+	orderRoutes.Post("/draft", a.Container.OrderHandler.SaveDraft)
+	orderRoutes.Post("/submit", a.Container.OrderHandler.SubmitToCashier)
+	orderRoutes.Put("/:id/submit", a.Container.OrderHandler.SubmitExistingToCashier)
+	orderRoutes.Post("/:id/pay", a.Container.OrderHandler.ProcessPayment)
+	orderRoutes.Get("/", a.Container.OrderHandler.FindAll)
+	orderRoutes.Get("/:id", a.Container.OrderHandler.FindByID)
+
+	// Finishing Routes
+	finishingRoutes := protected.Group("/finishings")
+	finishingRoutes.Post("/", a.Container.OrderHandler.CreateFinishing)
+	finishingRoutes.Get("/", a.Container.OrderHandler.FindAllFinishings)
 }
 
 func (a *App) Start() error {

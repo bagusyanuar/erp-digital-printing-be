@@ -1,0 +1,41 @@
+meta {
+  name: Submit To Cashier
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/orders/submit
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "designer_id": "00000000-0000-0000-0000-000000000000",
+    "customer_name": "Rian Printing",
+    "customer_phone": "089876543210",
+    "notes": "Pesanan kilat hari ini",
+    "items": [
+      {
+        "product_variant_id": "00000000-0000-0000-0000-000000000000",
+        "uom": "m2",
+        "length_cm": 200,
+        "width_cm": 100,
+        "quantity": 5,
+        "design_file_url": "https://example.com/designs/spanduk.pdf",
+        "production_notes": "Tanpa mata ayam",
+        "finishing_ids": []
+      }
+    ]
+  }
+}
+
+docs {
+  # Submit New Order To Cashier
+  
+  Membuat order baru dan langsung mengirimkannya ke kasir dengan status `PENDING_PAYMENT`. Pada tahap ini, harga otomatis dikalkulasi berdasarkan pricing engine dan jenis customer default (Umum).
+  
+  ### Request Body:
+  Sama seperti `Save Draft`, namun order langsung berpindah status ke `PENDING_PAYMENT`.
+}

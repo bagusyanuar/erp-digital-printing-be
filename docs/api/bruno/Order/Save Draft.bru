@@ -1,0 +1,51 @@
+meta {
+  name: Save Draft
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/orders/draft
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "designer_id": "00000000-0000-0000-0000-000000000000",
+    "customer_name": "Anto Printer",
+    "customer_phone": "081234567890",
+    "notes": "Tolong di-check ketajaman warnanya",
+    "items": [
+      {
+        "product_variant_id": "00000000-0000-0000-0000-000000000000",
+        "uom": "pcs",
+        "quantity": 10,
+        "design_file_url": "https://example.com/designs/banner.png",
+        "production_notes": "Laminating glossy saja",
+        "finishing_ids": []
+      }
+    ]
+  }
+}
+
+docs {
+  # Save Draft Order
+  
+  Digunakan oleh Designer untuk menyimpan order baru sebagai DRAFT. Pada status DRAFT, harga belum dihitung secara final dan data masih fleksibel untuk diedit.
+  
+  ### Request Body:
+  - `designer_id`: UUID dari User ber-role Designer (Required)
+  - `customer_name`: Nama customer (Optional)
+  - `customer_phone`: Nomor telepon customer (Optional)
+  - `notes`: Catatan umum order (Optional)
+  - `items`: List item order (Required, minimal 1)
+    - `product_variant_id`: ID varian produk (Required)
+    - `uom`: Unit of Measurement (`pcs` / `m2` / `m_lari` / `box`) (Required)
+    - `length_cm`: Panjang dalam cm (Required jika uom = `m2` atau `m_lari`)
+    - `width_cm`: Lebar dalam cm (Required jika uom = `m2`)
+    - `quantity`: Jumlah pesanan (Required, > 0)
+    - `design_file_url`: Link file desain (Optional, format URL)
+    - `production_notes`: Catatan produksi untuk item ini (Optional)
+    - `finishing_ids`: Array UUID finishing (Optional)
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Submit Existing To Cashier
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}/orders/:id/submit
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+docs {
+  # Submit Existing Order to Cashier
+  
+  Mengubah status order yang sebelumnya `DRAFT` menjadi `PENDING_PAYMENT` agar kasir dapat memproses pembayarannya.
+  
+  ### Path Parameters:
+  - `id`: UUID dari draft order yang ingin disubmit
+}

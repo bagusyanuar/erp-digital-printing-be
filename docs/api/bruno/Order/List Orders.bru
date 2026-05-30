@@ -1,0 +1,30 @@
+meta {
+  name: List Orders
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/orders?page=1&limit=10&status=&designer_id=
+  body: none
+  auth: inherit
+}
+
+query {
+  page: 1
+  limit: 10
+  status: 
+  designer_id: 
+}
+
+docs {
+  # List Orders
+  
+  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order dan ID designer yang menangani order tersebut.
+  
+  ### Query Parameters:
+  - `page`: Nomor halaman (default: 1)
+  - `limit`: Jumlah data per halaman (default: 10)
+  - `status`: Filter berdasarkan status order (`DRAFT`, `PENDING_PAYMENT`, `IN_PRODUCTION`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`)
+  - `designer_id`: Filter berdasarkan UUID designer yang membuat order
+}

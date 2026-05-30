@@ -1,0 +1,24 @@
+meta {
+  name: Get Order By ID
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/orders/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+docs {
+  # Get Order By ID
+  
+  Mendapatkan detail lengkap satu order termasuk informasi item order, kalkulasi harga, status pembayaran, serta daftar finishing yang terikat pada tiap item.
+  
+  ### Path Parameters:
+  - `id`: UUID Order yang ingin dicari
+}

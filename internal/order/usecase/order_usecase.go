@@ -1,0 +1,266 @@
+package usecase
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	orderDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/order/domain"
+	productDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/product/domain"
+	resellerDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/reseller/domain"
+	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+)
+
+type orderUsecase struct {
+	orderRepo    orderDomain.OrderRepository
+	productRepo  productDomain.ProductRepository
+	resellerRepo resellerDomain.ResellerRepository
+	logger       *zap.Logger
+}
+
+func NewOrderUsecase(
+	orderRepo orderDomain.OrderRepository,
+	productRepo productDomain.ProductRepository,
+	resellerRepo resellerDomain.ResellerRepository,
+	logger *zap.Logger,
+) orderDomain.OrderUsecase {
+	return &orderUsecase{
+		orderRepo:    orderRepo,
+		productRepo:  productRepo,
+		resellerRepo: resellerRepo,
+		logger:       logger,
+	}
+}
+
+func (u *orderUsecase) validateUOMAndGetQty(item *orderDomain.OrderItem) (float64, error) {
+	if item.Quantity <= 0 {
+		return 0, errors.New("quantity must be greater than 0")
+	}
+
+	switch item.UOM {
+	case productDomain.UomM2:
+		if item.LengthCM == nil || *item.LengthCM <= 0 {
+			return 0, errors.New("length_cm is required and must be greater than 0 for UOM m2")
+		}
+		if item.WidthCM == nil || *item.WidthCM <= 0 {
+			return 0, errors.New("width_cm is required and must be greater than 0 for UOM m2")
+		}
+		areaM2 := (*item.LengthCM / 100.0) * (*item.WidthCM / 100.0) * float64(item.Quantity)
+		return areaM2, nil
+
+	case productDomain.UomMLari:
+		if item.LengthCM == nil || *item.LengthCM <= 0 {
+			return 0, errors.New("length_cm is required and must be greater than 0 for UOM m_lari")
+		}
+		lengthM := (*item.LengthCM / 100.0) * float64(item.Quantity)
+		return lengthM, nil
+
+	case productDomain.UomBox, productDomain.UomPcs:
+		item.LengthCM = nil
+		item.WidthCM = nil
+		return float64(item.Quantity), nil
+
+	default:
+		return 0, fmt.Errorf("invalid UOM: %s", item.UOM)
+	}
+}
+
+// createOrder is the shared internal logic for SaveDraft and SubmitToCashier,
+// eliminating code duplication between the two public methods.
+func (u *orderUsecase) createOrder(ctx context.Context, order *orderDomain.Order, status string) error {
+	order.Status = status
+	order.PaymentStatus = orderDomain.PaymentStatusUnpaid
+	order.InvoiceNumber = nil
+
+	// Validate items
+	if len(order.OrderItems) == 0 {
+		return errors.New("order must have at least one item")
+	}
+
+	for i := range order.OrderItems {
+		if _, err := u.validateUOMAndGetQty(&order.OrderItems[i]); err != nil {
+			return fmt.Errorf("item[%d]: %w", i, err)
+		}
+	}
+
+	// Generate JOB Number
+	dateStr := time.Now().Format("20060102")
+	seq, err := u.orderRepo.GetNextJobSeq(ctx, dateStr)
+	if err != nil {
+		return fmt.Errorf("failed to generate job number: %w", err)
+	}
+	order.JobNumber = fmt.Sprintf("JOB/%s/%04d", dateStr, seq)
+
+	return u.orderRepo.Create(ctx, order)
+}
+
+func (u *orderUsecase) SaveDraft(ctx context.Context, order *orderDomain.Order) error {
+	return u.createOrder(ctx, order, orderDomain.StatusDraft)
+}
+
+func (u *orderUsecase) SubmitToCashier(ctx context.Context, order *orderDomain.Order) error {
+	return u.createOrder(ctx, order, orderDomain.StatusPendingPayment)
+}
+
+func (u *orderUsecase) SubmitExistingToCashier(ctx context.Context, orderID uuid.UUID) error {
+	order, err := u.orderRepo.FindByID(ctx, orderID)
+	if err != nil {
+		return fmt.Errorf("order not found: %w", err)
+	}
+
+	if order.Status != orderDomain.StatusDraft {
+		return fmt.Errorf("cannot submit order in %s status, only DRAFT status allowed", order.Status)
+	}
+
+	order.Status = orderDomain.StatusPendingPayment
+	return u.orderRepo.Update(ctx, order)
+}
+
+func (u *orderUsecase) FindByID(ctx context.Context, id uuid.UUID) (*orderDomain.Order, error) {
+	return u.orderRepo.FindByID(ctx, id)
+}
+
+func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, status *string, designerID *uuid.UUID) ([]orderDomain.Order, int64, error) {
+	return u.orderRepo.FindAll(ctx, params, status, designerID)
+}
+
+func (u *orderUsecase) ProcessPayment(
+	ctx context.Context,
+	orderID uuid.UUID,
+	cashierID uuid.UUID,
+	resellerID *uuid.UUID,
+	customerName string,
+	customerPhone string,
+	paymentType string,
+	amountPaid float64,
+) (*orderDomain.Order, error) {
+	order, err := u.orderRepo.FindByID(ctx, orderID)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
+	}
+
+	if order.Status != orderDomain.StatusPendingPayment {
+		return nil, fmt.Errorf("order is not in PENDING_PAYMENT status, current: %s", order.Status)
+	}
+
+	if amountPaid <= 0 {
+		return nil, errors.New("amount_paid must be greater than 0")
+	}
+
+	// Set Cashier ID
+	order.CashierID = &cashierID
+
+	// Determine Customer Level
+	var customerLevelID uuid.UUID
+	if resellerID != nil && *resellerID != uuid.Nil {
+		reseller, err := u.resellerRepo.FindByID(ctx, *resellerID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find reseller: %w", err)
+		}
+		if reseller.CustomerLevelID != nil {
+			customerLevelID = *reseller.CustomerLevelID
+		} else {
+			// Fallback default reseller level UUID
+			customerLevelID = uuid.MustParse("d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154")
+		}
+		order.ResellerID = resellerID
+	} else {
+		// Default End User level UUID
+		customerLevelID = uuid.MustParse("b3c8f3a3-b26a-4638-b7f2-841a54774844")
+		order.ResellerID = nil
+	}
+
+	// Update denormalized customer info
+	order.CustomerName = &customerName
+	order.CustomerPhone = &customerPhone
+
+	// Recalculate Pricing
+	var totalProductPrice float64
+	var totalAdditionalCost float64
+
+	for i := range order.OrderItems {
+		item := &order.OrderItems[i]
+
+		calcQty, err := u.validateUOMAndGetQty(item)
+		if err != nil {
+			return nil, fmt.Errorf("item[%d] validation failed: %w", i, err)
+		}
+
+		// Calculate total finishing cost
+		var finishingCost float64
+		for _, f := range item.Finishings {
+			finishingCost += f.Price
+		}
+
+		// Check unit price from price tiers
+		qtyInt := int(calcQty)
+		if qtyInt < 1 {
+			qtyInt = 1
+		}
+		priceRes, err := u.productRepo.CheckPrice(ctx, item.ProductVariantID, customerLevelID, qtyInt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check price tier for variant %s: %w", item.ProductVariantID, err)
+		}
+
+		item.PricePerUnit = priceRes.PricePerUnit
+		item.AdditionalCost = finishingCost
+		item.Subtotal = (priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity))
+
+		totalProductPrice += priceRes.PricePerUnit * calcQty
+		totalAdditionalCost += finishingCost * float64(item.Quantity)
+	}
+
+	grandTotal := totalProductPrice + totalAdditionalCost
+	order.TotalProductPrice = totalProductPrice
+	order.TotalAdditionalCost = totalAdditionalCost
+	order.GrandTotal = grandTotal
+	order.AmountPaid = amountPaid
+
+	// Set Payment Status
+	if paymentType == "dp" {
+		if amountPaid >= grandTotal {
+			return nil, fmt.Errorf("DP amount (%.2f) must be less than grand total (%.2f), use 'full' payment type instead", amountPaid, grandTotal)
+		}
+		order.PaymentStatus = orderDomain.PaymentStatusDownPayment
+	} else {
+		if amountPaid < grandTotal {
+			return nil, fmt.Errorf("insufficient amount paid for full payment. Required: %.2f, Got: %.2f", grandTotal, amountPaid)
+		}
+		order.PaymentStatus = orderDomain.PaymentStatusPaid
+	}
+
+	// Transition to production
+	order.Status = orderDomain.StatusInProduction
+
+	// Generate INV Number
+	dateStr := time.Now().Format("20060102")
+	seq, err := u.orderRepo.GetNextInvSeq(ctx, dateStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate invoice number: %w", err)
+	}
+	invNo := fmt.Sprintf("INV/%s/%04d", dateStr, seq)
+	order.InvoiceNumber = &invNo
+
+	if err := u.orderRepo.Update(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to save payment: %w", err)
+	}
+
+	// Fetch updated order to preload relation like Cashier
+	updatedOrder, err := u.orderRepo.FindByID(ctx, order.ID)
+	if err == nil {
+		return updatedOrder, nil
+	}
+
+	return order, nil
+}
+
+func (u *orderUsecase) CreateFinishing(ctx context.Context, finishing *orderDomain.Finishing) error {
+	return u.orderRepo.CreateFinishing(ctx, finishing)
+}
+
+func (u *orderUsecase) FindAllFinishings(ctx context.Context) ([]orderDomain.Finishing, error) {
+	return u.orderRepo.FindAllFinishings(ctx)
+}
