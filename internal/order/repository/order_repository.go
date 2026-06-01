@@ -43,7 +43,7 @@ func (r *orderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.O
 	return &order, nil
 }
 
-func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, designerID *uuid.UUID) ([]domain.Order, int64, error) {
+func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID) ([]domain.Order, int64, error) {
 	var orders []domain.Order
 	var total int64
 
@@ -51,6 +51,10 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 
 	if len(statuses) > 0 {
 		query = query.Where("status IN ?", statuses)
+	}
+
+	if len(paymentStatuses) > 0 {
+		query = query.Where("payment_status IN ?", paymentStatuses)
 	}
 
 	if designerID != nil && *designerID != uuid.Nil {

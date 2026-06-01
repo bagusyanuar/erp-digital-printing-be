@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{base_url}}/orders?page=1&limit=10&status=&designer_id=
+  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&designer_id=
   body: none
   auth: inherit
 }
@@ -14,18 +14,21 @@ query {
   page: 1
   limit: 10
   status: PENDING_PAYMENT,IN_PRODUCTION
+  payment_status: 
   designer_id: 
 }
 
 docs {
   # List Orders
   
-  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order dan ID designer yang menangani order tersebut.
+  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, dan ID designer yang menangani order tersebut.
   
   ### Query Parameters:
   - `page`: Nomor halaman (default: 1)
   - `limit`: Jumlah data per halaman (default: 10)
   - `status`: Filter berdasarkan status order. Mendukung multi-status dengan dipisah menggunakan tanda koma (contoh: `status=PENDING_PAYMENT,IN_PRODUCTION` atau `status=DRAFT`).
     - Pilihan status: `DRAFT`, `PENDING_PAYMENT`, `IN_PRODUCTION`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`
+  - `payment_status`: Filter berdasarkan status pembayaran. Mendukung multi-status dengan dipisah menggunakan tanda koma (contoh: `payment_status=UNPAID,PARTIAL_PAID` atau `payment_status=PAID`).
+    - Pilihan status: `UNPAID`, `PARTIAL_PAID`, `PAID`
   - `designer_id`: Filter berdasarkan UUID designer yang membuat order
 }

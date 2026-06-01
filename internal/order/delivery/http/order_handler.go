@@ -194,6 +194,17 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		}
 	}
 
+	var paymentStatuses []string
+	if paymentStatusQuery := c.Query("payment_status", ""); paymentStatusQuery != "" {
+		parts := strings.Split(paymentStatusQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentStatuses = append(paymentStatuses, trimmed)
+			}
+		}
+	}
+
 	var designerID *uuid.UUID
 	if designerQuery := c.Query("designer_id", ""); designerQuery != "" {
 		if did, err := uuid.Parse(designerQuery); err == nil {
@@ -201,7 +212,7 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		}
 	}
 
-	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, designerID)
+	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, designerID)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch orders", err.Error())
 	}
