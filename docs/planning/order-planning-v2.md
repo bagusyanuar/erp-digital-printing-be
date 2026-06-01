@@ -20,14 +20,31 @@ Pada versi sebelumnya, harga baru dihitung saat pembayaran di kasir. Pada **V2**
 
 ## 2. Siklus Hidup & Transisi Status Order (V2)
 
+### A. Status Alur Kerja Produksi (`status`)
 | Status | Lokasi Data | Keterangan |
 | :--- | :--- | :--- |
 | **`DRAFT`** | Database | Draf pesanan disimpan desainer. **Harga sudah terkalkulasi**. Belum tayang di kasir. |
 | **`PENDING_PAYMENT`** | Database | Tiket masuk antrean kasir. Spesifikasi & harga dikunci. |
-| **`IN_PRODUCTION`** | Database | Pembayaran diterima kasir. Nomor `invoice_number` terbit, SPK rilis ke workshop. |
+| **`IN_PRODUCTION`** | Database | Pembayaran diproses kasir (lunas, DP/partial, atau tempo). Nomor `invoice_number` terbit, SPK rilis ke workshop. |
 | **`READY_FOR_PICKUP`** | Database | Produksi selesai & lolos Quality Control (QC). |
-| **`COMPLETED`** | Database | Barang diambil & sisa tagihan dilunasi 100%. |
+| **`COMPLETED`** | Database | Barang diambil & sisa tagihan dilunasi 100% (payment_status wajib `PAID`). |
 | **`CANCELLED`** | Database | Transaksi dibatalkan. |
+
+### B. Status Keuangan (`payment_status`)
+*   **`UNPAID`**: Belum ada pembayaran masuk sama sekali (termasuk skema Tempo / DP = 0).
+*   **`PARTIAL_PAID`**: Pembayaran uang muka (DP) > 0 tetapi kurang dari `grand_total`. Sisa pembayaran menjadi piutang.
+*   **`PAID`**: Transaksi telah dilunasi 100%.
+
+### C. Matriks Hubungan Status Produksi & Pembayaran
+| Status Produksi (`status`) | Status Keuangan (`payment_status`) | Nominal Bayar (`amount_paid`) vs Tagihan (`grand_total`) | Keterangan Bisnis |
+| :--- | :--- | :--- | :--- |
+| **`DRAFT`** | `UNPAID` | Belum diinput | Draf desainer. |
+| **`PENDING_PAYMENT`** | `UNPAID` | Belum diinput | Antrean di kasir POS. |
+| **`IN_PRODUCTION`** | `PAID` | `amount_paid >= grand_total` | Lunas di depan langsung diproduksi. |
+| **`IN_PRODUCTION`** | `PARTIAL_PAID` | `0 < amount_paid < grand_total` | Bayar DP sebagian, masuk produksi. Sisa jadi piutang. |
+| **`IN_PRODUCTION`** | `UNPAID` | `amount_paid == 0` | Khusus Reseller/Tempo. Naik cetak tanpa DP (validasi limit kredit). |
+| **`READY_FOR_PICKUP`** | `PAID` / `PARTIAL_PAID` / `UNPAID` | Mengikuti kondisi terakhir | Barang selesai cetak, siap diambil. |
+| **`COMPLETED`** | `PAID` | Wajib `amount_paid >= grand_total` | Pelunasan saat barang diambil (serah terima barang). |
 
 ---
 
@@ -138,9 +155,9 @@ Sesuai arahan Owner, Kasir memiliki wewenang penuh untuk melakukan **Manual Pric
       "reseller_id": "uuid (optional)",
       "customer_name": "string (required)",
       "customer_phone": "string (required)",
-      "payment_method": "string (required, e.g. cash, transfer)",
-      "payment_type": "string (required, oneof=full dp)",
-      "amount_paid": "float64 (required, >0)",
+      "payment_method": "string (required, e.g. cash, transfer, tempo)",
+      "payment_type": "string (required, oneof=full tempo)",
+      "amount_paid": "float64 (required, >=0)",
       "price_overrides": [
         {
           "order_item_id": "uuid (required)",
@@ -161,26 +178,21 @@ Sesuai arahan Owner, Kasir memiliki wewenang penuh untuk melakukan **Manual Pric
 
 Khusus untuk pelanggan bertipe **Reseller**, sistem mendukung metode pembayaran kredit / hutang jangka pendek (**Tempo**). Pembayaran tempo diatur ketat dengan **Credit Limit** yang dimiliki oleh reseller.
 
-### A. Penambahan Konstanta Status Pembayaran
-*   `PaymentStatusTempo = "TEMPO"` (status ketika pesanan diproses cetak tetapi belum dibayar penuh/sama sekali oleh reseller).
-
-### B. Perubahan Skema Request POS Pembayaran (`POST /api/v1/orders/:id/pay`)
+### A. Perubahan Skema Request POS Pembayaran (`POST /api/v1/orders/:id/pay`)
 *   `payment_method`: Menambahkan nilai `"tempo"` selain `"cash"`, `"transfer"`, atau `"qris"`.
-*   `payment_type`: Menambahkan nilai `"tempo"` (selain `"full"`, `"dp"`).
+*   `payment_type`: Menambahkan nilai `"tempo"` (selain `"full"`).
 *   `amount_paid`: Boleh di-set `0` (atau lebih jika membayar DP parsial dari total tagihan tempo).
 
-### C. Alur Kerja Validasi Credit Limit di Usecase
+### B. Alur Kerja Validasi Credit Limit di Usecase
 1.  **Deteksi Transaksi Tempo**:
     *   Jika `payment_method == "tempo"` atau `payment_type == "tempo"`.
 2.  **Kalkulasi Outstanding Debt**:
     *   Sistem menghitung total hutang berjalan dari reseller tersebut:
         $$\text{Outstanding Debt} = \sum (\text{grand\_total} - \text{amount\_paid})$$
-        untuk semua order milik `reseller_id` dengan status pembayaran `TEMPO` atau `DOWN_PAYMENT`.
+        untuk semua order milik `reseller_id` dengan status pembayaran `UNPAID` atau `PARTIAL_PAID`.
 3.  **Validasi Limit**:
     *   Sistem menghitung perkiraan hutang baru jika transaksi ini disetujui:
         $$\text{New Potential Debt} = \text{Outstanding Debt} + (\text{Grand Total Order Baru} - \text{Amount Paid Order Baru})$$
     *   **STRICT VALIDATION**: Jika $\text{New Potential Debt} > \text{Reseller.CreditLimit}$, sistem **wajib menolak** transaksi dengan pesan error: `Credit limit exceeded. Limit: X, Outstanding: Y, New Order Debt: Z`.
 4.  **Pemberian Izin Cetak**:
-    *   Jika lolos limit, order langsung beralih status ke `IN_PRODUCTION` dengan status pembayaran `TEMPO`, dan `amount_paid` disimpan sesuai nilai bayar awal (jika ada).
-
-
+    *   Jika lolos limit, order langsung beralih status ke `IN_PRODUCTION` dengan status pembayaran `UNPAID` (jika bayar awal 0) atau `PARTIAL_PAID` (jika bayar DP sebagian), dan `amount_paid` disimpan sesuai nilai bayar awal.

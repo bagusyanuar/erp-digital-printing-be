@@ -19,6 +19,7 @@ body:json {
     "reseller_id": null,
     "customer_name": "Anto Printer",
     "customer_phone": "081234567890",
+    "payment_method": "cash",
     "payment_type": "full",
     "amount_paid": 150000
   }
@@ -27,10 +28,12 @@ body:json {
 docs {
   # Process Payment (Cashier Actions)
   
-  Kasir memproses pembayaran untuk order tertentu. Kasir juga bisa menautkan reseller untuk mendapatkan harga diskon reseller, mengoreksi data customer, serta menentukan jenis pembayaran (`full` atau `dp`).
+  Kasir memproses pembayaran untuk order tertentu. Kasir juga bisa menautkan reseller untuk mendapatkan harga diskon reseller, mengoreksi data customer, serta menentukan jenis pembayaran (`full` atau `tempo`).
   
-  Setelah pembayaran sukses diproses:
-  - Jika bayar lunas (`full`) atau DP (`dp` minimal 50% dari grand total), status order berubah menjadi `IN_PRODUCTION` (langsung masuk antrean cetak).
+  Setelah pembayaran sukses diproses, status order akan berubah menjadi `IN_PRODUCTION` (langsung masuk antrean cetak):
+  - Jika pembayaran lunas (`amount_paid >= grand_total`), `payment_status` akan bernilai `PAID`.
+  - Jika pembayaran sebagian (`0 < amount_paid < grand_total`), `payment_status` akan bernilai `PARTIAL_PAID`.
+  - Jika pembayaran tempo/DP 0 (`amount_paid == 0`), `payment_status` akan bernilai `UNPAID` (khusus reseller, divalidasi dengan `CreditLimit` mereka).
   
   ### Path Parameters:
   - `id`: UUID Order (Required)
@@ -39,6 +42,7 @@ docs {
   - `reseller_id`: UUID Reseller jika customer merupakan reseller terdaftar (Optional)
   - `customer_name`: Nama customer yang membayar/final (Required)
   - `customer_phone`: Nomor telepon customer (Required)
-  - `payment_type`: Tipe pembayaran (`full` = lunas, `dp` = Down Payment) (Required)
-  - `amount_paid`: Jumlah uang yang dibayarkan oleh customer (Required)
+  - `payment_method`: Metode pembayaran, misal: `cash`, `transfer`, `qris`, `tempo` (Required)
+  - `payment_type`: Tipe pembayaran (`full` = lunas, `tempo` = tempo / parsial) (Required)
+  - `amount_paid`: Jumlah uang yang dibayarkan oleh customer, boleh bernilai `0` untuk skema tempo (Required)
 }

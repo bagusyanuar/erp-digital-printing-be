@@ -199,6 +199,7 @@ func (u *orderUsecase) ProcessPayment(
 	resellerID *uuid.UUID,
 	customerName string,
 	customerPhone string,
+	paymentMethod string,
 	paymentType string,
 	amountPaid float64,
 ) (*orderDomain.Order, error) {
@@ -211,8 +212,8 @@ func (u *orderUsecase) ProcessPayment(
 		return nil, fmt.Errorf("order is not in PENDING_PAYMENT status, current: %s", order.Status)
 	}
 
-	if amountPaid <= 0 {
-		return nil, errors.New("amount_paid must be greater than 0")
+	if amountPaid < 0 {
+		return nil, errors.New("amount_paid must be greater than or equal to 0")
 	}
 
 	// Set Cashier ID
@@ -220,6 +221,7 @@ func (u *orderUsecase) ProcessPayment(
 
 	// Determine Customer Level
 	var customerLevelID uuid.UUID
+	var isReseller bool
 	if resellerID != nil && *resellerID != uuid.Nil {
 		reseller, err := u.resellerRepo.FindByID(ctx, *resellerID)
 		if err != nil {
@@ -232,6 +234,7 @@ func (u *orderUsecase) ProcessPayment(
 			customerLevelID = uuid.MustParse("d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154")
 		}
 		order.ResellerID = resellerID
+		isReseller = true
 	} else {
 		// Default End User level UUID
 		customerLevelID = uuid.MustParse("b3c8f3a3-b26a-4638-b7f2-841a54774844")
@@ -284,17 +287,57 @@ func (u *orderUsecase) ProcessPayment(
 	order.GrandTotal = grandTotal
 	order.AmountPaid = amountPaid
 
-	// Set Payment Status
-	if paymentType == "dp" {
-		if amountPaid >= grandTotal {
-			return nil, fmt.Errorf("DP amount (%.2f) must be less than grand total (%.2f), use 'full' payment type instead", amountPaid, grandTotal)
-		}
-		order.PaymentStatus = orderDomain.PaymentStatusDownPayment
-	} else {
-		if amountPaid < grandTotal {
-			return nil, fmt.Errorf("insufficient amount paid for full payment. Required: %.2f, Got: %.2f", grandTotal, amountPaid)
-		}
+	// Calculate Payment Status dynamically
+	if amountPaid >= grandTotal {
 		order.PaymentStatus = orderDomain.PaymentStatusPaid
+	} else if amountPaid > 0 {
+		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
+	} else {
+		order.PaymentStatus = orderDomain.PaymentStatusUnpaid
+	}
+
+	// Check Credit Limit if this is Tempo/Hutang (Unpaid or Partial Paid)
+	isTempo := paymentMethod == "tempo" || paymentType == "tempo" || order.PaymentStatus == orderDomain.PaymentStatusUnpaid || order.PaymentStatus == orderDomain.PaymentStatusPartialPaid
+	if isTempo {
+		if !isReseller {
+			return nil, errors.New("tempo/credit payment scheme is only allowed for resellers")
+		}
+
+		// Fetch Reseller for Credit Limit validation
+		reseller, err := u.resellerRepo.FindByID(ctx, *resellerID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find reseller for credit limit validation: %w", err)
+		}
+
+		// 1. Get all other outstanding orders for this reseller (UNPAID or PARTIAL_PAID status)
+		// Custom query params to pull all outstanding reseller orders
+		var params request.PaginationParam
+		params.Limit = 1000 // Pull a large amount to sum safely
+		params.Page = 1
+
+		orders, _, err := u.orderRepo.FindAll(ctx, params, []string{
+			orderDomain.StatusInProduction,
+			orderDomain.StatusReadyForPickup,
+		}, nil)
+		if err != nil {
+			return nil, fmt.Errorf("failed to fetch outstanding orders for credit limit validation: %w", err)
+		}
+
+		var outstandingDebt float64
+		for _, o := range orders {
+			if o.ResellerID != nil && *o.ResellerID == *resellerID {
+				if o.PaymentStatus == orderDomain.PaymentStatusUnpaid || o.PaymentStatus == orderDomain.PaymentStatusPartialPaid {
+					outstandingDebt += (o.GrandTotal - o.AmountPaid)
+				}
+			}
+		}
+
+		// Calculate potential new debt including this order
+		newPotentialDebt := outstandingDebt + (grandTotal - amountPaid)
+		if newPotentialDebt > reseller.CreditLimit {
+			return nil, fmt.Errorf("Credit limit exceeded. Limit: %.2f, Outstanding: %.2f, New Order Debt: %.2f", 
+				reseller.CreditLimit, outstandingDebt, grandTotal-amountPaid)
+		}
 	}
 
 	// Transition to production

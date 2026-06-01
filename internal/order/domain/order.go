@@ -25,7 +25,7 @@ const (
 // Payment Status Constants
 const (
 	PaymentStatusUnpaid      = "UNPAID"
-	PaymentStatusDownPayment = "DOWN_PAYMENT"
+	PaymentStatusPartialPaid = "PARTIAL_PAID"
 	PaymentStatusPaid        = "PAID"
 )
 
@@ -127,7 +127,7 @@ type OrderUsecase interface {
 	SubmitExistingToCashier(ctx context.Context, orderID uuid.UUID) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
 	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, designerID *uuid.UUID) ([]Order, int64, error)
-	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, paymentType string, amountPaid float64) (*Order, error)
+	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, paymentMethod string, paymentType string, amountPaid float64) (*Order, error)
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
 }

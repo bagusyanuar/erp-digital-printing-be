@@ -151,6 +151,7 @@ func (h *OrderHandler) ProcessPayment(c fiber.Ctx) error {
 		req.ResellerID,
 		req.CustomerName,
 		req.CustomerPhone,
+		req.PaymentMethod,
 		req.PaymentType,
 		req.AmountPaid,
 	)

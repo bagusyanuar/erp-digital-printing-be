@@ -26,7 +26,8 @@ type PaymentProcessReq struct {
 	ResellerID    *uuid.UUID `json:"reseller_id" validate:"omitempty"`
 	CustomerName  string     `json:"customer_name" validate:"required"`
 	CustomerPhone string     `json:"customer_phone" validate:"required"`
-	PaymentType   string     `json:"payment_type" validate:"required,oneof=full dp"`
+	PaymentMethod string     `json:"payment_method" validate:"required"`
+	PaymentType   string     `json:"payment_type" validate:"required,oneof=full tempo"`
 	AmountPaid    float64    `json:"amount_paid" validate:"required,numeric,gte=0"`
 }
 
