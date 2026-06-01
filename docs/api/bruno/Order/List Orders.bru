@@ -13,7 +13,7 @@ get {
 query {
   page: 1
   limit: 10
-  status: 
+  status: PENDING_PAYMENT,IN_PRODUCTION
   designer_id: 
 }
 
@@ -25,6 +25,7 @@ docs {
   ### Query Parameters:
   - `page`: Nomor halaman (default: 1)
   - `limit`: Jumlah data per halaman (default: 10)
-  - `status`: Filter berdasarkan status order (`DRAFT`, `PENDING_PAYMENT`, `IN_PRODUCTION`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`)
+  - `status`: Filter berdasarkan status order. Mendukung multi-status dengan dipisah menggunakan tanda koma (contoh: `status=PENDING_PAYMENT,IN_PRODUCTION` atau `status=DRAFT`).
+    - Pilihan status: `DRAFT`, `PENDING_PAYMENT`, `IN_PRODUCTION`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`
   - `designer_id`: Filter berdasarkan UUID designer yang membuat order
 }

@@ -112,7 +112,7 @@ type OrderRepository interface {
 	Create(ctx context.Context, order *Order) error
 	Update(ctx context.Context, order *Order) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	FindAll(ctx context.Context, params request.PaginationParam, status *string, designerID *uuid.UUID) ([]Order, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, designerID *uuid.UUID) ([]Order, int64, error)
 	GetNextJobSeq(ctx context.Context, dateStr string) (int, error)
 	GetNextInvSeq(ctx context.Context, dateStr string) (int, error)
 	FindFinishingsByIDs(ctx context.Context, ids []uuid.UUID) ([]Finishing, error)
@@ -126,7 +126,7 @@ type OrderUsecase interface {
 	SubmitToCashier(ctx context.Context, order *Order) error
 	SubmitExistingToCashier(ctx context.Context, orderID uuid.UUID) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	FindAll(ctx context.Context, params request.PaginationParam, status *string, designerID *uuid.UUID) ([]Order, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, designerID *uuid.UUID) ([]Order, int64, error)
 	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, paymentType string, amountPaid float64) (*Order, error)
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)

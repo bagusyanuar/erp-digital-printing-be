@@ -188,8 +188,8 @@ func (u *orderUsecase) FindByID(ctx context.Context, id uuid.UUID) (*orderDomain
 	return u.orderRepo.FindByID(ctx, id)
 }
 
-func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, status *string, designerID *uuid.UUID) ([]orderDomain.Order, int64, error) {
-	return u.orderRepo.FindAll(ctx, params, status, designerID)
+func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, designerID *uuid.UUID) ([]orderDomain.Order, int64, error) {
+	return u.orderRepo.FindAll(ctx, params, statuses, designerID)
 }
 
 func (u *orderUsecase) ProcessPayment(

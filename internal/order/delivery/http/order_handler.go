@@ -2,6 +2,7 @@ package http
 
 import (
 	"math"
+	"strings"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/order/delivery/http/dto"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/order/domain"
@@ -181,9 +182,15 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid query parameters", err.Error())
 	}
 
-	var status *string
+	var statuses []string
 	if statusQuery := c.Query("status", ""); statusQuery != "" {
-		status = &statusQuery
+		parts := strings.Split(statusQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				statuses = append(statuses, trimmed)
+			}
+		}
 	}
 
 	var designerID *uuid.UUID
@@ -193,7 +200,7 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		}
 	}
 
-	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, status, designerID)
+	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, designerID)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch orders", err.Error())
 	}
