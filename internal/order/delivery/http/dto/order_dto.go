@@ -70,14 +70,14 @@ type ResellerRes struct {
 type OrderRes struct {
 	ID                  uuid.UUID      `json:"id"`
 	JobNumber           string         `json:"job_number"`
-	InvoiceNumber       *string        `json:"invoice_number,omitempty"`
+	InvoiceNumber       *string        `json:"invoice_number"`
 	ResellerID          *uuid.UUID     `json:"reseller_id"`
 	ResellerName        *string        `json:"reseller_name"`
 	Reseller            *ResellerRes   `json:"reseller"`
 	DesignerID          uuid.UUID      `json:"designer_id"`
 	DesignerName        string         `json:"designer_name"`
-	CashierID           *uuid.UUID     `json:"cashier_id,omitempty"`
-	CashierName         *string        `json:"cashier_name,omitempty"`
+	CashierID           *uuid.UUID     `json:"cashier_id"`
+	CashierName         *string        `json:"cashier_name"`
 	CustomerName        *string        `json:"customer_name"`
 	CustomerPhone       *string        `json:"customer_phone"`
 	Status              string         `json:"status"`
