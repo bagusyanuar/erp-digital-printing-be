@@ -360,3 +360,89 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 
 	return res
 }
+
+func (h *OrderHandler) GetSPKByID(c fiber.Ctx) error {
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid order ID", err.Error())
+	}
+
+	order, err := h.orderUsecase.GetSPKByID(c.Context(), id)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, "Order not found", err.Error())
+	}
+
+	// Grouping logic by Category
+	categoryMap := make(map[uuid.UUID]*dto.SPKByCategoryRes)
+	var categoryOrder []uuid.UUID
+
+	for _, item := range order.OrderItems {
+		var catID uuid.UUID
+		catName := "Uncategorized"
+
+		if item.ProductVariant != nil && item.ProductVariant.Product.CategoryID != uuid.Nil {
+			catID = item.ProductVariant.Product.CategoryID
+			if item.ProductVariant.Product.Category.Name != "" {
+				catName = item.ProductVariant.Product.Category.Name
+			}
+		} else {
+			catID = uuid.Nil
+		}
+
+		spkItem := dto.SPKItemRes{
+			ID:              item.ID,
+			UOM:              item.UOM,
+			LengthCM:         item.LengthCM,
+			WidthCM:          item.WidthCM,
+			Quantity:         item.Quantity,
+			DesignFileURL:    item.DesignFileURL,
+			ProductionNotes:  item.ProductionNotes,
+		}
+
+		if item.ProductVariant != nil {
+			spkItem.VariantName = item.ProductVariant.VariantName
+			spkItem.ProductName = item.ProductVariant.Product.Name
+		}
+
+		if len(item.Finishings) > 0 {
+			spkItem.Finishings = make([]dto.FinishingRes, len(item.Finishings))
+			for j, f := range item.Finishings {
+				spkItem.Finishings[j] = dto.FinishingRes{
+					ID:    f.ID,
+					Name:  f.Name,
+					Price: f.Price,
+				}
+			}
+		}
+
+		if group, exists := categoryMap[catID]; exists {
+			group.Items = append(group.Items, spkItem)
+		} else {
+			categoryMap[catID] = &dto.SPKByCategoryRes{
+				CategoryID:   catID,
+				CategoryName: catName,
+				Items:        []dto.SPKItemRes{spkItem},
+			}
+			categoryOrder = append(categoryOrder, catID)
+		}
+	}
+
+	spkByCategoryList := make([]dto.SPKByCategoryRes, len(categoryOrder))
+	for i, catID := range categoryOrder {
+		spkByCategoryList[i] = *categoryMap[catID]
+	}
+
+	res := dto.OrderSPKRes{
+		OrderID:       order.ID,
+		JobNumber:     order.JobNumber,
+		InvoiceNumber: order.InvoiceNumber,
+		CustomerName:  order.CustomerName,
+		CustomerPhone: order.CustomerPhone,
+		Status:        order.Status,
+		SPKByCategory: spkByCategoryList,
+	}
+
+	return response.Success(c, "SPK fetched successfully", res, nil)
+}
+

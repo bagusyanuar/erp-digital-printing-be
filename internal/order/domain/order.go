@@ -118,6 +118,7 @@ type OrderRepository interface {
 	FindFinishingsByIDs(ctx context.Context, ids []uuid.UUID) ([]Finishing, error)
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
+	FindByIDWithCategoryPreload(ctx context.Context, id uuid.UUID) (*Order, error)
 }
 
 // OrderUsecase interface
@@ -130,4 +131,5 @@ type OrderUsecase interface {
 	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, paymentMethod string, paymentType string, amountPaid float64) (*Order, error)
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
+	GetSPKByID(ctx context.Context, id uuid.UUID) (*Order, error)
 }

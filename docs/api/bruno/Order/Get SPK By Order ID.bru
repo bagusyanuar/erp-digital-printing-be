@@ -1,0 +1,24 @@
+meta {
+  name: Get SPK By Order ID
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/orders/:id/spk
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 7caaeda0-7291-4b12-9ea6-965df0457020
+}
+
+docs {
+  # Get SPK By Order ID
+  
+  Mendapatkan detail SPK Kerja yang sudah dikelompokkan secara dinamis berdasarkan Kategori Produk dari item-item yang dipesan oleh customer.
+  
+  ### Path Parameters:
+  - `id`: UUID Order/Invoice induk
+}

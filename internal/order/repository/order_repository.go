@@ -43,6 +43,21 @@ func (r *orderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.O
 	return &order, nil
 }
 
+func (r *orderRepository) FindByIDWithCategoryPreload(ctx context.Context, id uuid.UUID) (*domain.Order, error) {
+	var order domain.Order
+	err := r.db.WithContext(ctx).
+		Preload("OrderItems").
+		Preload("OrderItems.ProductVariant").
+		Preload("OrderItems.ProductVariant.Product").
+		Preload("OrderItems.ProductVariant.Product.Category").
+		Preload("OrderItems.Finishings").
+		First(&order, "id = ?", id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &order, nil
+}
+
 func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID) ([]domain.Order, int64, error) {
 	var orders []domain.Order
 	var total int64

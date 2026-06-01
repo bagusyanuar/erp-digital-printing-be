@@ -372,3 +372,7 @@ func (u *orderUsecase) CreateFinishing(ctx context.Context, finishing *orderDoma
 func (u *orderUsecase) FindAllFinishings(ctx context.Context) ([]orderDomain.Finishing, error) {
 	return u.orderRepo.FindAllFinishings(ctx)
 }
+
+func (u *orderUsecase) GetSPKByID(ctx context.Context, id uuid.UUID) (*orderDomain.Order, error) {
+	return u.orderRepo.FindByIDWithCategoryPreload(ctx, id)
+}
