@@ -33,10 +33,11 @@ Pada versi sebelumnya, harga baru dihitung saat pembayaran di kasir. Pada **V2**
 
 ## 3. Penambahan Field Payload pada Save Draft (V2)
 
-Untuk mendukung kalkulasi harga instan, payload request `Save Draft` & `Submit to Cashier` dilengkapi dengan parameter penentu tier harga:
+Untuk mendukung kalkulasi harga instan, payload request `Save Draft` & `Submit to Cashier` dilengkapi dengan parameter reseller dan data pelanggan:
 
-*   **`customer_level_id`** (UUID, Required jika `reseller_id` kosong): Level harga (misal: *End User*).
 *   **`reseller_id`** (UUID, Optional): Jika diisi, sistem akan otomatis mendeteksi level reseller tersebut untuk mengambil tier harga reseller.
+*   **`customer_name`** (string, Optional): Nama pelanggan.
+*   **`customer_phone`** (string, Optional): Nomor telepon pelanggan.
 
 ---
 
@@ -48,8 +49,9 @@ Untuk mendukung kalkulasi harga instan, payload request `Save Draft` & `Submit t
     ```json
     {
       "designer_id": "uuid (required)",
-      "customer_level_id": "uuid (required, fallback to End User)",
       "reseller_id": "uuid (optional)",
+      "customer_name": "string (optional)",
+      "customer_phone": "string (optional)",
       "notes": "string (optional)",
       "items": [
         {
@@ -77,7 +79,6 @@ Untuk mendukung kalkulasi harga instan, payload request `Save Draft` & `Submit t
         "job_number": "JOB/20260531/0001",
         "invoice_number": null,
         "reseller_id": "uuid/null",
-        "customer_level_id": "uuid",
         "designer_id": "uuid",
         "status": "DRAFT",
         "payment_status": "UNPAID",

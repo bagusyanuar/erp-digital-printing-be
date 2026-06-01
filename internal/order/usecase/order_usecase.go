@@ -80,11 +80,76 @@ func (u *orderUsecase) createOrder(ctx context.Context, order *orderDomain.Order
 		return errors.New("order must have at least one item")
 	}
 
+	// Determine Customer Level
+	var customerLevelID uuid.UUID
+	if order.ResellerID != nil && *order.ResellerID != uuid.Nil {
+		reseller, err := u.resellerRepo.FindByID(ctx, *order.ResellerID)
+		if err != nil {
+			return fmt.Errorf("failed to find reseller: %w", err)
+		}
+		if reseller.CustomerLevelID != nil {
+			customerLevelID = *reseller.CustomerLevelID
+		} else {
+			// Fallback default reseller level UUID
+			customerLevelID = uuid.MustParse("d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154")
+		}
+	} else {
+		// Default End User level UUID
+		customerLevelID = uuid.MustParse("b3c8f3a3-b26a-4638-b7f2-841a54774844")
+	}
+
+	var totalProductPrice float64
+	var totalAdditionalCost float64
+
 	for i := range order.OrderItems {
-		if _, err := u.validateUOMAndGetQty(&order.OrderItems[i]); err != nil {
+		item := &order.OrderItems[i]
+
+		calcQty, err := u.validateUOMAndGetQty(item)
+		if err != nil {
 			return fmt.Errorf("item[%d]: %w", i, err)
 		}
+
+		var finishingIDs []uuid.UUID
+		for _, f := range item.Finishings {
+			finishingIDs = append(finishingIDs, f.ID)
+		}
+
+		var finishings []orderDomain.Finishing
+		if len(finishingIDs) > 0 {
+			var err error
+			finishings, err = u.orderRepo.FindFinishingsByIDs(ctx, finishingIDs)
+			if err != nil {
+				return fmt.Errorf("failed to fetch finishings for item %d: %w", i, err)
+			}
+		}
+		item.Finishings = finishings
+
+		var finishingCost float64
+		for _, f := range finishings {
+			finishingCost += f.Price
+		}
+
+		qtyInt := int(calcQty)
+		if qtyInt < 1 {
+			qtyInt = 1
+		}
+
+		priceRes, err := u.productRepo.CheckPrice(ctx, item.ProductVariantID, customerLevelID, qtyInt)
+		if err != nil {
+			return fmt.Errorf("failed to check price tier for variant %s: %w", item.ProductVariantID, err)
+		}
+
+		item.PricePerUnit = priceRes.PricePerUnit
+		item.AdditionalCost = finishingCost
+		item.Subtotal = (priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity))
+
+		totalProductPrice += priceRes.PricePerUnit * calcQty
+		totalAdditionalCost += finishingCost * float64(item.Quantity)
 	}
+
+	order.TotalProductPrice = totalProductPrice
+	order.TotalAdditionalCost = totalAdditionalCost
+	order.GrandTotal = totalProductPrice + totalAdditionalCost
 
 	// Generate JOB Number
 	dateStr := time.Now().Format("20060102")

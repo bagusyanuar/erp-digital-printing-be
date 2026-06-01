@@ -13,6 +13,9 @@ post {
 body:json {
   {
     "designer_id": "00000000-0000-0000-0000-000000000000",
+    "reseller_id": null,
+    "customer_name": "Budi Santoso",
+    "customer_phone": "081234567890",
     "notes": "Pesanan kilat hari ini",
     "items": [
       {
@@ -30,10 +33,10 @@ body:json {
 }
 
 docs {
-  # Submit New Order To Cashier
+  # Submit New Order To Cashier (V2)
   
-  Membuat order baru dan langsung mengirimkannya ke kasir dengan status `PENDING_PAYMENT`. Pada tahap ini, harga otomatis dikalkulasi berdasarkan pricing engine dan jenis customer default (Umum).
+  Membuat order baru dan langsung mengirimkannya ke kasir dengan status `PENDING_PAYMENT`. Harga otomatis dikalkulasi berdasarkan pricing engine.
   
   ### Request Body:
-  Sama seperti `Save Draft`, namun order langsung berpindah status ke `PENDING_PAYMENT`.
+  Sama seperti `Save Draft (V2)`, namun order langsung berpindah status ke `PENDING_PAYMENT`.
 }

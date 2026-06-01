@@ -13,6 +13,9 @@ post {
 body:json {
   {
     "designer_id": "00000000-0000-0000-0000-000000000000",
+    "reseller_id": null,
+    "customer_name": "Budi Santoso",
+    "customer_phone": "081234567890",
     "notes": "Tolong di-check ketajaman warnanya",
     "items": [
       {
@@ -28,12 +31,15 @@ body:json {
 }
 
 docs {
-  # Save Draft Order
+  # Save Draft Order (V2)
   
-  Digunakan oleh Designer untuk menyimpan order baru sebagai DRAFT. Pada status DRAFT, harga belum dihitung secara final dan data masih fleksibel untuk diedit. Designer TIDAK perlu menginput informasi identitas customer (customer_name/customer_phone) karena itu merupakan tanggung jawab Kasir saat pembayaran.
+  Digunakan oleh Designer untuk menyimpan order baru sebagai DRAFT. Pada status DRAFT V2, harga sudah dihitung secara real-time berdasarkan pricing engine dan data level customer (jika menggunakan reseller).
   
   ### Request Body:
   - `designer_id`: UUID dari User ber-role Designer (Required)
+  - `reseller_id`: UUID Reseller (Optional, jika diisi sistem otomatis mendeteksi level reseller tersebut untuk mengambil tier harga reseller)
+  - `customer_name`: Nama pelanggan (Optional)
+  - `customer_phone`: Nomor telepon pelanggan (Optional)
   - `notes`: Catatan umum order (Optional)
   - `items`: List item order (Required, minimal 1)
     - `product_variant_id`: ID varian produk (Required)

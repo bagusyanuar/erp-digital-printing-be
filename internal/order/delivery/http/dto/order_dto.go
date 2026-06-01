@@ -15,6 +15,9 @@ type OrderItemReq struct {
 
 type CreateOrderReq struct {
 	DesignerID    uuid.UUID      `json:"designer_id" validate:"required"`
+	ResellerID    *uuid.UUID     `json:"reseller_id" validate:"omitempty"`
+	CustomerName  *string        `json:"customer_name" validate:"omitempty"`
+	CustomerPhone *string        `json:"customer_phone" validate:"omitempty"`
 	Notes         *string        `json:"notes" validate:"omitempty"`
 	Items         []OrderItemReq `json:"items" validate:"required,dive"`
 }
