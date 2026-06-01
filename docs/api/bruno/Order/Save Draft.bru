@@ -12,7 +12,6 @@ post {
 
 body:json {
   {
-    "designer_id": "00000000-0000-0000-0000-000000000000",
     "reseller_id": null,
     "customer_name": "Budi Santoso",
     "customer_phone": "081234567890",
@@ -36,7 +35,7 @@ docs {
   Digunakan oleh Designer untuk menyimpan order baru sebagai DRAFT. Pada status DRAFT V2, harga sudah dihitung secara real-time berdasarkan pricing engine dan data level customer (jika menggunakan reseller).
   
   ### Request Body:
-  - `designer_id`: UUID dari User ber-role Designer (Required)
+  - `designer_id`: Otomatis diambil dari Auth Token user yang sedang login (dilewatkan via context).
   - `reseller_id`: UUID Reseller (Optional, jika diisi sistem otomatis mendeteksi level reseller tersebut untuk mengambil tier harga reseller)
   - `customer_name`: Nama pelanggan (Optional)
   - `customer_phone`: Nomor telepon pelanggan (Optional)

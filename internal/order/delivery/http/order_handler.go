@@ -56,12 +56,18 @@ func buildOrderFromReq(req *dto.CreateOrderReq) *domain.Order {
 }
 
 func (h *OrderHandler) SaveDraft(c fiber.Ctx) error {
+	designerID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized: Designer ID not found in context", nil)
+	}
+
 	var req dto.CreateOrderReq
 	if err := c.Bind().Body(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
 	order := buildOrderFromReq(&req)
+	order.DesignerID = designerID
 
 	if err := h.orderUsecase.SaveDraft(c.Context(), order); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to save draft order", err.Error())
@@ -76,12 +82,18 @@ func (h *OrderHandler) SaveDraft(c fiber.Ctx) error {
 }
 
 func (h *OrderHandler) SubmitToCashier(c fiber.Ctx) error {
+	designerID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized: Designer ID not found in context", nil)
+	}
+
 	var req dto.CreateOrderReq
 	if err := c.Bind().Body(&req); err != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
 	order := buildOrderFromReq(&req)
+	order.DesignerID = designerID
 
 	if err := h.orderUsecase.SubmitToCashier(c.Context(), order); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to submit order to cashier", err.Error())
@@ -269,6 +281,14 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 
 	if o.Reseller != nil {
 		res.ResellerName = &o.Reseller.Name
+		res.Reseller = &dto.ResellerRes{
+			ID:          o.Reseller.ID,
+			Name:        o.Reseller.Name,
+			Phone:       o.Reseller.Phone,
+			Email:       o.Reseller.Email,
+			Address:     o.Reseller.Address,
+			CreditLimit: o.Reseller.CreditLimit,
+		}
 	}
 
 	if o.Designer != nil {
