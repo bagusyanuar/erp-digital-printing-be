@@ -19,6 +19,7 @@ type Reseller struct {
 	Phone           string                       `json:"phone"`
 	Address         string                       `json:"address"`
 	CreditLimit     float64                      `gorm:"default:0" json:"credit_limit"`
+	OutstandingDebt float64                      `gorm:"->" json:"outstanding_debt"` // read-only field via subquery
 	CreatedAt       time.Time                    `json:"created_at"`
 	UpdatedAt       time.Time                    `json:"updated_at"`
 	DeletedAt       gorm.DeletedAt               `gorm:"index" json:"deleted_at,omitempty"`

@@ -28,6 +28,7 @@ type ResellerRes struct {
 	Phone           string     `json:"phone"`
 	Address         string     `json:"address"`
 	CreditLimit     float64    `json:"credit_limit"`
+	OutstandingDebt float64    `json:"outstanding_debt"`
 	CreatedAt       string     `json:"created_at"`
 	UpdatedAt       string     `json:"updated_at"`
 }

@@ -23,7 +23,11 @@ func (r *resellerRepository) Create(ctx context.Context, reseller *domain.Resell
 
 func (r *resellerRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Reseller, error) {
 	var reseller domain.Reseller
-	if err := r.db.WithContext(ctx).Preload("CustomerLevel").First(&reseller, "id = ?", id).Error; err != nil {
+	subquery := "(SELECT COALESCE(SUM(total_amount - paid_amount), 0) FROM orders WHERE orders.reseller_id = resellers.id AND orders.payment_status IN ('UNPAID', 'PARTIAL_PAID') AND orders.status != 'CANCELLED')"
+	if err := r.db.WithContext(ctx).
+		Select("resellers.*, " + subquery + " AS outstanding_debt").
+		Preload("CustomerLevel").
+		First(&reseller, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &reseller, nil
@@ -45,7 +49,10 @@ func (r *resellerRepository) FindAll(ctx context.Context, params request.Paginat
 		return nil, 0, err
 	}
 
-	if err := db.Preload("CustomerLevel").
+	subquery := "(SELECT COALESCE(SUM(total_amount - paid_amount), 0) FROM orders WHERE orders.reseller_id = resellers.id AND orders.payment_status IN ('UNPAID', 'PARTIAL_PAID') AND orders.status != 'CANCELLED')"
+
+	if err := db.Select("resellers.*, " + subquery + " AS outstanding_debt").
+		Preload("CustomerLevel").
 		Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order(params.GetSort()).
