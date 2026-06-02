@@ -153,6 +153,7 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Post("/:id/repay", a.Container.OrderHandler.Repay)
 	orderRoutes.Get("/", a.Container.OrderHandler.FindAll)
 	orderRoutes.Get("/:id", a.Container.OrderHandler.FindByID)
+	orderRoutes.Get("/:id/payments", a.Container.OrderHandler.GetPaymentsByOrderID)
 	orderRoutes.Get("/:id/spk", a.Container.OrderHandler.GetSPKByID)
 
 	// Finishing Routes

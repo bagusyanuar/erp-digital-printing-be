@@ -494,3 +494,33 @@ func (h *OrderHandler) Repay(c fiber.Ctx) error {
 	return response.Success(c, "Repayment processed successfully", mapOrderToRes(order), nil)
 }
 
+func (h *OrderHandler) GetPaymentsByOrderID(c fiber.Ctx) error {
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid order ID", err.Error())
+	}
+
+	order, err := h.orderUsecase.FindByID(c.Context(), id)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, "Order not found", err.Error())
+	}
+
+	resList := make([]dto.OrderPaymentRes, len(order.OrderPayments))
+	for i, op := range order.OrderPayments {
+		opRes := dto.OrderPaymentRes{
+			ID:            op.ID,
+			CashierID:     op.CashierID,
+			Amount:        op.Amount,
+			PaymentMethod: op.PaymentMethod,
+			CreatedAt:     op.CreatedAt.Format("2006-01-02 15:04:05"),
+		}
+		if op.Cashier != nil {
+			opRes.CashierName = op.Cashier.Username
+		}
+		resList[i] = opRes
+	}
+
+	return response.Success(c, "Order payments fetched successfully", resList, nil)
+}
+
