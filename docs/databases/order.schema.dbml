@@ -66,6 +66,19 @@ Table order_item_finishings {
   }
 }
 
+Table order_payments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  order_id uuid [not null]
+  cashier_id uuid [not null]
+  amount decimal(15,2) [not null, default: 0]
+  payment_method varchar(50) [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'History of payments made for an order'
+}
+
 // Relationships
 Ref: orders.reseller_id > resellers.id [delete: restrict]
 Ref: orders.designer_id > users.id [delete: restrict]
@@ -73,3 +86,5 @@ Ref: order_items.order_id > orders.id [delete: cascade]
 Ref: order_items.product_variant_id > product_variants.id [delete: restrict]
 Ref: order_item_finishings.order_item_id > order_items.id [delete: cascade]
 Ref: order_item_finishings.finishing_id > finishings.id [delete: restrict]
+Ref: order_payments.order_id > orders.id [delete: cascade]
+Ref: order_payments.cashier_id > users.id [delete: restrict]

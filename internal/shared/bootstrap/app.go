@@ -150,6 +150,7 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Post("/submit", a.Container.OrderHandler.SubmitToCashier)
 	orderRoutes.Put("/:id/submit", a.Container.OrderHandler.SubmitExistingToCashier)
 	orderRoutes.Post("/:id/pay", a.Container.OrderHandler.ProcessPayment)
+	orderRoutes.Post("/:id/repay", a.Container.OrderHandler.Repay)
 	orderRoutes.Get("/", a.Container.OrderHandler.FindAll)
 	orderRoutes.Get("/:id", a.Container.OrderHandler.FindByID)
 	orderRoutes.Get("/:id/spk", a.Container.OrderHandler.GetSPKByID)

@@ -31,6 +31,11 @@ type PaymentProcessReq struct {
 	AmountPaid    float64    `json:"amount_paid" validate:"required,numeric,gte=0"`
 }
 
+type OrderRepayReq struct {
+	AmountPaid    float64 `json:"amount_paid" validate:"required,numeric,gt=0"`
+	PaymentMethod string  `json:"payment_method" validate:"required"`
+}
+
 type CreateFinishingReq struct {
 	Name  string  `json:"name" validate:"required"`
 	Price float64 `json:"price" validate:"required,numeric,gte=0"`
@@ -59,6 +64,15 @@ type OrderItemRes struct {
 	Finishings       []FinishingRes `json:"finishings,omitempty"`
 }
 
+type OrderPaymentRes struct {
+	ID            uuid.UUID `json:"id"`
+	CashierID     uuid.UUID `json:"cashier_id"`
+	CashierName   string    `json:"cashier_name"`
+	Amount        float64   `json:"amount"`
+	PaymentMethod string    `json:"payment_method"`
+	CreatedAt     string    `json:"created_at"`
+}
+
 type ResellerRes struct {
 	ID          uuid.UUID `json:"id"`
 	Name        string    `json:"name"`
@@ -69,26 +83,27 @@ type ResellerRes struct {
 }
 
 type OrderRes struct {
-	ID                  uuid.UUID      `json:"id"`
-	JobNumber           string         `json:"job_number"`
-	InvoiceNumber       *string        `json:"invoice_number"`
-	ResellerID          *uuid.UUID     `json:"reseller_id"`
-	ResellerName        *string        `json:"reseller_name"`
-	Reseller            *ResellerRes   `json:"reseller"`
-	DesignerID          uuid.UUID      `json:"designer_id"`
-	DesignerName        string         `json:"designer_name"`
-	CashierID           *uuid.UUID     `json:"cashier_id"`
-	CashierName         *string        `json:"cashier_name"`
-	CustomerName        *string        `json:"customer_name"`
-	CustomerPhone       *string        `json:"customer_phone"`
-	Status              string         `json:"status"`
-	PaymentStatus       string         `json:"payment_status"`
-	Notes               *string        `json:"notes,omitempty"`
-	TotalAdditionalCost float64        `json:"total_additional_cost"`
-	TotalProductPrice   float64        `json:"total_product_price"`
-	GrandTotal          float64        `json:"grand_total"`
-	AmountPaid          float64        `json:"amount_paid"`
-	OrderItems          []OrderItemRes `json:"order_items,omitempty"`
-	CreatedAt           string         `json:"created_at"`
-	UpdatedAt           string         `json:"updated_at"`
+	ID                  uuid.UUID         `json:"id"`
+	JobNumber           string            `json:"job_number"`
+	InvoiceNumber       *string           `json:"invoice_number"`
+	ResellerID          *uuid.UUID        `json:"reseller_id"`
+	ResellerName        *string           `json:"reseller_name"`
+	Reseller            *ResellerRes      `json:"reseller"`
+	DesignerID          uuid.UUID         `json:"designer_id"`
+	DesignerName        string            `json:"designer_name"`
+	CashierID           *uuid.UUID        `json:"cashier_id"`
+	CashierName         *string           `json:"cashier_name"`
+	CustomerName        *string           `json:"customer_name"`
+	CustomerPhone       *string           `json:"customer_phone"`
+	Status              string            `json:"status"`
+	PaymentStatus       string            `json:"payment_status"`
+	Notes               *string           `json:"notes,omitempty"`
+	TotalAdditionalCost float64           `json:"total_additional_cost"`
+	TotalProductPrice   float64           `json:"total_product_price"`
+	GrandTotal          float64           `json:"grand_total"`
+	AmountPaid          float64           `json:"amount_paid"`
+	OrderItems          []OrderItemRes    `json:"order_items,omitempty"`
+	OrderPayments       []OrderPaymentRes `json:"order_payments,omitempty"`
+	CreatedAt           string            `json:"created_at"`
+	UpdatedAt           string            `json:"updated_at"`
 }

@@ -352,6 +352,18 @@ func (u *orderUsecase) ProcessPayment(
 	invNo := fmt.Sprintf("INV/%s/%04d", dateStr, seq)
 	order.InvoiceNumber = &invNo
 
+	if amountPaid > 0 {
+		initialPayment := &orderDomain.OrderPayment{
+			OrderID:       order.ID,
+			CashierID:     cashierID,
+			Amount:        amountPaid,
+			PaymentMethod: paymentMethod,
+		}
+		if err := u.orderRepo.CreatePayment(ctx, initialPayment); err != nil {
+			return nil, fmt.Errorf("failed to create payment log: %w", err)
+		}
+	}
+
 	if err := u.orderRepo.Update(ctx, order); err != nil {
 		return nil, fmt.Errorf("failed to save payment: %w", err)
 	}
@@ -375,4 +387,64 @@ func (u *orderUsecase) FindAllFinishings(ctx context.Context) ([]orderDomain.Fin
 
 func (u *orderUsecase) GetSPKByID(ctx context.Context, id uuid.UUID) (*orderDomain.Order, error) {
 	return u.orderRepo.FindByIDWithCategoryPreload(ctx, id)
+}
+
+func (u *orderUsecase) Repay(
+	ctx context.Context,
+	orderID uuid.UUID,
+	cashierID uuid.UUID,
+	amountPaid float64,
+	paymentMethod string,
+) (*orderDomain.Order, error) {
+	order, err := u.orderRepo.FindByID(ctx, orderID)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
+	}
+
+	// Order must not be in DRAFT or PENDING_PAYMENT
+	if order.Status == orderDomain.StatusDraft || order.Status == orderDomain.StatusPendingPayment {
+		return nil, fmt.Errorf("cannot process repayment for order in %s status", order.Status)
+	}
+
+	if amountPaid <= 0 {
+		return nil, errors.New("payment amount must be greater than 0")
+	}
+
+	remainingDebt := order.GrandTotal - order.AmountPaid
+	if amountPaid > remainingDebt {
+		return nil, fmt.Errorf("payment amount (%.2f) exceeds remaining debt (%.2f)", amountPaid, remainingDebt)
+	}
+
+	// Update order amount paid
+	order.AmountPaid += amountPaid
+
+	// Recalculate Payment Status
+	if order.AmountPaid >= order.GrandTotal {
+		order.PaymentStatus = orderDomain.PaymentStatusPaid
+	} else {
+		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
+	}
+
+	// Create payment log
+	payment := &orderDomain.OrderPayment{
+		OrderID:       order.ID,
+		CashierID:     cashierID,
+		Amount:        amountPaid,
+		PaymentMethod: paymentMethod,
+	}
+	if err := u.orderRepo.CreatePayment(ctx, payment); err != nil {
+		return nil, fmt.Errorf("failed to create payment log: %w", err)
+	}
+
+	if err := u.orderRepo.Update(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to save repayment: %w", err)
+	}
+
+	// Fetch updated order to preload relation like Cashier & Payments
+	updatedOrder, err := u.orderRepo.FindByID(ctx, order.ID)
+	if err == nil {
+		return updatedOrder, nil
+	}
+
+	return order, nil
 }

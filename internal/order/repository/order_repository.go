@@ -36,6 +36,8 @@ func (r *orderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.O
 		Preload("OrderItems.ProductVariant").
 		Preload("OrderItems.ProductVariant.Product").
 		Preload("OrderItems.Finishings").
+		Preload("OrderPayments").
+		Preload("OrderPayments.Cashier").
 		First(&order, "id = ?", id).Error
 	if err != nil {
 		return nil, err
@@ -185,4 +187,8 @@ func (r *orderRepository) FindAllFinishings(ctx context.Context) ([]domain.Finis
 		return nil, err
 	}
 	return finishings, nil
+}
+
+func (r *orderRepository) CreatePayment(ctx context.Context, payment *domain.OrderPayment) error {
+	return r.db.WithContext(ctx).Create(payment).Error
 }

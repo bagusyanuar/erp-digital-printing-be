@@ -67,6 +67,7 @@ type Order struct {
 	GrandTotal           float64                  `gorm:"type:decimal(15,2);not null;default:0" json:"grand_total"`
 	AmountPaid           float64                  `gorm:"type:decimal(15,2);not null;default:0" json:"amount_paid"`
 	OrderItems           []OrderItem              `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"order_items,omitempty"`
+	OrderPayments        []OrderPayment           `gorm:"foreignKey:OrderID;constraint:OnDelete:CASCADE" json:"order_payments,omitempty"`
 	CreatedAt            time.Time                `json:"created_at"`
 	UpdatedAt            time.Time                `json:"updated_at"`
 	DeletedAt            gorm.DeletedAt           `gorm:"index" json:"deleted_at,omitempty"`
@@ -107,6 +108,26 @@ func (oi *OrderItem) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+// OrderPayment model
+type OrderPayment struct {
+	ID            uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	OrderID       uuid.UUID        `gorm:"type:uuid;not null" json:"order_id"`
+	CashierID     uuid.UUID        `gorm:"type:uuid;not null" json:"cashier_id"`
+	Cashier       *userDomain.User `gorm:"foreignKey:CashierID" json:"cashier,omitempty"`
+	Amount        float64          `gorm:"type:decimal(15,2);not null;default:0" json:"amount"`
+	PaymentMethod string           `gorm:"type:varchar(50);not null" json:"payment_method"`
+	CreatedAt     time.Time        `json:"created_at"`
+	UpdatedAt     time.Time        `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt   `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (op *OrderPayment) BeforeCreate(tx *gorm.DB) error {
+	if op.ID == uuid.Nil {
+		op.ID = uuid.New()
+	}
+	return nil
+}
+
 // OrderRepository interface
 type OrderRepository interface {
 	Create(ctx context.Context, order *Order) error
@@ -119,6 +140,7 @@ type OrderRepository interface {
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
 	FindByIDWithCategoryPreload(ctx context.Context, id uuid.UUID) (*Order, error)
+	CreatePayment(ctx context.Context, payment *OrderPayment) error
 }
 
 // OrderUsecase interface
@@ -132,4 +154,5 @@ type OrderUsecase interface {
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
 	GetSPKByID(ctx context.Context, id uuid.UUID) (*Order, error)
+	Repay(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, amountPaid float64, paymentMethod string) (*Order, error)
 }

@@ -358,6 +358,23 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 		}
 	}
 
+	if len(o.OrderPayments) > 0 {
+		res.OrderPayments = make([]dto.OrderPaymentRes, len(o.OrderPayments))
+		for i, op := range o.OrderPayments {
+			opRes := dto.OrderPaymentRes{
+				ID:            op.ID,
+				CashierID:     op.CashierID,
+				Amount:        op.Amount,
+				PaymentMethod: op.PaymentMethod,
+				CreatedAt:     op.CreatedAt.Format("2006-01-02 15:04:05"),
+			}
+			if op.Cashier != nil {
+				opRes.CashierName = op.Cashier.Username
+			}
+			res.OrderPayments[i] = opRes
+		}
+	}
+
 	return res
 }
 
@@ -444,5 +461,36 @@ func (h *OrderHandler) GetSPKByID(c fiber.Ctx) error {
 	}
 
 	return response.Success(c, "SPK fetched successfully", res, nil)
+}
+
+func (h *OrderHandler) Repay(c fiber.Ctx) error {
+	cashierID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized: Cashier ID not found in context", nil)
+	}
+
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid order ID", err.Error())
+	}
+
+	var req dto.OrderRepayReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	order, err := h.orderUsecase.Repay(
+		c.Context(),
+		id,
+		cashierID,
+		req.AmountPaid,
+		req.PaymentMethod,
+	)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to process repayment", err.Error())
+	}
+
+	return response.Success(c, "Repayment processed successfully", mapOrderToRes(order), nil)
 }
 
