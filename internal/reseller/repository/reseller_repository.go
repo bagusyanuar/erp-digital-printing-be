@@ -23,7 +23,7 @@ func (r *resellerRepository) Create(ctx context.Context, reseller *domain.Resell
 
 func (r *resellerRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Reseller, error) {
 	var reseller domain.Reseller
-	subquery := "(SELECT COALESCE(SUM(total_amount - paid_amount), 0) FROM orders WHERE orders.reseller_id = resellers.id AND orders.payment_status IN ('UNPAID', 'PARTIAL_PAID') AND orders.status != 'CANCELLED')"
+	subquery := "(SELECT COALESCE(SUM(grand_total - amount_paid), 0) FROM orders WHERE orders.reseller_id = resellers.id AND orders.payment_status IN ('UNPAID', 'PARTIAL_PAID') AND orders.status != 'CANCELLED')"
 	if err := r.db.WithContext(ctx).
 		Select("resellers.*, " + subquery + " AS outstanding_debt").
 		Preload("CustomerLevel").
@@ -49,7 +49,7 @@ func (r *resellerRepository) FindAll(ctx context.Context, params request.Paginat
 		return nil, 0, err
 	}
 
-	subquery := "(SELECT COALESCE(SUM(total_amount - paid_amount), 0) FROM orders WHERE orders.reseller_id = resellers.id AND orders.payment_status IN ('UNPAID', 'PARTIAL_PAID') AND orders.status != 'CANCELLED')"
+	subquery := "(SELECT COALESCE(SUM(grand_total - amount_paid), 0) FROM orders WHERE orders.reseller_id = resellers.id AND orders.payment_status IN ('UNPAID', 'PARTIAL_PAID') AND orders.status != 'CANCELLED')"
 
 	if err := db.Select("resellers.*, " + subquery + " AS outstanding_debt").
 		Preload("CustomerLevel").
