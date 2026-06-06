@@ -298,11 +298,7 @@ func (u *orderUsecase) ProcessPayment(
 
 	// Check Credit Limit if this is Tempo/Hutang (Unpaid or Partial Paid)
 	isTempo := paymentMethod == "tempo" || paymentType == "tempo" || order.PaymentStatus == orderDomain.PaymentStatusUnpaid || order.PaymentStatus == orderDomain.PaymentStatusPartialPaid
-	if isTempo {
-		if !isReseller {
-			return nil, errors.New("tempo/credit payment scheme is only allowed for resellers")
-		}
-
+	if isTempo && isReseller {
 		// Fetch Reseller for Credit Limit validation
 		reseller, err := u.resellerRepo.FindByID(ctx, *resellerID)
 		if err != nil {
