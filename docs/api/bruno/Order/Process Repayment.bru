@@ -16,8 +16,12 @@ params:path {
 
 body:json {
   {
-    "payment_method": "cash",
-    "amount_paid": 50000
+    "payments": [
+      {
+        "payment_method": "cash",
+        "amount_paid": 50000
+      }
+    ]
   }
 }
 
@@ -25,11 +29,13 @@ docs {
   # Process Repayment (Cashier Actions)
   
   Kasir memproses pelunasan piutang (cicilan/pembayaran tambahan) untuk order yang berstatus `PARTIAL_PAID` atau `UNPAID`.
+  Log pembayaran yang tersimpan akan otomatis memiliki `payment_type` bernilai `REPAYMENT`.
   
   ### Path Parameters:
   - `id`: UUID Order (Required)
   
   ### Request Body:
-  - `payment_method`: Metode pembayaran, misal: `cash`, `transfer`, `qris` (Required)
-  - `amount_paid`: Jumlah uang cicilan/pelunasan yang dibayarkan oleh customer (Required, harus > 0 dan tidak boleh melebihi sisa piutang).
+  - `payments`: Array of objects untuk metode dan jumlah pembayaran pelunasan/cicilan (Required, mendukung split payment).
+    - `payment_method`: Metode pembayaran, misal: `cash`, `transfer`, `qris` (Required).
+    - `amount_paid`: Jumlah uang yang dibayarkan (Required, > 0 dan tidak boleh melebihi sisa piutang).
 }

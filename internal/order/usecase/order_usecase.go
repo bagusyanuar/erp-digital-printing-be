@@ -199,9 +199,7 @@ func (u *orderUsecase) ProcessPayment(
 	resellerID *uuid.UUID,
 	customerName string,
 	customerPhone string,
-	paymentMethod string,
-	paymentType string,
-	amountPaid float64,
+	payments []orderDomain.PaymentItem,
 ) (*orderDomain.Order, error) {
 	order, err := u.orderRepo.FindByID(ctx, orderID)
 	if err != nil {
@@ -212,8 +210,16 @@ func (u *orderUsecase) ProcessPayment(
 		return nil, fmt.Errorf("order is not in PENDING_PAYMENT status, current: %s", order.Status)
 	}
 
-	if amountPaid < 0 {
-		return nil, errors.New("amount_paid must be greater than or equal to 0")
+	var amountPaid float64
+	var hasTempo bool
+	for _, p := range payments {
+		if p.AmountPaid < 0 {
+			return nil, errors.New("payment amount must be greater than or equal to 0")
+		}
+		amountPaid += p.AmountPaid
+		if p.PaymentMethod == "tempo" {
+			hasTempo = true
+		}
 	}
 
 	// Set Cashier ID
@@ -297,7 +303,7 @@ func (u *orderUsecase) ProcessPayment(
 	}
 
 	// Check Credit Limit if this is Tempo/Hutang (Unpaid or Partial Paid)
-	isTempo := paymentMethod == "tempo" || paymentType == "tempo" || order.PaymentStatus == orderDomain.PaymentStatusUnpaid || order.PaymentStatus == orderDomain.PaymentStatusPartialPaid
+	isTempo := hasTempo || order.PaymentStatus == orderDomain.PaymentStatusUnpaid || order.PaymentStatus == orderDomain.PaymentStatusPartialPaid
 	if isTempo && isReseller {
 		// Fetch Reseller for Credit Limit validation
 		reseller, err := u.resellerRepo.FindByID(ctx, *resellerID)
@@ -349,14 +355,26 @@ func (u *orderUsecase) ProcessPayment(
 	order.InvoiceNumber = &invNo
 
 	if amountPaid > 0 {
-		initialPayment := &orderDomain.OrderPayment{
-			OrderID:       order.ID,
-			CashierID:     cashierID,
-			Amount:        amountPaid,
-			PaymentMethod: paymentMethod,
+		var paymentType string
+		if amountPaid >= grandTotal {
+			paymentType = "FULL_PAYMENT"
+		} else {
+			paymentType = "DOWN_PAYMENT"
 		}
-		if err := u.orderRepo.CreatePayment(ctx, initialPayment); err != nil {
-			return nil, fmt.Errorf("failed to create payment log: %w", err)
+
+		for _, p := range payments {
+			if p.AmountPaid > 0 {
+				initialPayment := &orderDomain.OrderPayment{
+					OrderID:       order.ID,
+					CashierID:     cashierID,
+					Amount:        p.AmountPaid,
+					PaymentMethod: p.PaymentMethod,
+					PaymentType:   paymentType,
+				}
+				if err := u.orderRepo.CreatePayment(ctx, initialPayment); err != nil {
+					return nil, fmt.Errorf("failed to create payment log: %w", err)
+				}
+			}
 		}
 	}
 
@@ -389,8 +407,7 @@ func (u *orderUsecase) Repay(
 	ctx context.Context,
 	orderID uuid.UUID,
 	cashierID uuid.UUID,
-	amountPaid float64,
-	paymentMethod string,
+	payments []orderDomain.PaymentItem,
 ) (*orderDomain.Order, error) {
 	order, err := u.orderRepo.FindByID(ctx, orderID)
 	if err != nil {
@@ -402,8 +419,16 @@ func (u *orderUsecase) Repay(
 		return nil, fmt.Errorf("cannot process repayment for order in %s status", order.Status)
 	}
 
+	var amountPaid float64
+	for _, p := range payments {
+		if p.AmountPaid <= 0 {
+			return nil, errors.New("payment amount must be greater than 0")
+		}
+		amountPaid += p.AmountPaid
+	}
+
 	if amountPaid <= 0 {
-		return nil, errors.New("payment amount must be greater than 0")
+		return nil, errors.New("total payment amount must be greater than 0")
 	}
 
 	remainingDebt := order.GrandTotal - order.AmountPaid
@@ -421,15 +446,20 @@ func (u *orderUsecase) Repay(
 		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
 	}
 
-	// Create payment log
-	payment := &orderDomain.OrderPayment{
-		OrderID:       order.ID,
-		CashierID:     cashierID,
-		Amount:        amountPaid,
-		PaymentMethod: paymentMethod,
-	}
-	if err := u.orderRepo.CreatePayment(ctx, payment); err != nil {
-		return nil, fmt.Errorf("failed to create payment log: %w", err)
+	// Create payment logs
+	for _, p := range payments {
+		if p.AmountPaid > 0 {
+			payment := &orderDomain.OrderPayment{
+				OrderID:       order.ID,
+				CashierID:     cashierID,
+				Amount:        p.AmountPaid,
+				PaymentMethod: p.PaymentMethod,
+				PaymentType:   "REPAYMENT",
+			}
+			if err := u.orderRepo.CreatePayment(ctx, payment); err != nil {
+				return nil, fmt.Errorf("failed to create payment log: %w", err)
+			}
+		}
 	}
 
 	if err := u.orderRepo.Update(ctx, order); err != nil {

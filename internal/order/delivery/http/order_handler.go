@@ -144,6 +144,14 @@ func (h *OrderHandler) ProcessPayment(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
+	var payments []domain.PaymentItem
+	for _, p := range req.Payments {
+		payments = append(payments, domain.PaymentItem{
+			PaymentMethod: p.PaymentMethod,
+			AmountPaid:    p.AmountPaid,
+		})
+	}
+
 	order, err := h.orderUsecase.ProcessPayment(
 		c.Context(),
 		id,
@@ -151,9 +159,7 @@ func (h *OrderHandler) ProcessPayment(c fiber.Ctx) error {
 		req.ResellerID,
 		req.CustomerName,
 		req.CustomerPhone,
-		req.PaymentMethod,
-		req.PaymentType,
-		req.AmountPaid,
+		payments,
 	)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to process payment", err.Error())
@@ -366,6 +372,7 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 				CashierID:     op.CashierID,
 				Amount:        op.Amount,
 				PaymentMethod: op.PaymentMethod,
+				PaymentType:   op.PaymentType,
 				CreatedAt:     op.CreatedAt.Format("2006-01-02 15:04:05"),
 			}
 			if op.Cashier != nil {
@@ -480,12 +487,19 @@ func (h *OrderHandler) Repay(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
+	var payments []domain.PaymentItem
+	for _, p := range req.Payments {
+		payments = append(payments, domain.PaymentItem{
+			PaymentMethod: p.PaymentMethod,
+			AmountPaid:    p.AmountPaid,
+		})
+	}
+
 	order, err := h.orderUsecase.Repay(
 		c.Context(),
 		id,
 		cashierID,
-		req.AmountPaid,
-		req.PaymentMethod,
+		payments,
 	)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to process repayment", err.Error())
@@ -513,6 +527,7 @@ func (h *OrderHandler) GetPaymentsByOrderID(c fiber.Ctx) error {
 			CashierID:     op.CashierID,
 			Amount:        op.Amount,
 			PaymentMethod: op.PaymentMethod,
+			PaymentType:   op.PaymentType,
 			CreatedAt:     op.CreatedAt.Format("2006-01-02 15:04:05"),
 		}
 		if op.Cashier != nil {

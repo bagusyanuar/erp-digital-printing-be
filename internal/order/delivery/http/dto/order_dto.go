@@ -22,18 +22,20 @@ type CreateOrderReq struct {
 	Items         []OrderItemReq `json:"items" validate:"required,dive"`
 }
 
+type PaymentItemReq struct {
+	PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash qris transfer tempo"`
+	AmountPaid    float64 `json:"amount_paid" validate:"required,numeric,gt=0"`
+}
+
 type PaymentProcessReq struct {
-	ResellerID    *uuid.UUID `json:"reseller_id" validate:"omitempty"`
-	CustomerName  string     `json:"customer_name" validate:"required"`
-	CustomerPhone string     `json:"customer_phone" validate:"required"`
-	PaymentMethod string     `json:"payment_method" validate:"required"`
-	PaymentType   string     `json:"payment_type" validate:"required,oneof=full tempo"`
-	AmountPaid    float64    `json:"amount_paid" validate:"required,numeric,gte=0"`
+	ResellerID    *uuid.UUID       `json:"reseller_id" validate:"omitempty"`
+	CustomerName  string           `json:"customer_name" validate:"required"`
+	CustomerPhone string           `json:"customer_phone" validate:"required"`
+	Payments      []PaymentItemReq `json:"payments" validate:"required,min=1,dive"`
 }
 
 type OrderRepayReq struct {
-	AmountPaid    float64 `json:"amount_paid" validate:"required,numeric,gt=0"`
-	PaymentMethod string  `json:"payment_method" validate:"required"`
+	Payments []PaymentItemReq `json:"payments" validate:"required,min=1,dive"`
 }
 
 type CreateFinishingReq struct {
@@ -70,6 +72,7 @@ type OrderPaymentRes struct {
 	CashierName   string    `json:"cashier_name"`
 	Amount        float64   `json:"amount"`
 	PaymentMethod string    `json:"payment_method"`
+	PaymentType   string    `json:"payment_type"`
 	CreatedAt     string    `json:"created_at"`
 }
 

@@ -72,6 +72,7 @@ Table order_payments {
   cashier_id uuid [not null]
   amount decimal(15,2) [not null, default: 0]
   payment_method varchar(50) [not null]
+  payment_type varchar(50) [not null] // DOWN_PAYMENT, FULL_PAYMENT, REPAYMENT
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
   deleted_at timestamp [null]

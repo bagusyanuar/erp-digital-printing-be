@@ -116,6 +116,7 @@ type OrderPayment struct {
 	Cashier       *userDomain.User `gorm:"foreignKey:CashierID" json:"cashier,omitempty"`
 	Amount        float64          `gorm:"type:decimal(15,2);not null;default:0" json:"amount"`
 	PaymentMethod string           `gorm:"type:varchar(50);not null" json:"payment_method"`
+	PaymentType   string           `gorm:"type:varchar(50);not null" json:"payment_type"`
 	CreatedAt     time.Time        `json:"created_at"`
 	UpdatedAt     time.Time        `json:"updated_at"`
 	DeletedAt     gorm.DeletedAt   `gorm:"index" json:"deleted_at,omitempty"`
@@ -143,6 +144,11 @@ type OrderRepository interface {
 	CreatePayment(ctx context.Context, payment *OrderPayment) error
 }
 
+type PaymentItem struct {
+	PaymentMethod string
+	AmountPaid    float64
+}
+
 // OrderUsecase interface
 type OrderUsecase interface {
 	SaveDraft(ctx context.Context, order *Order) error
@@ -150,9 +156,9 @@ type OrderUsecase interface {
 	SubmitExistingToCashier(ctx context.Context, orderID uuid.UUID) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
 	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID) ([]Order, int64, error)
-	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, paymentMethod string, paymentType string, amountPaid float64) (*Order, error)
+	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, payments []PaymentItem) (*Order, error)
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
 	GetSPKByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	Repay(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, amountPaid float64, paymentMethod string) (*Order, error)
+	Repay(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, payments []PaymentItem) (*Order, error)
 }

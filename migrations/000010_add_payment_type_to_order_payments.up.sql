@@ -1,0 +1,1 @@
+ALTER TABLE order_payments ADD COLUMN payment_type VARCHAR(50) NOT NULL DEFAULT 'UNKNOWN';
