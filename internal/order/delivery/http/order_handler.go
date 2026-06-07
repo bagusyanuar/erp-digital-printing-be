@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/order/delivery/http/dto"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/order/domain"
@@ -219,7 +220,35 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		}
 	}
 
-	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, designerID)
+	var cashierID *uuid.UUID
+	if cashierQuery := c.Query("cashier_id", ""); cashierQuery != "" {
+		if cid, err := uuid.Parse(cashierQuery); err == nil {
+			cashierID = &cid
+		}
+	}
+
+	search := c.Query("search", "")
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+
+	var startDate, endDate *time.Time
+	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
+	}
+
+	if startDateStr != "" && endDateStr != "" {
+		t1, err1 := time.Parse("2006-01-02", startDateStr)
+		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		if err1 != nil || err2 != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
+		}
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		startDate = &t1
+		endDate = &t2
+	}
+
+	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch orders", err.Error())
 	}

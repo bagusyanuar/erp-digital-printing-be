@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/order/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
@@ -60,7 +61,7 @@ func (r *orderRepository) FindByIDWithCategoryPreload(ctx context.Context, id uu
 	return &order, nil
 }
 
-func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID) ([]domain.Order, int64, error) {
+func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time) ([]domain.Order, int64, error) {
 	var orders []domain.Order
 	var total int64
 
@@ -76,6 +77,19 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 
 	if designerID != nil && *designerID != uuid.Nil {
 		query = query.Where("designer_id = ?", *designerID)
+	}
+
+	if cashierID != nil && *cashierID != uuid.Nil {
+		query = query.Where("cashier_id = ?", *cashierID)
+	}
+
+	if search != "" {
+		searchText := "%" + search + "%"
+		query = query.Where("invoice_number ILIKE ? OR customer_name ILIKE ? OR job_number ILIKE ?", searchText, searchText, searchText)
+	}
+
+	if startDate != nil && endDate != nil {
+		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 
 	err := query.Count(&total).Error

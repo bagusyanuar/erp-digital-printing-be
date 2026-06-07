@@ -188,8 +188,8 @@ func (u *orderUsecase) FindByID(ctx context.Context, id uuid.UUID) (*orderDomain
 	return u.orderRepo.FindByID(ctx, id)
 }
 
-func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID) ([]orderDomain.Order, int64, error) {
-	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, designerID)
+func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time) ([]orderDomain.Order, int64, error) {
+	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate)
 }
 
 func (u *orderUsecase) ProcessPayment(
@@ -320,7 +320,7 @@ func (u *orderUsecase) ProcessPayment(
 		orders, _, err := u.orderRepo.FindAll(ctx, params, []string{
 			orderDomain.StatusInProduction,
 			orderDomain.StatusReadyForPickup,
-		}, nil, nil)
+		}, nil, nil, nil, "", nil, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch outstanding orders for credit limit validation: %w", err)
 		}

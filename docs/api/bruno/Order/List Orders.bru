@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&designer_id=
+  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&designer_id=&cashier_id=&search=&start_date=&end_date=
   body: none
   auth: inherit
 }
@@ -16,12 +16,16 @@ query {
   status: PENDING_PAYMENT,IN_PRODUCTION
   payment_status: 
   designer_id: 
+  cashier_id: 
+  search: 
+  start_date: 
+  end_date: 
 }
 
 docs {
   # List Orders
   
-  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, dan ID designer yang menangani order tersebut.
+  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, ID designer, ID cashier, pencarian keyword, serta rentang tanggal order.
   
   ### Query Parameters:
   - `page`: Nomor halaman (default: 1)
@@ -31,4 +35,8 @@ docs {
   - `payment_status`: Filter berdasarkan status pembayaran. Mendukung multi-status dengan dipisah menggunakan tanda koma (contoh: `payment_status=UNPAID,PARTIAL_PAID` atau `payment_status=PAID`).
     - Pilihan status: `UNPAID`, `PARTIAL_PAID`, `PAID`
   - `designer_id`: Filter berdasarkan UUID designer yang membuat order
+  - `cashier_id`: Filter berdasarkan UUID cashier yang memproses order
+  - `search`: Kata kunci pencarian berdasarkan `invoice_number`, `customer_name`, atau `job_number`
+  - `start_date`: Tanggal awal rentang pencarian (format: `YYYY-MM-DD`). Harus dikirim bersamaan dengan `end_date`.
+  - `end_date`: Tanggal akhir rentang pencarian (format: `YYYY-MM-DD`). Harus dikirim bersamaan dengan `start_date`.
 }
