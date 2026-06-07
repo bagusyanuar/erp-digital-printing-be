@@ -372,14 +372,25 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 		})
 
 		res.OrderPayments = make([]dto.OrderPaymentRes, len(o.OrderPayments))
+		batchMap := make(map[string]int)
+		currentBatchNum := 0
+
 		for i, op := range o.OrderPayments {
+			timeKey := op.CreatedAt.Format("2006-01-02 15:04:05")
+			batchNum, exists := batchMap[timeKey]
+			if !exists {
+				currentBatchNum++
+				batchMap[timeKey] = currentBatchNum
+				batchNum = currentBatchNum
+			}
+
 			opRes := dto.OrderPaymentRes{
 				ID:            op.ID,
 				CashierID:     op.CashierID,
 				Amount:        op.Amount,
 				PaymentMethod: op.PaymentMethod,
 				PaymentType:   op.PaymentType,
-				PaymentNumber: i + 1,
+				PaymentNumber: batchNum,
 				CreatedAt:     op.CreatedAt.Format("2006-01-02 15:04:05"),
 			}
 			if op.Cashier != nil {
@@ -534,14 +545,25 @@ func (h *OrderHandler) GetPaymentsByOrderID(c fiber.Ctx) error {
 	}
 
 	resList := make([]dto.OrderPaymentRes, len(order.OrderPayments))
+	batchMap := make(map[string]int)
+	currentBatchNum := 0
+
 	for i, op := range order.OrderPayments {
+		timeKey := op.CreatedAt.Format("2006-01-02 15:04:05")
+		batchNum, exists := batchMap[timeKey]
+		if !exists {
+			currentBatchNum++
+			batchMap[timeKey] = currentBatchNum
+			batchNum = currentBatchNum
+		}
+
 		opRes := dto.OrderPaymentRes{
 			ID:            op.ID,
 			CashierID:     op.CashierID,
 			Amount:        op.Amount,
 			PaymentMethod: op.PaymentMethod,
 			PaymentType:   op.PaymentType,
-			PaymentNumber: i + 1,
+			PaymentNumber: batchNum,
 			CreatedAt:     op.CreatedAt.Format("2006-01-02 15:04:05"),
 		}
 		if op.Cashier != nil {
