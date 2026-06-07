@@ -91,6 +91,8 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 		Preload("OrderItems.ProductVariant").
 		Preload("OrderItems.ProductVariant.Product").
 		Preload("OrderItems.Finishings").
+		Preload("OrderPayments").
+		Preload("OrderPayments.Cashier").
 		Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order("created_at DESC").

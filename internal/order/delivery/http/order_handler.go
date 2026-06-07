@@ -2,6 +2,7 @@ package http
 
 import (
 	"math"
+	"sort"
 	"strings"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/order/delivery/http/dto"
@@ -365,6 +366,11 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 	}
 
 	if len(o.OrderPayments) > 0 {
+		// Sort by CreatedAt ascending
+		sort.Slice(o.OrderPayments, func(i, j int) bool {
+			return o.OrderPayments[i].CreatedAt.Before(o.OrderPayments[j].CreatedAt)
+		})
+
 		res.OrderPayments = make([]dto.OrderPaymentRes, len(o.OrderPayments))
 		for i, op := range o.OrderPayments {
 			opRes := dto.OrderPaymentRes{
@@ -373,6 +379,7 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 				Amount:        op.Amount,
 				PaymentMethod: op.PaymentMethod,
 				PaymentType:   op.PaymentType,
+				PaymentNumber: i + 1,
 				CreatedAt:     op.CreatedAt.Format("2006-01-02 15:04:05"),
 			}
 			if op.Cashier != nil {
@@ -520,6 +527,12 @@ func (h *OrderHandler) GetPaymentsByOrderID(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusNotFound, "Order not found", err.Error())
 	}
 
+	if len(order.OrderPayments) > 0 {
+		sort.Slice(order.OrderPayments, func(i, j int) bool {
+			return order.OrderPayments[i].CreatedAt.Before(order.OrderPayments[j].CreatedAt)
+		})
+	}
+
 	resList := make([]dto.OrderPaymentRes, len(order.OrderPayments))
 	for i, op := range order.OrderPayments {
 		opRes := dto.OrderPaymentRes{
@@ -528,6 +541,7 @@ func (h *OrderHandler) GetPaymentsByOrderID(c fiber.Ctx) error {
 			Amount:        op.Amount,
 			PaymentMethod: op.PaymentMethod,
 			PaymentType:   op.PaymentType,
+			PaymentNumber: i + 1,
 			CreatedAt:     op.CreatedAt.Format("2006-01-02 15:04:05"),
 		}
 		if op.Cashier != nil {

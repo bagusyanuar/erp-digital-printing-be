@@ -73,6 +73,7 @@ type OrderPaymentRes struct {
 	Amount        float64   `json:"amount"`
 	PaymentMethod string    `json:"payment_method"`
 	PaymentType   string    `json:"payment_type"`
+	PaymentNumber int       `json:"payment_number"`
 	CreatedAt     string    `json:"created_at"`
 }
 
