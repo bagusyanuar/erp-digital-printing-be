@@ -1,0 +1,39 @@
+meta {
+  name: Update Order Status
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{base_url}}/orders/:id/status
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+body:json {
+  {
+    "status": "DRAFT"
+  }
+}
+
+docs {
+  # Update Order Status
+  
+  Mengubah status workflow produksi order secara fleksibel namun tetap tervalidasi oleh sistem.
+  
+  ### Path Parameters:
+  - `id`: UUID Order
+  
+  ### Request Body:
+  - `status`: String status baru (`DRAFT`, `PENDING_PAYMENT`, `IN_PRODUCTION`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`)
+  
+  ### Transisi yang Didukung:
+  - `DRAFT` -> `PENDING_PAYMENT`, `CANCELLED`
+  - `PENDING_PAYMENT` -> `DRAFT`, `CANCELLED`
+  - `IN_PRODUCTION` -> `READY_FOR_PICKUP`, `CANCELLED`
+  - `READY_FOR_PICKUP` -> `COMPLETED` (Wajib Lunas/PAID), `CANCELLED`
+}

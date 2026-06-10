@@ -155,6 +155,7 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Get("/:id", a.Container.OrderHandler.FindByID)
 	orderRoutes.Get("/:id/payments", a.Container.OrderHandler.GetPaymentsByOrderID)
 	orderRoutes.Get("/:id/spk", a.Container.OrderHandler.GetSPKByID)
+	orderRoutes.Patch("/:id/status", a.Container.OrderHandler.UpdateStatus)
 
 	// Finishing Routes
 	finishingRoutes := protected.Group("/finishings")

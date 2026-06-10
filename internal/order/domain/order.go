@@ -161,4 +161,5 @@ type OrderUsecase interface {
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
 	GetSPKByID(ctx context.Context, id uuid.UUID) (*Order, error)
 	Repay(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, payments []PaymentItem) (*Order, error)
+	UpdateStatus(ctx context.Context, id uuid.UUID, status string) (*Order, error)
 }

@@ -474,3 +474,57 @@ func (u *orderUsecase) Repay(
 
 	return order, nil
 }
+
+func (u *orderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, newStatus string) (*orderDomain.Order, error) {
+	order, err := u.orderRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
+	}
+
+	currentStatus := order.Status
+	if currentStatus == newStatus {
+		return order, nil
+	}
+
+	allowed := false
+	switch currentStatus {
+	case orderDomain.StatusDraft:
+		if newStatus == orderDomain.StatusPendingPayment || newStatus == orderDomain.StatusCancelled {
+			allowed = true
+		}
+	case orderDomain.StatusPendingPayment:
+		if newStatus == orderDomain.StatusDraft || newStatus == orderDomain.StatusCancelled {
+			allowed = true
+		}
+	case orderDomain.StatusInProduction:
+		if newStatus == orderDomain.StatusReadyForPickup || newStatus == orderDomain.StatusCancelled {
+			allowed = true
+		}
+	case orderDomain.StatusReadyForPickup:
+		if newStatus == orderDomain.StatusCompleted || newStatus == orderDomain.StatusCancelled {
+			allowed = true
+		}
+	}
+
+	if !allowed {
+		return nil, fmt.Errorf("invalid status transition from %s to %s", currentStatus, newStatus)
+	}
+
+	if newStatus == orderDomain.StatusCompleted {
+		if order.PaymentStatus != orderDomain.PaymentStatusPaid {
+			return nil, fmt.Errorf("cannot complete order: payment status is %s, must be PAID", order.PaymentStatus)
+		}
+	}
+
+	order.Status = newStatus
+	if err := u.orderRepo.Update(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to update order status: %w", err)
+	}
+
+	updatedOrder, err := u.orderRepo.FindByID(ctx, order.ID)
+	if err == nil {
+		return updatedOrder, nil
+	}
+	return order, nil
+}
+

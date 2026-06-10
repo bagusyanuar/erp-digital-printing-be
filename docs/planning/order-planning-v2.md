@@ -196,3 +196,21 @@ Khusus untuk pelanggan bertipe **Reseller**, sistem mendukung metode pembayaran 
     *   **STRICT VALIDATION**: Jika $\text{New Potential Debt} > \text{Reseller.CreditLimit}$, sistem **wajib menolak** transaksi dengan pesan error: `Credit limit exceeded. Limit: X, Outstanding: Y, New Order Debt: Z`.
 4.  **Pemberian Izin Cetak**:
     *   Jika lolos limit, order langsung beralih status ke `IN_PRODUCTION` dengan status pembayaran `UNPAID` (jika bayar awal 0) atau `PARTIAL_PAID` (jika bayar DP sebagian), dan `amount_paid` disimpan sesuai nilai bayar awal.
+
+---
+
+## 8. Endpoint Fleksibel Update Status Order (V2)
+
+*   **Method & URL**: `PATCH /api/v1/orders/:id/status`
+*   **Request Body (JSON)**:
+    ```json
+    {
+      "status": "DRAFT"
+    }
+    ```
+*   **Matriks Transaksi Status yang Didukung**:
+    *   `DRAFT` -> `PENDING_PAYMENT`, `CANCELLED`
+    *   `PENDING_PAYMENT` -> `DRAFT`, `CANCELLED`
+    *   `IN_PRODUCTION` -> `READY_FOR_PICKUP`, `CANCELLED`
+    *   `READY_FOR_PICKUP` -> `COMPLETED` (hanya jika `payment_status == PAID`), `CANCELLED`
+

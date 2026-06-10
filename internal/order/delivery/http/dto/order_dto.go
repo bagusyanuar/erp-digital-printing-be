@@ -111,3 +111,8 @@ type OrderRes struct {
 	CreatedAt           string            `json:"created_at"`
 	UpdatedAt           string            `json:"updated_at"`
 }
+
+type UpdateOrderStatusReq struct {
+	Status string `json:"status" validate:"required,oneof=DRAFT PENDING_PAYMENT IN_PRODUCTION READY_FOR_PICKUP COMPLETED CANCELLED"`
+}
+

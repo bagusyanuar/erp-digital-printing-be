@@ -604,3 +604,24 @@ func (h *OrderHandler) GetPaymentsByOrderID(c fiber.Ctx) error {
 	return response.Success(c, "Order payments fetched successfully", resList, nil)
 }
 
+func (h *OrderHandler) UpdateStatus(c fiber.Ctx) error {
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid order ID", err.Error())
+	}
+
+	var req dto.UpdateOrderStatusReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	order, err := h.orderUsecase.UpdateStatus(c.Context(), id, req.Status)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to update order status", err.Error())
+	}
+
+	return response.Success(c, "Order status updated successfully", mapOrderToRes(order), nil)
+}
+
+
