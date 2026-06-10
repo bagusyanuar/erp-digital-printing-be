@@ -71,7 +71,7 @@ func (a *App) SetupRoutes() {
 	a.Fiber.Use(cors.New(cors.Config{
 		AllowOrigins:     a.Config.App.AllowedOrigins,
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	}))
 
