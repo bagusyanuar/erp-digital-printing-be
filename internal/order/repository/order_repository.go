@@ -208,3 +208,29 @@ func (r *orderRepository) FindAllFinishings(ctx context.Context) ([]domain.Finis
 func (r *orderRepository) CreatePayment(ctx context.Context, payment *domain.OrderPayment) error {
 	return r.db.WithContext(ctx).Create(payment).Error
 }
+
+func (r *orderRepository) ReplaceItems(ctx context.Context, orderID uuid.UUID, items []domain.OrderItem) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var oldItems []domain.OrderItem
+		if err := tx.Where("order_id = ?", orderID).Find(&oldItems).Error; err != nil {
+			return err
+		}
+		for _, item := range oldItems {
+			if err := tx.Model(&item).Association("Finishings").Clear(); err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("order_id = ?", orderID).Delete(&domain.OrderItem{}).Error; err != nil {
+			return err
+		}
+		for i := range items {
+			items[i].OrderID = orderID
+			// Set new ID to ensure it is inserted as a fresh record
+			items[i].ID = uuid.New()
+			if err := tx.Create(&items[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}

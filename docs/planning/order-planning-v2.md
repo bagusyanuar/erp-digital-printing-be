@@ -213,4 +213,12 @@ Khusus untuk pelanggan bertipe **Reseller**, sistem mendukung metode pembayaran 
     *   `PENDING_PAYMENT` -> `DRAFT`, `CANCELLED`
     *   `IN_PRODUCTION` -> `READY_FOR_PICKUP`, `CANCELLED`
     *   `READY_FOR_PICKUP` -> `COMPLETED` (hanya jika `payment_status == PAID`), `CANCELLED`
+ 
+ 
+## 9. Endpoint Update Draft Order (V2)
+ 
+*   **Method & URL**: `PUT /api/v1/orders/:id`
+*   **Keterangan**: Digunakan untuk memperbarui data items, reseller, customer info, dan notes pada draft order. Hanya diperbolehkan jika status order saat ini masih `DRAFT`.
+*   **Request Body (JSON)**: Sama dengan payload `POST /api/v1/orders/draft` (`CreateOrderReq`).
+*   **Response (JSON)**: Sama dengan response `Save Job Entry Draft` dengan harga yang sudah dikalkulasi ulang.
 

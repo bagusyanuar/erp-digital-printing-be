@@ -147,6 +147,7 @@ func (a *App) SetupRoutes() {
 	// Order & Job Entry Routes
 	orderRoutes := protected.Group("/orders")
 	orderRoutes.Post("/draft", a.Container.OrderHandler.SaveDraft)
+	orderRoutes.Put("/:id", a.Container.OrderHandler.UpdateDraft)
 	orderRoutes.Post("/submit", a.Container.OrderHandler.SubmitToCashier)
 	orderRoutes.Put("/:id/submit", a.Container.OrderHandler.SubmitExistingToCashier)
 	orderRoutes.Post("/:id/pay", a.Container.OrderHandler.ProcessPayment)

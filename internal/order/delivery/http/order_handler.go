@@ -624,4 +624,26 @@ func (h *OrderHandler) UpdateStatus(c fiber.Ctx) error {
 	return response.Success(c, "Order status updated successfully", mapOrderToRes(order), nil)
 }
 
+func (h *OrderHandler) UpdateDraft(c fiber.Ctx) error {
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid order ID", err.Error())
+	}
+
+	var req dto.CreateOrderReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	order := buildOrderFromReq(&req)
+
+	updatedOrder, err := h.orderUsecase.UpdateDraft(c.Context(), id, order)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to update order draft", err.Error())
+	}
+
+	return response.Success(c, "Draft order updated successfully", mapOrderToRes(updatedOrder), nil)
+}
+
 

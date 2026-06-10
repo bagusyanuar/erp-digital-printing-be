@@ -142,6 +142,7 @@ type OrderRepository interface {
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
 	FindByIDWithCategoryPreload(ctx context.Context, id uuid.UUID) (*Order, error)
 	CreatePayment(ctx context.Context, payment *OrderPayment) error
+	ReplaceItems(ctx context.Context, orderID uuid.UUID, items []OrderItem) error
 }
 
 type PaymentItem struct {
@@ -162,4 +163,5 @@ type OrderUsecase interface {
 	GetSPKByID(ctx context.Context, id uuid.UUID) (*Order, error)
 	Repay(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, payments []PaymentItem) (*Order, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) (*Order, error)
+	UpdateDraft(ctx context.Context, id uuid.UUID, order *Order) (*Order, error)
 }
