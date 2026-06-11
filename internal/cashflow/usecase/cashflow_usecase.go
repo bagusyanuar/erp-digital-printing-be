@@ -6,14 +6,16 @@ import (
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/domain"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type cashFlowUsecase struct {
 	repo domain.CashFlowRepository
+	db   *gorm.DB
 }
 
-func NewCashFlowUsecase(repo domain.CashFlowRepository) domain.CashFlowUsecase {
-	return &cashFlowUsecase{repo: repo}
+func NewCashFlowUsecase(repo domain.CashFlowRepository, db *gorm.DB) domain.CashFlowUsecase {
+	return &cashFlowUsecase{repo: repo, db: db}
 }
 
 func (u *cashFlowUsecase) GetReport(ctx context.Context, startDate time.Time, endDate time.Time) (*domain.CashFlowReportRes, error) {
@@ -99,10 +101,37 @@ func (u *cashFlowUsecase) CreateAdjustment(ctx context.Context, cashierID uuid.U
 		CashierID:       cashierID,
 	}
 
-	err := u.repo.Create(ctx, cf)
+	err := u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		acc, err := u.repo.FindAccountByNameWithLock(ctx, tx, paymentMethod)
+		if err != nil {
+			return err
+		}
+
+		if flowType == domain.TypeDebit {
+			acc.Balance += amount
+		} else {
+			acc.Balance -= amount
+		}
+
+		if err := u.repo.UpdateAccount(ctx, tx, acc); err != nil {
+			return err
+		}
+
+		if err := u.repo.CreateTx(ctx, tx, cf); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
 	return cf, nil
 }
+
+func (u *cashFlowUsecase) FindAllAccounts(ctx context.Context) ([]domain.CashAccount, error) {
+	return u.repo.FindAllAccounts(ctx)
+}
+

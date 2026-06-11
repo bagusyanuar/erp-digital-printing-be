@@ -1,9 +1,9 @@
-// Cash Flow management schema
+// Cash Flow and Accounts management schema
 
 Table cash_flows {
   id uuid [pk, default: `gen_random_uuid()`]
   transaction_date timestamp [default: `now()`]       // Waktu terjadinya mutasi
-  reference_type varchar(50) [not null]               // 'ORDER_PAYMENT', 'REFUND', 'CAPITAL', 'ADJUSTMENT'
+  reference_type varchar(50) [not null]               // 'ORDER_PAYMENT', 'EXPENSE', 'REFUND', 'CAPITAL', 'ADJUSTMENT'
   reference_id uuid [null]                            // ID referensi (bisa null jika penyesuaian manual tanpa tabel detail)
   type varchar(10) [not null]                         // 'DEBIT' (Masuk), 'CREDIT' (Keluar)
   amount decimal(15,2) [not null, default: 0]
@@ -15,6 +15,16 @@ Table cash_flows {
   deleted_at timestamp [null]
 
   Note: 'Buku kas utama (General Ledger) mencatat arus kas masuk & keluar'
+}
+
+Table cash_accounts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(50) [unique, not null]                 // 'cash', 'transfer', 'qris', dll
+  balance decimal(15,2) [not null, default: 0]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  Note: 'Master data laci kasir dan digital account untuk menyimpan running balance'
 }
 
 // Relationships

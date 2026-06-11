@@ -81,14 +81,34 @@ type CashFlowReportRes struct {
 	Transactions     []CashFlowTransactionRes        `json:"transactions"`
 }
 
+// CashAccount model
+type CashAccount struct {
+	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	Name      string    `gorm:"type:varchar(50);unique;not null" json:"name"`
+	Balance   float64   `gorm:"type:decimal(15,2);not null;default:0" json:"balance"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (ca *CashAccount) BeforeCreate(tx *gorm.DB) error {
+	if ca.ID == uuid.Nil {
+		ca.ID = uuid.New()
+	}
+	return nil
+}
+
 // Interfaces
 type CashFlowRepository interface {
 	Create(ctx context.Context, cashFlow *CashFlow) error
 	CreateTx(ctx context.Context, tx *gorm.DB, cashFlow *CashFlow) error
 	FindAll(ctx context.Context, startDate time.Time, endDate time.Time) ([]CashFlow, error)
+	FindAllAccounts(ctx context.Context) ([]CashAccount, error)
+	FindAccountByNameWithLock(ctx context.Context, tx *gorm.DB, name string) (*CashAccount, error)
+	UpdateAccount(ctx context.Context, tx *gorm.DB, account *CashAccount) error
 }
 
 type CashFlowUsecase interface {
 	GetReport(ctx context.Context, startDate time.Time, endDate time.Time) (*CashFlowReportRes, error)
 	CreateAdjustment(ctx context.Context, cashierID uuid.UUID, amount float64, flowType string, paymentMethod string, description string) (*CashFlow, error)
+	FindAllAccounts(ctx context.Context) ([]CashAccount, error)
 }

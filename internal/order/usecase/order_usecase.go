@@ -13,6 +13,7 @@ import (
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"gorm.io/gorm"
 )
 
 type orderUsecase struct {
@@ -20,6 +21,7 @@ type orderUsecase struct {
 	productRepo  productDomain.ProductRepository
 	resellerRepo resellerDomain.ResellerRepository
 	cashFlowRepo cashFlowDomain.CashFlowRepository
+	db           *gorm.DB
 	logger       *zap.Logger
 }
 
@@ -28,6 +30,7 @@ func NewOrderUsecase(
 	productRepo productDomain.ProductRepository,
 	resellerRepo resellerDomain.ResellerRepository,
 	cashFlowRepo cashFlowDomain.CashFlowRepository,
+	db *gorm.DB,
 	logger *zap.Logger,
 ) orderDomain.OrderUsecase {
 	return &orderUsecase{
@@ -35,6 +38,7 @@ func NewOrderUsecase(
 		productRepo:  productRepo,
 		resellerRepo: resellerRepo,
 		cashFlowRepo: cashFlowRepo,
+		db:           db,
 		logger:       logger,
 	}
 }
@@ -359,51 +363,68 @@ func (u *orderUsecase) ProcessPayment(
 	invNo := fmt.Sprintf("INV/%s/%04d", dateStr, seq)
 	order.InvoiceNumber = &invNo
 
-	if amountPaid > 0 {
-		var paymentType string
-		if amountPaid >= grandTotal {
-			paymentType = "FULL_PAYMENT"
-		} else {
-			paymentType = "DOWN_PAYMENT"
-		}
+	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if amountPaid > 0 {
+			var paymentType string
+			if amountPaid >= grandTotal {
+				paymentType = "FULL_PAYMENT"
+			} else {
+				paymentType = "DOWN_PAYMENT"
+			}
 
-		for _, p := range payments {
-			if p.AmountPaid > 0 {
-				initialPayment := &orderDomain.OrderPayment{
-					OrderID:       order.ID,
-					CashierID:     cashierID,
-					Amount:        p.AmountPaid,
-					PaymentMethod: p.PaymentMethod,
-					PaymentType:   paymentType,
-				}
-				if err := u.orderRepo.CreatePayment(ctx, initialPayment); err != nil {
-					return nil, fmt.Errorf("failed to create payment log: %w", err)
-				}
+			for _, p := range payments {
+				if p.AmountPaid > 0 {
+					initialPayment := &orderDomain.OrderPayment{
+						OrderID:       order.ID,
+						CashierID:     cashierID,
+						Amount:        p.AmountPaid,
+						PaymentMethod: p.PaymentMethod,
+						PaymentType:   paymentType,
+					}
+					if err := tx.Create(initialPayment).Error; err != nil {
+						return fmt.Errorf("failed to create payment log: %w", err)
+					}
 
-				desc := fmt.Sprintf("Pembayaran Order %s (%s)", order.JobNumber, paymentType)
-				if order.InvoiceNumber != nil {
-					desc = fmt.Sprintf("Pembayaran Invoice %s (%s)", *order.InvoiceNumber, paymentType)
-				}
-				cf := &cashFlowDomain.CashFlow{
-					ID:              uuid.New(),
-					TransactionDate: time.Now(),
-					ReferenceType:   cashFlowDomain.RefOrderPayment,
-					ReferenceID:     &initialPayment.ID,
-					Type:            cashFlowDomain.TypeDebit,
-					Amount:          p.AmountPaid,
-					PaymentMethod:   p.PaymentMethod,
-					Description:     &desc,
-					CashierID:       cashierID,
-				}
-				if err := u.cashFlowRepo.Create(ctx, cf); err != nil {
-					return nil, fmt.Errorf("failed to create cash flow record: %w", err)
+					// Lock CashAccount and update balance
+					acc, err := u.cashFlowRepo.FindAccountByNameWithLock(ctx, tx, p.PaymentMethod)
+					if err != nil {
+						return fmt.Errorf("failed to find cash account %s: %w", p.PaymentMethod, err)
+					}
+					acc.Balance += p.AmountPaid
+					if err := u.cashFlowRepo.UpdateAccount(ctx, tx, acc); err != nil {
+						return fmt.Errorf("failed to update cash account balance: %w", err)
+					}
+
+					desc := fmt.Sprintf("Pembayaran Order %s (%s)", order.JobNumber, paymentType)
+					if order.InvoiceNumber != nil {
+						desc = fmt.Sprintf("Pembayaran Invoice %s (%s)", *order.InvoiceNumber, paymentType)
+					}
+					cf := &cashFlowDomain.CashFlow{
+						ID:              uuid.New(),
+						TransactionDate: time.Now(),
+						ReferenceType:   cashFlowDomain.RefOrderPayment,
+						ReferenceID:     &initialPayment.ID,
+						Type:            cashFlowDomain.TypeDebit,
+						Amount:          p.AmountPaid,
+						PaymentMethod:   p.PaymentMethod,
+						Description:     &desc,
+						CashierID:       cashierID,
+					}
+					if err := u.cashFlowRepo.CreateTx(ctx, tx, cf); err != nil {
+						return fmt.Errorf("failed to create cash flow record: %w", err)
+					}
 				}
 			}
 		}
-	}
 
-	if err := u.orderRepo.Update(ctx, order); err != nil {
-		return nil, fmt.Errorf("failed to save payment: %w", err)
+		if err := tx.Save(order).Error; err != nil {
+			return fmt.Errorf("failed to save payment: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Fetch updated order to preload relation like Cashier
@@ -470,44 +491,61 @@ func (u *orderUsecase) Repay(
 		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
 	}
 
-	// Create payment logs
-	for _, p := range payments {
-		if p.AmountPaid > 0 {
-			payment := &orderDomain.OrderPayment{
-				OrderID:       order.ID,
-				CashierID:     cashierID,
-				Amount:        p.AmountPaid,
-				PaymentMethod: p.PaymentMethod,
-				PaymentType:   "REPAYMENT",
-			}
-			if err := u.orderRepo.CreatePayment(ctx, payment); err != nil {
-				return nil, fmt.Errorf("failed to create payment log: %w", err)
-			}
+	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Create payment logs
+		for _, p := range payments {
+			if p.AmountPaid > 0 {
+				payment := &orderDomain.OrderPayment{
+					OrderID:       order.ID,
+					CashierID:     cashierID,
+					Amount:        p.AmountPaid,
+					PaymentMethod: p.PaymentMethod,
+					PaymentType:   "REPAYMENT",
+				}
+				if err := tx.Create(payment).Error; err != nil {
+					return fmt.Errorf("failed to create payment log: %w", err)
+				}
 
-			// Create cash flow entry (General Ledger)
-			desc := fmt.Sprintf("Pelunasan Order %s", order.JobNumber)
-			if order.InvoiceNumber != nil {
-				desc = fmt.Sprintf("Pelunasan Invoice %s", *order.InvoiceNumber)
-			}
-			cf := &cashFlowDomain.CashFlow{
-				ID:              uuid.New(),
-				TransactionDate: time.Now(),
-				ReferenceType:   cashFlowDomain.RefOrderPayment,
-				ReferenceID:     &payment.ID,
-				Type:            cashFlowDomain.TypeDebit,
-				Amount:          p.AmountPaid,
-				PaymentMethod:   p.PaymentMethod,
-				Description:     &desc,
-				CashierID:       cashierID,
-			}
-			if err := u.cashFlowRepo.Create(ctx, cf); err != nil {
-				return nil, fmt.Errorf("failed to create cash flow record: %w", err)
+				// Lock CashAccount and update balance
+				acc, err := u.cashFlowRepo.FindAccountByNameWithLock(ctx, tx, p.PaymentMethod)
+				if err != nil {
+					return fmt.Errorf("failed to find cash account %s: %w", p.PaymentMethod, err)
+				}
+				acc.Balance += p.AmountPaid
+				if err := u.cashFlowRepo.UpdateAccount(ctx, tx, acc); err != nil {
+					return fmt.Errorf("failed to update cash account balance: %w", err)
+				}
+
+				// Create cash flow entry (General Ledger)
+				desc := fmt.Sprintf("Pelunasan Order %s", order.JobNumber)
+				if order.InvoiceNumber != nil {
+					desc = fmt.Sprintf("Pelunasan Invoice %s", *order.InvoiceNumber)
+				}
+				cf := &cashFlowDomain.CashFlow{
+					ID:              uuid.New(),
+					TransactionDate: time.Now(),
+					ReferenceType:   cashFlowDomain.RefOrderPayment,
+					ReferenceID:     &payment.ID,
+					Type:            cashFlowDomain.TypeDebit,
+					Amount:          p.AmountPaid,
+					PaymentMethod:   p.PaymentMethod,
+					Description:     &desc,
+					CashierID:       cashierID,
+				}
+				if err := u.cashFlowRepo.CreateTx(ctx, tx, cf); err != nil {
+					return fmt.Errorf("failed to create cash flow record: %w", err)
+				}
 			}
 		}
-	}
 
-	if err := u.orderRepo.Update(ctx, order); err != nil {
-		return nil, fmt.Errorf("failed to save repayment: %w", err)
+		if err := tx.Save(order).Error; err != nil {
+			return fmt.Errorf("failed to save repayment: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Fetch updated order to preload relation like Cashier & Payments

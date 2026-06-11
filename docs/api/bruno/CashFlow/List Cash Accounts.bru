@@ -1,0 +1,17 @@
+meta {
+  name: List Cash Accounts
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/reports/cash-flow/accounts
+  body: none
+  auth: inherit
+}
+
+docs {
+  # List Cash Accounts
+  
+  Mendapatkan daftar semua akun kas (laci kasir, bank, QRIS) beserta saldo berjalan saat ini.
+}

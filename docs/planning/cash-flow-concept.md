@@ -22,43 +22,53 @@ Sistem mencatat seluruh mutasi kas secara tersentralisasi pada tabel `cash_flows
 
 ## 2. Model Data & Skema Database
 
-Sistem membutuhkan tabel utama `cash_flows` dan tabel referensi `expenses` (untuk menyimpan detail pengeluaran sebelum masuk ke buku kas utama).
+Sistem menggunakan tabel utama `cash_flows` untuk pencatatan mutasi mendetail (jurnal ledger) dan tabel `cash_accounts` untuk menyimpan saldo berjalan (running balance) saat ini dari masing-masing metode/rekening pembayaran.
 
 ### A. Tabel Buku Kas Utama (`cash_flows`)
 ```dbml
 Table cash_flows {
-  id uuid [pk]
-  transaction_date timestamp       // Waktu terjadinya mutasi
-  reference_type varchar(50)       // 'ORDER_PAYMENT', 'EXPENSE', 'REFUND', 'CAPITAL', 'ADJUSTMENT'
-  reference_id uuid                // ID referensi (bisa null jika penyesuaian manual tanpa tabel detail)
-  type varchar(10)                 // 'DEBIT' (Masuk), 'CREDIT' (Keluar)
-  amount decimal(15,2)
-  payment_method varchar(50)       // 'cash', 'transfer', 'qris'
-  description text                 // Keterangan otomatis (misal: "Pembayaran Invoice INV/2026/001") atau manual
-  cashier_id uuid [ref: > users.id] // User/Kasir yang melakukan transaksi
+  id uuid [pk, default: `gen_random_uuid()`]
+  transaction_date timestamp [default: `now()`]       // Waktu terjadinya mutasi
+  reference_type varchar(50) [not null]               // 'ORDER_PAYMENT', 'EXPENSE', 'REFUND', 'CAPITAL', 'ADJUSTMENT'
+  reference_id uuid [null]                            // ID referensi (bisa null jika penyesuaian manual tanpa tabel detail)
+  type varchar(10) [not null]                         // 'DEBIT' (Masuk), 'CREDIT' (Keluar)
+  amount decimal(15,2) [not null, default: 0]
+  payment_method varchar(50) [not null]               // 'cash', 'transfer', 'qris' (merujuk ke cash_accounts.name)
+  description text [null]                             // Keterangan otomatis atau manual
+  cashier_id uuid [ref: > users.id]                   // User/Kasir yang melakukan transaksi
   created_at timestamp
   updated_at timestamp
   deleted_at timestamp [index]
 }
 ```
 
-### B. Tabel Detail Pengeluaran (`expenses`)
-Untuk mencatat detail nota/kategori pengeluaran sebelum jurnalnya dibuat.
+### B. Tabel Saldo Akun Berjalan (`cash_accounts`)
+Untuk menyimpan saldo berjalan dari tiap laci uang/rekening digital secara dinamis.
 ```dbml
-Table expenses {
-  id uuid [pk]
-  cashier_id uuid [ref: > users.id]
-  amount decimal(15,2)
-  category varchar(100)            // 'raw_material', 'operational', 'salary', 'utility', 'other'
-  description text
+Table cash_accounts {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(50) [unique, not null]                 // 'cash', 'transfer', 'qris', dll (bisa ditambah dinamis)
+  balance decimal(15,2) [not null, default: 0]
   created_at timestamp
   updated_at timestamp
-  deleted_at timestamp [index]
 }
 ```
-*Catatan: Setiap kali `expenses` dibuat, sistem wajib membuat record di `cash_flows` dengan `type='CREDIT'`, `reference_type='EXPENSE'`, `reference_id=expenses.id`.*
 
 ---
+
+## 3. Penanganan Konkurensi & Penguncian (Pessimistic Lock)
+
+Untuk menghindari isu *race condition* (misalnya dua transaksi kas berjalan beriringan yang mengakibatkan update saldo salah/double-spend), sistem menerapkan **Pessimistic Locking** (`SELECT ... FOR UPDATE`) pada tabel `cash_accounts`.
+
+### Mekanisme Update Saldo (BE/Database):
+1. Mulai transaksi database (`BEGIN TRANSACTION`).
+2. Kunci baris akun terpilih: `SELECT * FROM cash_accounts WHERE name = ? FOR UPDATE;` (menahan transaksi lain yang mengarah ke akun yang sama).
+3. Insert baris baru ke tabel `cash_flows`.
+4. Update nilai saldo pada `cash_accounts` (`balance = balance + amount` atau `balance = balance - amount`).
+5. Simpan dan commit transaksi (`COMMIT`), otomatis merilis kunci baris.
+
+---
+
 
 ## 3. Spesifikasi API Laporan Arus Kas (Cash Flow Report)
 

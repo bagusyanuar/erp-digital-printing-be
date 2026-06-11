@@ -17,6 +17,6 @@ func newOrderHandler(db *gorm.DB, logger *zap.Logger) *orderHttp.OrderHandler {
 	rRepo := resellerRepo.NewResellerRepository(db)
 	cRepo := cfRepo.NewCashFlowRepository(db)
 
-	oUsecase := orderUseCase.NewOrderUsecase(oRepo, pRepo, rRepo, cRepo, logger)
+	oUsecase := orderUseCase.NewOrderUsecase(oRepo, pRepo, rRepo, cRepo, db, logger)
 	return orderHttp.NewOrderHandler(oUsecase)
 }

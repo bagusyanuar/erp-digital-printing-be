@@ -74,3 +74,11 @@ func (h *CashFlowHandler) CreateAdjustment(c fiber.Ctx) error {
 
 	return response.Created(c, "Cash flow adjustment created successfully", res)
 }
+
+func (h *CashFlowHandler) FindAllAccounts(c fiber.Ctx) error {
+	accounts, err := h.usecase.FindAllAccounts(c.Context())
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch cash accounts", err.Error())
+	}
+	return response.Success(c, "Cash accounts fetched successfully", accounts, nil)
+}

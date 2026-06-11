@@ -10,6 +10,6 @@ import (
 
 func newCashFlowHandler(db *gorm.DB, logger *zap.Logger) *cfHttp.CashFlowHandler {
 	repo := cfRepo.NewCashFlowRepository(db)
-	usecase := cfUseCase.NewCashFlowUsecase(repo)
+	usecase := cfUseCase.NewCashFlowUsecase(repo, db)
 	return cfHttp.NewCashFlowHandler(usecase)
 }
