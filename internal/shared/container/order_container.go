@@ -1,6 +1,7 @@
 package container
 
 import (
+	cfRepo "github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/repository"
 	orderHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/order/delivery/http"
 	orderRepo "github.com/bagusyanuar/erp-digital-printing-be/internal/order/repository"
 	orderUseCase "github.com/bagusyanuar/erp-digital-printing-be/internal/order/usecase"
@@ -14,7 +15,8 @@ func newOrderHandler(db *gorm.DB, logger *zap.Logger) *orderHttp.OrderHandler {
 	oRepo := orderRepo.NewOrderRepository(db)
 	pRepo := productRepo.NewProductRepository(db)
 	rRepo := resellerRepo.NewResellerRepository(db)
+	cRepo := cfRepo.NewCashFlowRepository(db)
 
-	oUsecase := orderUseCase.NewOrderUsecase(oRepo, pRepo, rRepo, logger)
+	oUsecase := orderUseCase.NewOrderUsecase(oRepo, pRepo, rRepo, cRepo, logger)
 	return orderHttp.NewOrderHandler(oUsecase)
 }

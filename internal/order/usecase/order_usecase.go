@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	cashFlowDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/domain"
 	orderDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/order/domain"
 	productDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/product/domain"
 	resellerDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/reseller/domain"
@@ -18,6 +19,7 @@ type orderUsecase struct {
 	orderRepo    orderDomain.OrderRepository
 	productRepo  productDomain.ProductRepository
 	resellerRepo resellerDomain.ResellerRepository
+	cashFlowRepo cashFlowDomain.CashFlowRepository
 	logger       *zap.Logger
 }
 
@@ -25,15 +27,18 @@ func NewOrderUsecase(
 	orderRepo orderDomain.OrderRepository,
 	productRepo productDomain.ProductRepository,
 	resellerRepo resellerDomain.ResellerRepository,
+	cashFlowRepo cashFlowDomain.CashFlowRepository,
 	logger *zap.Logger,
 ) orderDomain.OrderUsecase {
 	return &orderUsecase{
 		orderRepo:    orderRepo,
 		productRepo:  productRepo,
 		resellerRepo: resellerRepo,
+		cashFlowRepo: cashFlowRepo,
 		logger:       logger,
 	}
 }
+
 
 func (u *orderUsecase) validateUOMAndGetQty(item *orderDomain.OrderItem) (float64, error) {
 	if item.Quantity <= 0 {
@@ -374,6 +379,25 @@ func (u *orderUsecase) ProcessPayment(
 				if err := u.orderRepo.CreatePayment(ctx, initialPayment); err != nil {
 					return nil, fmt.Errorf("failed to create payment log: %w", err)
 				}
+
+				desc := fmt.Sprintf("Pembayaran Order %s (%s)", order.JobNumber, paymentType)
+				if order.InvoiceNumber != nil {
+					desc = fmt.Sprintf("Pembayaran Invoice %s (%s)", *order.InvoiceNumber, paymentType)
+				}
+				cf := &cashFlowDomain.CashFlow{
+					ID:              uuid.New(),
+					TransactionDate: time.Now(),
+					ReferenceType:   cashFlowDomain.RefOrderPayment,
+					ReferenceID:     &initialPayment.ID,
+					Type:            cashFlowDomain.TypeDebit,
+					Amount:          p.AmountPaid,
+					PaymentMethod:   p.PaymentMethod,
+					Description:     &desc,
+					CashierID:       cashierID,
+				}
+				if err := u.cashFlowRepo.Create(ctx, cf); err != nil {
+					return nil, fmt.Errorf("failed to create cash flow record: %w", err)
+				}
 			}
 		}
 	}
@@ -458,6 +482,26 @@ func (u *orderUsecase) Repay(
 			}
 			if err := u.orderRepo.CreatePayment(ctx, payment); err != nil {
 				return nil, fmt.Errorf("failed to create payment log: %w", err)
+			}
+
+			// Create cash flow entry (General Ledger)
+			desc := fmt.Sprintf("Pelunasan Order %s", order.JobNumber)
+			if order.InvoiceNumber != nil {
+				desc = fmt.Sprintf("Pelunasan Invoice %s", *order.InvoiceNumber)
+			}
+			cf := &cashFlowDomain.CashFlow{
+				ID:              uuid.New(),
+				TransactionDate: time.Now(),
+				ReferenceType:   cashFlowDomain.RefOrderPayment,
+				ReferenceID:     &payment.ID,
+				Type:            cashFlowDomain.TypeDebit,
+				Amount:          p.AmountPaid,
+				PaymentMethod:   p.PaymentMethod,
+				Description:     &desc,
+				CashierID:       cashierID,
+			}
+			if err := u.cashFlowRepo.Create(ctx, cf); err != nil {
+				return nil, fmt.Errorf("failed to create cash flow record: %w", err)
 			}
 		}
 	}

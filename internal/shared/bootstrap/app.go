@@ -158,6 +158,11 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Get("/:id/spk", a.Container.OrderHandler.GetSPKByID)
 	orderRoutes.Patch("/:id/status", a.Container.OrderHandler.UpdateStatus)
 
+	// Cash Flow Routes
+	cashFlowRoutes := protected.Group("/reports/cash-flow")
+	cashFlowRoutes.Get("/", a.Container.CashFlowHandler.GetReport)
+	cashFlowRoutes.Post("/adjustment", a.Container.CashFlowHandler.CreateAdjustment)
+
 	// Finishing Routes
 	finishingRoutes := protected.Group("/finishings")
 	finishingRoutes.Post("/", a.Container.OrderHandler.CreateFinishing)

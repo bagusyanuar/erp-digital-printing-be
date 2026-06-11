@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS cash_flows (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transaction_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    reference_type VARCHAR(50) NOT NULL,
+    reference_id UUID,
+    type VARCHAR(10) NOT NULL,
+    amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+    payment_method VARCHAR(50) NOT NULL,
+    description TEXT,
+    cashier_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);

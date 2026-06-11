@@ -1,0 +1,32 @@
+meta {
+  name: Create Cash Flow Adjustment
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/reports/cash-flow/adjustment
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "amount": 50000.00,
+    "type": "DEBIT",
+    "payment_method": "cash",
+    "description": "Setoran awal kas kasir pagi"
+  }
+}
+
+docs {
+  # Create Cash Flow Adjustment
+  
+  Mencatat penyesuaian arus kas masuk (DEBIT) atau keluar (CREDIT) secara manual oleh kasir.
+  
+  ### Request Body:
+  - `amount`: Nilai nominal penyesuaian (harus > 0)
+  - `type`: Tipe mutasi (`DEBIT` untuk uang masuk, `CREDIT` untuk uang keluar)
+  - `payment_method`: Metode pembayaran (`cash`, `transfer`, `qris`)
+  - `description`: Deskripsi/keterangan penyesuaian
+}

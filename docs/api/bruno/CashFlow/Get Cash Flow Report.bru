@@ -1,0 +1,26 @@
+meta {
+  name: Get Cash Flow Report
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/reports/cash-flow?start_date=2026-06-11&end_date=2026-06-11
+  body: none
+  auth: inherit
+}
+
+query {
+  start_date: 2026-06-11
+  end_date: 2026-06-11
+}
+
+docs {
+  # Get Cash Flow Report
+  
+  Mendapatkan laporan ringkasan dan riwayat transaksi arus kas (General Ledger) berdasarkan rentang tanggal.
+  
+  ### Query Parameters:
+  - `start_date`: Tanggal mulai (format: YYYY-MM-DD, wajib)
+  - `end_date`: Tanggal selesai (format: YYYY-MM-DD, wajib)
+}
