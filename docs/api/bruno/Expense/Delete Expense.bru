@@ -1,0 +1,31 @@
+meta {
+  name: Delete Expense
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{base_url}}/expenses/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 673f4bc8-c7e1-4560-91bd-34d402fbef58
+}
+
+docs {
+  # Delete Expense
+  
+  Membatalkan/menghapus transaksi pengeluaran.
+  Secara otomatis mengembalikan saldo kas yang berkurang di `cash_accounts` dan menghapus mutasi kas keluar (`CREDIT`) terkait di `cash_flows`.
+
+  ### Response Example (OK - 200)
+  ```json
+  {
+    "success": true,
+    "message": "Expense deleted successfully",
+    "data": null
+  }
+  ```
+}

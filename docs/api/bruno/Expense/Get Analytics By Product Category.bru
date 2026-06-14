@@ -1,0 +1,46 @@
+meta {
+  name: Get Analytics By Product Category
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{base_url}}/expenses/analytics/by-product-category?start_date=2026-06-01&end_date=2026-06-30
+  body: none
+  auth: inherit
+}
+
+query {
+  start_date: 2026-06-01
+  end_date: 2026-06-30
+}
+
+docs {
+  # Get Analytics By Product Category
+  
+  Mendapatkan breakdown total pengeluaran produksi khusus yang terikat ke kategori produk dalam rentang waktu tertentu.
+
+  ### Query Parameters:
+  - `start_date`: Tanggal awal (format YYYY-MM-DD, optional)
+  - `end_date`: Tanggal akhir (format YYYY-MM-DD, optional)
+
+  ### Response Example (OK - 200)
+  ```json
+  {
+    "success": true,
+    "message": "Expense by product category fetched successfully",
+    "data": [
+      {
+        "product_category_id": "8bb5d1fb-a75d-4f24-9b2f-2d4e782d499f",
+        "product_category_name": "Outdoor Banner",
+        "total_amount": 7500000.00
+      },
+      {
+        "product_category_id": "f51c72ea-b97c-4d24-8b1e-cc2e182f42a1",
+        "product_category_name": "A3 Digital",
+        "total_amount": 5000000.00
+      }
+    ]
+  }
+  ```
+}

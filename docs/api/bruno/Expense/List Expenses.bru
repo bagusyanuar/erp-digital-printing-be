@@ -1,0 +1,73 @@
+meta {
+  name: List Expenses
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{base_url}}/expenses?page=1&limit=10&group=PRODUCTION&start_date=2026-06-01&end_date=2026-06-30
+  body: none
+  auth: inherit
+}
+
+query {
+  page: 1
+  limit: 10
+  group: PRODUCTION
+  start_date: 2026-06-01
+  end_date: 2026-06-30
+}
+
+docs {
+  # List Expenses
+  
+  Mendapatkan daftar semua transaksi pengeluaran beserta relasi kategori dan detail paging.
+
+  ### Query Parameters:
+  - `page`: Halaman data (default: 1)
+  - `limit`: Batas per halaman (default: 10)
+  - `group`: Filter grup kategori ('PRODUCTION' / 'OPERATIONAL', optional)
+  - `expense_category_id`: Filter spesifik kategori (optional)
+  - `start_date`: Filter awal tanggal pengeluaran (format YYYY-MM-DD, optional)
+  - `end_date`: Filter akhir tanggal pengeluaran (format YYYY-MM-DD, optional)
+  - `search`: Pencarian teks di deskripsi pengeluaran (optional)
+
+  ### Response Example (OK - 200)
+  ```json
+  {
+    "success": true,
+    "message": "Expenses fetched successfully",
+    "data": [
+      {
+        "id": "673f4bc8-c7e1-4560-91bd-34d402fbef58",
+        "expense_category_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+        "expense_category": {
+          "id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+          "name": "Bahan Banner Outdoor",
+          "group": "PRODUCTION",
+          "product_category_id": "8bb5d1fb-a75d-4f24-9b2f-2d4e782d499f",
+          "product_category": {
+            "id": "8bb5d1fb-a75d-4f24-9b2f-2d4e782d499f",
+            "name": "Outdoor Banner"
+          }
+        },
+        "amount": 250000,
+        "expense_date": "2026-06-14T21:44:00Z",
+        "payment_method": "cash",
+        "description": "Pembelian 2 roll bahan flexi outdoor 280g",
+        "cashier_id": "9bb5d1fb-a75d-4f24-9b2f-2d4e782d499f",
+        "created_at": "2026-06-14T21:44:00Z",
+        "updated_at": "2026-06-14T21:44:00Z"
+      }
+    ],
+    "meta": {
+      "pagination": {
+        "total_items": 1,
+        "total_pages": 1,
+        "current_page": 1,
+        "limit": 10
+      }
+    }
+  }
+  ```
+}

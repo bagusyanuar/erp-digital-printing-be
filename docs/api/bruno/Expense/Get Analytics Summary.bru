@@ -1,0 +1,39 @@
+meta {
+  name: Get Analytics Summary
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{base_url}}/expenses/analytics/summary?start_date=2026-06-01&end_date=2026-06-30
+  body: none
+  auth: inherit
+}
+
+query {
+  start_date: 2026-06-01
+  end_date: 2026-06-30
+}
+
+docs {
+  # Get Analytics Summary
+  
+  Mendapatkan total pengeluaran operasional vs produksi dalam rentang waktu tertentu.
+
+  ### Query Parameters:
+  - `start_date`: Tanggal awal (format YYYY-MM-DD, optional)
+  - `end_date`: Tanggal akhir (format YYYY-MM-DD, optional)
+
+  ### Response Example (OK - 200)
+  ```json
+  {
+    "success": true,
+    "message": "Expense summary fetched successfully",
+    "data": {
+      "total_production": 12500000.00,
+      "total_operational": 3400000.00,
+      "total_expense": 15900000.00
+    }
+  }
+  ```
+}

@@ -1,0 +1,33 @@
+// Expense and Expense Category management schema
+
+Table expense_categories {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(255) [not null]
+  group varchar(50) [not null]                       // 'PRODUCTION' or 'OPERATIONAL'
+  product_category_id uuid [null]                    // Relasi ke categories (nullable)
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Kategori pengeluaran untuk klasifikasi operasional vs produksi'
+}
+
+Table expenses {
+  id uuid [pk, default: `gen_random_uuid()`]
+  expense_category_id uuid [not null]
+  amount decimal(15,2) [not null, default: 0]
+  expense_date timestamp [default: `now()`]          // Waktu transaksi pengeluaran
+  payment_method varchar(50) [not null]               // 'cash', 'transfer', dll (referensi ke cash_accounts jika diintegrasikan)
+  description text [null]
+  cashier_id uuid [not null]                          // User yang menginput pengeluaran
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Transaksi pengeluaran (operational & production)'
+}
+
+// Relationships
+Ref: expense_categories.product_category_id > categories.id [delete: set null]
+Ref: expenses.expense_category_id > expense_categories.id [delete: restrict]
+Ref: expenses.cashier_id > users.id [delete: restrict]

@@ -1,0 +1,46 @@
+meta {
+  name: Create Expense
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{base_url}}/expenses
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "expense_category_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+    "amount": 250000.00,
+    "payment_method": "cash",
+    "description": "Pembelian 2 roll bahan flexi outdoor 280g"
+  }
+}
+
+docs {
+  # Create Expense
+  
+  Mencatat transaksi pengeluaran baru.
+  Secara otomatis memotong saldo akun kas yang bersangkutan di `cash_accounts` dan mencatat mutasi keluar (`CREDIT`) di `cash_flows`.
+
+  ### Response Example (Created - 201)
+  ```json
+  {
+    "success": true,
+    "message": "Expense recorded successfully",
+    "data": {
+      "id": "673f4bc8-c7e1-4560-91bd-34d402fbef58",
+      "expense_category_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+      "amount": 250000,
+      "expense_date": "2026-06-14T21:44:00Z",
+      "payment_method": "cash",
+      "description": "Pembelian 2 roll bahan flexi outdoor 280g",
+      "cashier_id": "9bb5d1fb-a75d-4f24-9b2f-2d4e782d499f",
+      "created_at": "2026-06-14T21:44:00Z",
+      "updated_at": "2026-06-14T21:44:00Z"
+    }
+  }
+  ```
+}

@@ -169,6 +169,25 @@ func (a *App) SetupRoutes() {
 	finishingRoutes := protected.Group("/finishings")
 	finishingRoutes.Post("/", a.Container.OrderHandler.CreateFinishing)
 	finishingRoutes.Get("/", a.Container.OrderHandler.FindAllFinishings)
+
+	// Expense Categories Routes
+	expenseCategoryRoutes := protected.Group("/expense-categories")
+	expenseCategoryRoutes.Post("/", a.Container.ExpenseHandler.CreateCategory)
+	expenseCategoryRoutes.Get("/", a.Container.ExpenseHandler.FindAllCategories)
+	expenseCategoryRoutes.Get("/:id", a.Container.ExpenseHandler.FindCategoryByID)
+	expenseCategoryRoutes.Put("/:id", a.Container.ExpenseHandler.UpdateCategory)
+	expenseCategoryRoutes.Delete("/:id", a.Container.ExpenseHandler.DeleteCategory)
+
+	// Expenses Routes
+	expenseRoutes := protected.Group("/expenses")
+	expenseRoutes.Post("/", a.Container.ExpenseHandler.CreateExpense)
+	expenseRoutes.Get("/", a.Container.ExpenseHandler.FindAllExpenses)
+	expenseRoutes.Delete("/:id", a.Container.ExpenseHandler.DeleteExpense)
+
+	// Expenses Analytics Routes
+	expenseAnalyticsRoutes := protected.Group("/expenses/analytics")
+	expenseAnalyticsRoutes.Get("/summary", a.Container.ExpenseHandler.GetSummary)
+	expenseAnalyticsRoutes.Get("/by-product-category", a.Container.ExpenseHandler.GetByProductCategory)
 }
 
 func (a *App) Start() error {
