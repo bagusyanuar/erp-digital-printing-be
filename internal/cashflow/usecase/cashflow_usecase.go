@@ -18,19 +18,10 @@ func NewCashFlowUsecase(repo domain.CashFlowRepository, db *gorm.DB) domain.Cash
 	return &cashFlowUsecase{repo: repo, db: db}
 }
 
-func (u *cashFlowUsecase) GetReport(ctx context.Context, startDate time.Time, endDate time.Time) (*domain.CashFlowReportRes, error) {
-	cashFlows, err := u.repo.FindAll(ctx, startDate, endDate)
+func (u *cashFlowUsecase) GetReport(ctx context.Context, filter domain.CashFlowFilter) ([]domain.CashFlowTransactionRes, int64, error) {
+	cashFlows, total, err := u.repo.FindAll(ctx, filter)
 	if err != nil {
-		return nil, err
-	}
-
-	var totalDebit float64
-	var totalCredit float64
-
-	detailsByMethod := map[string]domain.CashFlowMethodDetail{
-		"cash":     {Debit: 0, Credit: 0, Balance: 0},
-		"transfer": {Debit: 0, Credit: 0, Balance: 0},
-		"qris":     {Debit: 0, Credit: 0, Balance: 0},
+		return nil, 0, err
 	}
 
 	transactions := make([]domain.CashFlowTransactionRes, 0, len(cashFlows))
@@ -53,39 +44,9 @@ func (u *cashFlowUsecase) GetReport(ctx context.Context, startDate time.Time, en
 			CustomerName:    cf.CustomerName,
 			CashierName:     cashierName,
 		})
-
-		// Calculate total summary
-		if cf.Type == domain.TypeDebit {
-			totalDebit += cf.Amount
-		} else if cf.Type == domain.TypeCredit {
-			totalCredit += cf.Amount
-		}
-
-		// Calculate by method
-		method := cf.PaymentMethod
-		detail, exists := detailsByMethod[method]
-		if !exists {
-			detail = domain.CashFlowMethodDetail{Debit: 0, Credit: 0, Balance: 0}
-		}
-
-		if cf.Type == domain.TypeDebit {
-			detail.Debit += cf.Amount
-		} else if cf.Type == domain.TypeCredit {
-			detail.Credit += cf.Amount
-		}
-		detail.Balance = detail.Debit - detail.Credit
-		detailsByMethod[method] = detail
 	}
 
-	return &domain.CashFlowReportRes{
-		Summary: domain.CashFlowSummary{
-			TotalDebit:  totalDebit,
-			TotalCredit: totalCredit,
-			NetBalance:  totalDebit - totalCredit,
-		},
-		DetailsByMethod: detailsByMethod,
-		Transactions:     transactions,
-	}, nil
+	return transactions, total, nil
 }
 
 func (u *cashFlowUsecase) CreateAdjustment(ctx context.Context, cashierID uuid.UUID, amount float64, flowType string, paymentMethod string, description string) (*domain.CashFlow, error) {
@@ -134,5 +95,9 @@ func (u *cashFlowUsecase) CreateAdjustment(ctx context.Context, cashierID uuid.U
 
 func (u *cashFlowUsecase) FindAllAccounts(ctx context.Context) ([]domain.CashAccount, error) {
 	return u.repo.FindAllAccounts(ctx)
+}
+
+func (u *cashFlowUsecase) GetSummary(ctx context.Context, filter domain.CashFlowFilter) (*domain.CashFlowSummaryRes, error) {
+	return u.repo.GetSummary(ctx, filter)
 }
 

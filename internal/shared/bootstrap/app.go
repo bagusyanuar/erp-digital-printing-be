@@ -161,6 +161,7 @@ func (a *App) SetupRoutes() {
 	// Cash Flow Routes
 	cashFlowRoutes := protected.Group("/reports/cash-flow")
 	cashFlowRoutes.Get("/", a.Container.CashFlowHandler.GetReport)
+	cashFlowRoutes.Get("/summary", a.Container.CashFlowHandler.GetSummary)
 	cashFlowRoutes.Post("/adjustment", a.Container.CashFlowHandler.CreateAdjustment)
 	cashFlowRoutes.Get("/accounts", a.Container.CashFlowHandler.FindAllAccounts)
 

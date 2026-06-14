@@ -77,10 +77,24 @@ type CashFlowTransactionRes struct {
 	CashierName     string     `json:"cashier_name"`
 }
 
-type CashFlowReportRes struct {
-	Summary          CashFlowSummary                 `json:"summary"`
-	DetailsByMethod  map[string]CashFlowMethodDetail `json:"details_by_method"`
-	Transactions     []CashFlowTransactionRes        `json:"transactions"`
+// CashFlowFilter menampung query parameter untuk pencarian dan paginasi
+type CashFlowFilter struct {
+	StartDate     time.Time
+	EndDate       time.Time
+	PaymentMethod string
+	Type          string
+	ReferenceType string
+	CashierID     *uuid.UUID
+	Search        string
+	Page          int
+	Limit         int
+}
+
+// CashFlowReportRes sudah tidak digunakan jika response dipisah, 
+// namun kita definisikan struct baru untuk Summary response nanti jika dibutuhkan.
+type CashFlowSummaryRes struct {
+	Summary         CashFlowSummary                 `json:"summary"`
+	DetailsByMethod map[string]CashFlowMethodDetail `json:"details_by_method"`
 }
 
 // CashAccount model
@@ -103,14 +117,17 @@ func (ca *CashAccount) BeforeCreate(tx *gorm.DB) error {
 type CashFlowRepository interface {
 	Create(ctx context.Context, cashFlow *CashFlow) error
 	CreateTx(ctx context.Context, tx *gorm.DB, cashFlow *CashFlow) error
-	FindAll(ctx context.Context, startDate time.Time, endDate time.Time) ([]CashFlow, error)
+	FindAll(ctx context.Context, filter CashFlowFilter) ([]CashFlow, int64, error)
+	GetSummary(ctx context.Context, filter CashFlowFilter) (*CashFlowSummaryRes, error)
 	FindAllAccounts(ctx context.Context) ([]CashAccount, error)
 	FindAccountByNameWithLock(ctx context.Context, tx *gorm.DB, name string) (*CashAccount, error)
 	UpdateAccount(ctx context.Context, tx *gorm.DB, account *CashAccount) error
 }
 
 type CashFlowUsecase interface {
-	GetReport(ctx context.Context, startDate time.Time, endDate time.Time) (*CashFlowReportRes, error)
+	GetReport(ctx context.Context, filter CashFlowFilter) ([]CashFlowTransactionRes, int64, error)
+	GetSummary(ctx context.Context, filter CashFlowFilter) (*CashFlowSummaryRes, error)
 	CreateAdjustment(ctx context.Context, cashierID uuid.UUID, amount float64, flowType string, paymentMethod string, description string) (*CashFlow, error)
 	FindAllAccounts(ctx context.Context) ([]CashAccount, error)
 }
+

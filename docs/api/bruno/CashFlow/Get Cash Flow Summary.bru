@@ -1,0 +1,64 @@
+meta {
+  name: Get Cash Flow Summary
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/reports/cash-flow/summary?start_date=2026-06-11&end_date=2026-06-11
+  body: none
+  auth: inherit
+}
+
+query {
+  start_date: 2026-06-11
+  end_date: 2026-06-11
+  ~payment_method: cash
+  ~type: DEBIT
+  ~reference_type: ORDER_PAYMENT
+  ~cashier_id: e2c67ef8-82e4-4d8b-968b-5a1e2f5b6154
+  ~search: Budi
+}
+
+docs {
+  # Get Cash Flow Summary
+  
+  Mendapatkan ringkasan total debit, kredit, dan balance per payment method berdasarkan rentang tanggal dan filter opsional.
+  
+  ### Query Parameters:
+  - `start_date`: Tanggal mulai (format: YYYY-MM-DD, wajib)
+  - `end_date`: Tanggal selesai (format: YYYY-MM-DD, wajib)
+  - `payment_method`: Cara pembayaran (`cash`, `transfer`, `qris`) (opsional)
+  - `type`: Arah kas (`DEBIT`, `CREDIT`) (opsional)
+  - `reference_type`: Sumber transaksi (`ORDER_PAYMENT`, `REFUND`, `CAPITAL`, `ADJUSTMENT`) (opsional)
+  - `cashier_id`: ID Kasir (UUID) (opsional)
+  - `search`: Pencarian nama customer atau deskripsi (opsional)
+  
+  ### Response Example (200 OK):
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Cash flow summary fetched successfully",
+    "data": {
+      "summary": {
+        "total_debit": 15000000.00,
+        "total_credit": 5000000.00,
+        "net_balance": 10000000.00
+      },
+      "details_by_method": {
+        "cash": {
+          "debit": 5000000,
+          "credit": 2000000,
+          "balance": 3000000
+        },
+        "transfer": {
+          "debit": 8000000,
+          "credit": 3000000,
+          "balance": 5000000
+        }
+      }
+    }
+  }
+  ```
+}
