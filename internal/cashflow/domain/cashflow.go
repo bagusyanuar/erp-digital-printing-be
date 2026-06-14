@@ -34,7 +34,7 @@ type CashFlow struct {
 	PaymentMethod   string           `gorm:"type:varchar(50);not null" json:"payment_method"`
 	Description     *string          `gorm:"type:text" json:"description,omitempty"`
 	CustomerName    *string          `gorm:"type:varchar(255)" json:"customer_name,omitempty"`
-	InvoiceNumber   *string          `gorm:"type:varchar(100)" json:"invoice_number,omitempty"`
+	InvoiceNumber   *string          `gorm:"type:varchar(100)" json:"invoice_number"`
 	CashierID       uuid.UUID        `gorm:"type:uuid;not null" json:"cashier_id"`
 	Cashier         *userDomain.User `gorm:"foreignKey:CashierID" json:"cashier,omitempty"`
 	CreatedAt       time.Time        `json:"created_at"`
@@ -75,7 +75,7 @@ type CashFlowTransactionRes struct {
 	PaymentMethod   string     `json:"payment_method"`
 	Description     *string    `json:"description,omitempty"`
 	CustomerName    *string    `json:"customer_name,omitempty"`
-	InvoiceNumber   *string    `json:"invoice_number,omitempty"`
+	InvoiceNumber   *string    `json:"invoice_number"`
 	CashierName     string     `json:"cashier_name"`
 }
 
