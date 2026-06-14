@@ -50,6 +50,7 @@ func (u *cashFlowUsecase) GetReport(ctx context.Context, startDate time.Time, en
 			Amount:          cf.Amount,
 			PaymentMethod:   cf.PaymentMethod,
 			Description:     cf.Description,
+			CustomerName:    cf.CustomerName,
 			CashierName:     cashierName,
 		})
 

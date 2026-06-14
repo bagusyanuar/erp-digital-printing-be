@@ -23,4 +23,39 @@ docs {
   ### Query Parameters:
   - `start_date`: Tanggal mulai (format: YYYY-MM-DD, wajib)
   - `end_date`: Tanggal selesai (format: YYYY-MM-DD, wajib)
+  
+  ### Response Example (200 OK):
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Cash flow report fetched successfully",
+    "data": {
+      "summary": {
+        "total_debit": 15000000.00,
+        "total_credit": 5000000.00,
+        "net_balance": 10000000.00
+      },
+      "details_by_method": {
+        "cash": { "debit": 5000000, "credit": 2000000, "balance": 3000000 },
+        "transfer": { "debit": 8000000, "credit": 3000000, "balance": 5000000 },
+        "qris": { "debit": 2000000, "credit": 0, "balance": 2000000 }
+      },
+      "transactions": [
+        {
+          "id": "e2c67ef8-82e4-4d8b-968b-5a1e2f5b6154",
+          "transaction_date": "2026-06-11T10:00:00Z",
+          "reference_type": "ORDER_PAYMENT",
+          "reference_id": "b3c8f3a3-b26a-4638-b7f2-841a54774844",
+          "type": "DEBIT",
+          "amount": 500000.00,
+          "payment_method": "cash",
+          "description": "Pembayaran INV/20260611/0001 (FULL_PAYMENT)",
+          "customer_name": "Budi Santoso",
+          "cashier_name": "Kasir Pagi"
+        }
+      ]
+    }
+  }
+  ```
 }
