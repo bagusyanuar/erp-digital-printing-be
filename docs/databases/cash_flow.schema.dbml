@@ -10,6 +10,7 @@ Table cash_flows {
   payment_method varchar(50) [not null]               // 'cash', 'transfer', 'qris'
   description text [null]                             // Keterangan otomatis atau manual
   customer_name varchar(255) [null]                   // Nama customer jika terkait transaksi penjualan/refund
+  invoice_number varchar(100) [null]                  // Nomor invoice jika terkait order/refund
   cashier_id uuid [not null]                          // User/Kasir yang melakukan transaksi
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]

@@ -171,6 +171,7 @@ func (h *CashFlowHandler) CreateAdjustment(c fiber.Ctx) error {
 		Amount:          cf.Amount,
 		PaymentMethod:   cf.PaymentMethod,
 		Description:     cf.Description,
+		InvoiceNumber:   cf.InvoiceNumber,
 		CashierID:       cf.CashierID,
 	}
 

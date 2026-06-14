@@ -409,6 +409,7 @@ func (u *orderUsecase) ProcessPayment(
 						PaymentMethod:   p.PaymentMethod,
 						Description:     &desc,
 						CustomerName:    order.CustomerName,
+						InvoiceNumber:   order.InvoiceNumber,
 						CashierID:       cashierID,
 					}
 					if err := u.cashFlowRepo.CreateTx(ctx, tx, cf); err != nil {
@@ -532,6 +533,7 @@ func (u *orderUsecase) Repay(
 					PaymentMethod:   p.PaymentMethod,
 					Description:     &desc,
 					CustomerName:    order.CustomerName,
+					InvoiceNumber:   order.InvoiceNumber,
 					CashierID:       cashierID,
 				}
 				if err := u.cashFlowRepo.CreateTx(ctx, tx, cf); err != nil {

@@ -18,5 +18,6 @@ type CashFlowRes struct {
 	Amount          float64    `json:"amount"`
 	PaymentMethod   string     `json:"payment_method"`
 	Description     *string    `json:"description,omitempty"`
+	InvoiceNumber   *string    `json:"invoice_number,omitempty"`
 	CashierID       uuid.UUID  `json:"cashier_id"`
 }

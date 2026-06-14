@@ -42,6 +42,7 @@ func (u *cashFlowUsecase) GetReport(ctx context.Context, filter domain.CashFlowF
 			PaymentMethod:   cf.PaymentMethod,
 			Description:     cf.Description,
 			CustomerName:    cf.CustomerName,
+			InvoiceNumber:   cf.InvoiceNumber,
 			CashierName:     cashierName,
 		})
 	}

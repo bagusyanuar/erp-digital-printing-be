@@ -36,7 +36,7 @@ docs {
   - `type`: Arah kas (`DEBIT`, `CREDIT`) (opsional)
   - `reference_type`: Sumber transaksi (`ORDER_PAYMENT`, `REFUND`, `CAPITAL`, `ADJUSTMENT`) (opsional)
   - `cashier_id`: ID Kasir (UUID) (opsional)
-  - `search`: Pencarian nama customer atau deskripsi (opsional)
+  - `search`: Pencarian nama customer, nomor invoice, atau deskripsi (opsional)
   
   ### Response Example (200 OK):
   ```json
@@ -55,6 +55,7 @@ docs {
         "payment_method": "cash",
         "description": "Pembayaran INV/20260611/0001 (FULL_PAYMENT)",
         "customer_name": "Budi Santoso",
+        "invoice_number": "INV/20260611/0001",
         "cashier_name": "Kasir Pagi"
       }
     ],

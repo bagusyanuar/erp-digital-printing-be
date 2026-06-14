@@ -54,7 +54,7 @@ func (r *cashFlowRepository) FindAll(ctx context.Context, filter domain.CashFlow
 
 	if filter.Search != "" {
 		searchPattern := "%" + filter.Search + "%"
-		query = query.Where("description ILIKE ? OR customer_name ILIKE ?", searchPattern, searchPattern)
+		query = query.Where("description ILIKE ? OR customer_name ILIKE ? OR invoice_number ILIKE ?", searchPattern, searchPattern, searchPattern)
 	}
 
 	// Count total rows matching filters (before pagination)
@@ -102,7 +102,7 @@ func (r *cashFlowRepository) GetSummary(ctx context.Context, filter domain.CashF
 
 	if filter.Search != "" {
 		searchPattern := "%" + filter.Search + "%"
-		query = query.Where("description ILIKE ? OR customer_name ILIKE ?", searchPattern, searchPattern)
+		query = query.Where("description ILIKE ? OR customer_name ILIKE ? OR invoice_number ILIKE ?", searchPattern, searchPattern, searchPattern)
 	}
 
 	// Agregasikan berdasarkan payment_method dan type menggunakan query group/struct biasa
