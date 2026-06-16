@@ -1,0 +1,21 @@
+meta {
+  name: Get Supplier By ID
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/suppliers/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Get Supplier By ID
+  
+  Mendapatkan data supplier berdasarkan UUID.
+}

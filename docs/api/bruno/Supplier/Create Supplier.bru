@@ -1,0 +1,27 @@
+meta {
+  name: Create Supplier
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/suppliers
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "PT. Kertas Nusantara",
+    "contact_name": "Budi Santoso",
+    "phone": "081234567890",
+    "email": "budi@kertasnusantara.com",
+    "address": "Jl. Industri No. 45, Jakarta"
+  }
+}
+
+docs {
+  # Create Supplier
+  
+  Menambahkan supplier baru ke sistem.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: List Suppliers
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/suppliers?page=1&limit=10&search=&sort_by=created_at&sort_order=desc
+  body: none
+  auth: inherit
+}
+
+query {
+  page: 1
+  limit: 10
+  search: 
+  sort_by: created_at
+  sort_order: desc
+}
+
+docs {
+  # List Suppliers
+  
+  Mendapatkan daftar semua supplier dengan dukungan pagination, searching (by name, contact_name, email), dan sorting.
+  
+  ### Query Parameters:
+  - `page`: Nomor halaman (default: 1)
+  - `limit`: Jumlah data per halaman (default: 10)
+  - `search`: Kata kunci pencarian (name, contact_name, email)
+  - `sort_by`: Kolom pengurutan (default: created_at)
+  - `sort_order`: Urutan (asc/desc, default: desc)
+}

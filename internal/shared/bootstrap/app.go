@@ -188,6 +188,14 @@ func (a *App) SetupRoutes() {
 	expenseAnalyticsRoutes := protected.Group("/expenses/analytics")
 	expenseAnalyticsRoutes.Get("/summary", a.Container.ExpenseHandler.GetSummary)
 	expenseAnalyticsRoutes.Get("/by-product-category", a.Container.ExpenseHandler.GetByProductCategory)
+
+	// Supplier Routes
+	supplierRoutes := protected.Group("/suppliers")
+	supplierRoutes.Post("/", a.Container.SupplierHandler.Create)
+	supplierRoutes.Get("/", a.Container.SupplierHandler.FindAll)
+	supplierRoutes.Get("/:id", a.Container.SupplierHandler.FindByID)
+	supplierRoutes.Put("/:id", a.Container.SupplierHandler.Update)
+	supplierRoutes.Delete("/:id", a.Container.SupplierHandler.Delete)
 }
 
 func (a *App) Start() error {

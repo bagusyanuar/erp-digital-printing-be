@@ -1,0 +1,21 @@
+meta {
+  name: Delete Supplier
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{base_url}}/suppliers/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Delete Supplier
+  
+  Menghapus data supplier (soft-delete) berdasarkan UUID.
+}

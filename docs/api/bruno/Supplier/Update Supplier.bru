@@ -1,0 +1,31 @@
+meta {
+  name: Update Supplier
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/suppliers/:id
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+body:json {
+  {
+    "name": "PT. Kertas Nusantara Jaya",
+    "contact_name": "Budi Santoso Wibowo",
+    "phone": "081234567899",
+    "email": "budi@kertasnusantarajaya.com",
+    "address": "Jl. Industri Raya No. 45, Jakarta"
+  }
+}
+
+docs {
+  # Update Supplier
+  
+  Memperbarui data supplier berdasarkan UUID.
+}

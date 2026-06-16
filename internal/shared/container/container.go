@@ -11,6 +11,7 @@ import (
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/config"
 	userHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/user/delivery/http"
 	expenseHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/expense/delivery/http"
+	supplierHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/supplier/delivery/http"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/jwt"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/casbin"
 	"go.uber.org/zap"
@@ -28,6 +29,7 @@ type Container struct {
 	OrderHandler      *orderHttp.OrderHandler
 	CashFlowHandler  *cfHttp.CashFlowHandler
 	ExpenseHandler   *expenseHttp.ExpenseHandler
+	SupplierHandler  *supplierHttp.SupplierHandler
 	JWTUtil           jwt.JWTUtil
 	Casbin            *casbin.CasbinHelper
 }
@@ -51,6 +53,7 @@ func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Containe
 		OrderHandler:      newOrderHandler(db, logger),
 		CashFlowHandler:  newCashFlowHandler(db, logger),
 		ExpenseHandler:   newExpenseHandler(db, logger),
+		SupplierHandler:  newSupplierHandler(db, logger),
 		JWTUtil:           jwtUtil,
 		Casbin:            csb,
 	}
