@@ -14,20 +14,56 @@ Table expense_categories {
 
 Table expenses {
   id uuid [pk, default: `gen_random_uuid()`]
-  expense_category_id uuid [not null]
+  expense_number varchar(100) [not null, unique]
+  invoice_number varchar(100) [null]
+  supplier_id uuid [null]
+  vendor_name varchar(255) [not null, default: 'Umum']
   amount decimal(15,2) [not null, default: 0]
+  status varchar(50) [not null, default: 'PAID']      // 'PAID', 'PARTIAL', 'UNPAID'
   expense_date timestamp [default: `now()`]          // Waktu transaksi pengeluaran
-  payment_method varchar(50) [not null]               // 'cash', 'transfer', dll (referensi ke cash_accounts jika diintegrasikan)
   description text [null]
   cashier_id uuid [not null]                          // User yang menginput pengeluaran
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
   deleted_at timestamp [null]
 
-  Note: 'Transaksi pengeluaran (operational & production)'
+  Note: 'Transaksi pengeluaran header (operational & production)'
+}
+
+Table expense_items {
+  id uuid [pk, default: `gen_random_uuid()`]
+  expense_id uuid [not null]
+  expense_category_id uuid [not null]
+  description varchar(255) [null]
+  qty int [not null, default: 1]
+  price decimal(15,2) [not null, default: 0]
+  amount decimal(15,2) [not null, default: 0]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Detail item pengeluaran per nota'
+}
+
+Table expense_payments {
+  id uuid [pk, default: `gen_random_uuid()`]
+  expense_id uuid [not null]
+  amount decimal(15,2) [not null, default: 0]
+  payment_date timestamp [default: `now()`]
+  payment_method varchar(50) [not null]               // 'CASH', 'TRANSFER', dll
+  cashier_id uuid [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Pembayaran / cicilan untuk pengeluaran'
 }
 
 // Relationships
 Ref: expense_categories.product_category_id > categories.id [delete: set null]
-Ref: expenses.expense_category_id > expense_categories.id [delete: restrict]
+Ref: expenses.supplier_id > suppliers.id [delete: set null]
 Ref: expenses.cashier_id > users.id [delete: restrict]
+Ref: expense_items.expense_id > expenses.id [delete: cascade]
+Ref: expense_items.expense_category_id > expense_categories.id [delete: restrict]
+Ref: expense_payments.expense_id > expenses.id [delete: cascade]
+Ref: expense_payments.cashier_id > users.id [delete: restrict]

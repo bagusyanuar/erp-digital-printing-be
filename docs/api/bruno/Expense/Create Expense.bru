@@ -12,35 +12,35 @@ post {
 
 body:json {
   {
-    "expense_category_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
-    "amount": 250000.00,
-    "payment_method": "cash",
-    "description": "Pembelian 2 roll bahan flexi outdoor 280g"
+    "invoice_number": "INV/2026/001",
+    "supplier_id": "00000000-0000-0000-0000-000000000000",
+    "vendor_name": "PT. Kertas Jaya",
+    "description": "Pembelian kertas art paper dan tinta outdoor",
+    "discount": 50000,
+    "items": [
+      {
+        "expense_category_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+        "description": "Kertas Art Paper 150g",
+        "qty": 5,
+        "price": 200000
+      }
+    ],
+    "payments": [
+      {
+        "amount": 450000,
+        "payment_method": "cash"
+      },
+      {
+        "amount": 500000,
+        "payment_method": "transfer"
+      }
+    ]
   }
 }
 
 docs {
   # Create Expense
   
-  Mencatat transaksi pengeluaran baru.
-  Secara otomatis memotong saldo akun kas yang bersangkutan di `cash_accounts` dan mencatat mutasi keluar (`CREDIT`) di `cash_flows`.
-
-  ### Response Example (Created - 201)
-  ```json
-  {
-    "success": true,
-    "message": "Expense recorded successfully",
-    "data": {
-      "id": "673f4bc8-c7e1-4560-91bd-34d402fbef58",
-      "expense_category_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
-      "amount": 250000,
-      "expense_date": "2026-06-14T21:44:00Z",
-      "payment_method": "cash",
-      "description": "Pembelian 2 roll bahan flexi outdoor 280g",
-      "cashier_id": "9bb5d1fb-a75d-4f24-9b2f-2d4e782d499f",
-      "created_at": "2026-06-14T21:44:00Z",
-      "updated_at": "2026-06-14T21:44:00Z"
-    }
-  }
-  ```
+  Mencatat transaksi pengeluaran baru dengan dukungan split payment, multi-item, dan diskon nota otomatis.
+  Status lunas (`PAID`), termin (`PARTIAL`), atau hutang penuh (`UNPAID`) ditentukan di backend secara otomatis.
 }

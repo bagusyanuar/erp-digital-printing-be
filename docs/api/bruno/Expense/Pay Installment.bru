@@ -1,0 +1,37 @@
+meta {
+  name: Pay Installment
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{base_url}}/expenses/:id/payments
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+body:json {
+  {
+    "payments": [
+      {
+        "amount": 250000,
+        "payment_method": "cash"
+      },
+      {
+        "amount": 250000,
+        "payment_method": "transfer"
+      }
+    ]
+  }
+}
+
+docs {
+  # Pay Installment (Repayment)
+  
+  Mencatat cicilan pelunasan baru untuk pengeluaran berstatus `PARTIAL` atau `UNPAID`.
+  Mendukung split payment dalam satu kali transaksi pembayaran cicilan.
+}

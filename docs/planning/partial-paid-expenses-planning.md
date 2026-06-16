@@ -88,13 +88,13 @@ expenses:
 2. **Non-Supplier**: Ketik manual → `supplier_id` = NULL, `vendor_name` = teks input.
 
 ### B. Input Pembayaran
-1. **PAID (Lunas)**: Otomatis buat 1 record `expense_payments` senilai `expenses.amount`.
-2. **UNPAID (Hutang Penuh)**: `due_date` wajib diisi. Tidak ada record `expense_payments`.
-3. **PARTIAL (Termin/DP)**: `due_date` wajib diisi. Buat 1 record `expense_payments` senilai DP.
+1. **PAID (Lunas)**: Otomatis buat record `expense_payments` senilai pembayaran yang diinput di array `payments` (total `payments.amount` == `expenses.amount`).
+2. **UNPAID (Hutang Penuh)**: Array `payments` kosong.
+3. **PARTIAL (Termin/DP)**: Buat record `expense_payments` senilai DP yang diinput di array `payments`.
 
 ### C. Pembayaran Cicilan Berikutnya
 1. Jalankan DB Transaction (`tx`).
-2. Hitung total bayar: `SUM(expense_payments.amount) + amount_baru`.
+2. Hitung total bayar: `SUM(expense_payments.amount) + SUM(payments_baru.amount)`.
 3. Validasi: total tidak boleh melebihi `expenses.amount`.
 4. Simpan record baru ke `expense_payments`.
 5. Update `expenses.status`:
@@ -124,15 +124,14 @@ Cash flow **hanya mencatat uang yang benar-benar keluar**. Diskon tidak muncul d
 ```
 Nota: Rp 5.000.000 (gross) - Diskon Rp 500.000 = Rp 4.500.000
 
-Payment 1 (DP):
-  expense_payments → amount: 2.000.000
-  cash_flows       → CREDIT 2.000.000, ref_type: 'EXPENSE_PAYMENT'
+Payment 1 (DP Split - Cash & Transfer):
+  expense_payments 1 → amount: 1.000.000, method: 'CASH'
+  cash_flows 1       → CREDIT 1.000.000, method: 'CASH', ref_type: 'EXPENSE_PAYMENT'
+  
+  expense_payments 2 → amount: 1.000.000, method: 'TRANSFER'
+  cash_flows 2       → CREDIT 1.000.000, method: 'TRANSFER', ref_type: 'EXPENSE_PAYMENT'
 
-Payment 2 (Pelunasan):
-  expense_payments → amount: 2.500.000
-  cash_flows       → CREDIT 2.500.000, ref_type: 'EXPENSE_PAYMENT'
-
-Total uang keluar = 4.500.000 ✅
+Total uang keluar = 2.000.000 ✅
 ```
 
 ---
@@ -146,8 +145,6 @@ Total uang keluar = 4.500.000 ✅
   "invoice_number": "INV/2026/XYZ",
   "supplier_id": "uuid-atau-null",
   "vendor_name": "PT. Kertas Jaya",
-  "status": "PARTIAL",
-  "due_date": "2026-07-16T00:00:00Z",
   "expense_date": "2026-06-16T12:00:00Z",
   "description": "Pembelian bahan cetak termin 1 bulan",
   "items": [
@@ -170,18 +167,30 @@ Total uang keluar = 4.500.000 ✅
       "price": -500000
     }
   ],
-  "initial_payment": 2000000,
-  "payment_method": "TRANSFER"
+  "payments": [
+    {
+      "amount": 1000000,
+      "payment_method": "CASH"
+    },
+    {
+      "amount": 1000000,
+      "payment_method": "TRANSFER"
+    }
+  ]
 }
 ```
 
-### B. Pay Installment
+### B. Pay Installment (Mendukung Split Repayment juga jika dibutuhkan)
 `POST /api/v1/expenses/:id/payments`
 ```json
 {
-  "amount": 1500000,
-  "payment_date": "2026-06-30T10:00:00Z",
-  "payment_method": "CASH"
+  "payments": [
+    {
+      "amount": 1500000,
+      "payment_date": "2026-06-30T10:00:00Z",
+      "payment_method": "CASH"
+    }
+  ]
 }
 ```
 

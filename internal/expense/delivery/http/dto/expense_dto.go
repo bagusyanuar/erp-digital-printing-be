@@ -19,9 +19,29 @@ type UpdateCategoryReq struct {
 }
 
 type CreateExpenseReq struct {
-	ExpenseCategoryID uuid.UUID  `json:"expense_category_id"`
-	Amount            float64    `json:"amount"`
-	ExpenseDate       *time.Time `json:"expense_date"`
-	PaymentMethod     string     `json:"payment_method"`
-	Description       *string    `json:"description"`
+	InvoiceNumber *string          `json:"invoice_number"`
+	SupplierID    *uuid.UUID       `json:"supplier_id"`
+	VendorName    string           `json:"vendor_name"`
+	ExpenseDate   *time.Time       `json:"expense_date"`
+	Description   *string          `json:"description"`
+	Discount      float64          `json:"discount"`
+	Items         []ExpenseItemReq `json:"items"`
+	Payments      []PaymentReq     `json:"payments"`
+}
+
+type ExpenseItemReq struct {
+	ExpenseCategoryID uuid.UUID `json:"expense_category_id"`
+	Description       *string   `json:"description"`
+	Qty               int       `json:"qty"`
+	Price             float64   `json:"price"`
+}
+
+type PaymentReq struct {
+	Amount        float64    `json:"amount"`
+	PaymentMethod string     `json:"payment_method"`
+	PaymentDate   *time.Time `json:"payment_date"`
+}
+
+type PayInstallmentReq struct {
+	Payments []PaymentReq `json:"payments"`
 }

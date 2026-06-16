@@ -5,6 +5,7 @@ import (
 	"time"
 
 	categoryDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/category/domain"
+	supplierDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/supplier/domain"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -12,6 +13,10 @@ import (
 const (
 	GroupProduction  = "PRODUCTION"
 	GroupOperational = "OPERATIONAL"
+
+	StatusPaid    = "PAID"
+	StatusPartial = "PARTIAL"
+	StatusUnpaid  = "UNPAID"
 )
 
 type ExpenseCategory struct {
@@ -33,17 +38,26 @@ func (ec *ExpenseCategory) BeforeCreate(tx *gorm.DB) error {
 }
 
 type Expense struct {
-	ID                uuid.UUID        `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
-	ExpenseCategoryID uuid.UUID        `gorm:"type:uuid;not null" json:"expense_category_id"`
-	ExpenseCategory   *ExpenseCategory `gorm:"foreignKey:ExpenseCategoryID" json:"expense_category"`
-	Amount            float64          `gorm:"type:decimal(15,2);not null;default:0" json:"amount"`
-	ExpenseDate       time.Time        `gorm:"type:timestamp;default:now()" json:"expense_date"`
-	PaymentMethod     string           `gorm:"type:varchar(50);not null" json:"payment_method"`
-	Description       *string          `gorm:"type:text" json:"description"`
-	CashierID         uuid.UUID        `gorm:"type:uuid;not null" json:"cashier_id"`
-	CreatedAt         time.Time        `json:"created_at"`
-	UpdatedAt         time.Time        `json:"updated_at"`
-	DeletedAt         gorm.DeletedAt   `gorm:"index" json:"deleted_at,omitempty"`
+	ID            uuid.UUID                `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ExpenseNumber string                   `gorm:"type:varchar(100);uniqueIndex;not null" json:"expense_number"`
+	InvoiceNumber *string                  `gorm:"type:varchar(100)" json:"invoice_number"`
+	SupplierID    *uuid.UUID               `gorm:"type:uuid" json:"supplier_id"`
+	Supplier      *supplierDomain.Supplier `gorm:"foreignKey:SupplierID" json:"supplier"`
+	VendorName    string                   `gorm:"type:varchar(255);not null" json:"vendor_name"`
+	Amount        float64                  `gorm:"type:decimal(15,2);not null;default:0" json:"amount"`
+	Status        string                   `gorm:"type:varchar(50);not null;default:'PAID'" json:"status"`
+	ExpenseDate   time.Time                `gorm:"type:timestamp;default:now()" json:"expense_date"`
+	Description   *string                  `gorm:"type:text" json:"description"`
+	CashierID     uuid.UUID                `gorm:"type:uuid;not null" json:"cashier_id"`
+	Discount      float64                  `gorm:"-" json:"discount,omitempty"`
+	
+	// Relations
+	Items         []ExpenseItem            `gorm:"foreignKey:ExpenseID" json:"items"`
+	Payments      []ExpensePayment         `gorm:"foreignKey:ExpenseID" json:"payments"`
+	
+	CreatedAt     time.Time                `json:"created_at"`
+	UpdatedAt     time.Time                `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt           `gorm:"index" json:"deleted_at,omitempty"`
 }
 
 func (e *Expense) BeforeCreate(tx *gorm.DB) error {
@@ -56,12 +70,59 @@ func (e *Expense) BeforeCreate(tx *gorm.DB) error {
 	return nil
 }
 
+type ExpenseItem struct {
+	ID                uuid.UUID       `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ExpenseID         uuid.UUID       `gorm:"type:uuid;not null" json:"expense_id"`
+	ExpenseCategoryID uuid.UUID       `gorm:"type:uuid;not null" json:"expense_category_id"`
+	ExpenseCategory   ExpenseCategory `gorm:"foreignKey:ExpenseCategoryID" json:"expense_category"`
+	Description       *string         `gorm:"type:varchar(255)" json:"description"`
+	Qty               int             `gorm:"type:int;not null;default:1" json:"qty"`
+	Price             float64         `gorm:"type:decimal(15,2);not null;default:0" json:"price"`
+	Amount            float64         `gorm:"type:decimal(15,2);not null;default:0" json:"amount"` // Qty * Price
+	
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
+	DeletedAt         gorm.DeletedAt  `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (ei *ExpenseItem) BeforeCreate(tx *gorm.DB) error {
+	if ei.ID == uuid.Nil {
+		ei.ID = uuid.New()
+	}
+	ei.Amount = float64(ei.Qty) * ei.Price
+	return nil
+}
+
+type ExpensePayment struct {
+	ID            uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
+	ExpenseID     uuid.UUID      `gorm:"type:uuid;not null" json:"expense_id"`
+	Amount        float64        `gorm:"type:decimal(15,2);not null;default:0" json:"amount"`
+	PaymentDate   time.Time      `gorm:"type:timestamp;default:now()" json:"payment_date"`
+	PaymentMethod string         `gorm:"type:varchar(50);not null" json:"payment_method"`
+	CashierID     uuid.UUID      `gorm:"type:uuid;not null" json:"cashier_id"`
+	
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
+}
+
+func (ep *ExpensePayment) BeforeCreate(tx *gorm.DB) error {
+	if ep.ID == uuid.Nil {
+		ep.ID = uuid.New()
+	}
+	if ep.PaymentDate.IsZero() {
+		ep.PaymentDate = time.Now()
+	}
+	return nil
+}
+
 type ExpenseFilter struct {
 	StartDate  *time.Time
 	EndDate    *time.Time
 	Group      string // "PRODUCTION" or "OPERATIONAL"
 	CategoryID *uuid.UUID
 	Search     string
+	Status     string
 	Page       int
 	Limit      int
 }
@@ -87,6 +148,9 @@ type ExpenseRepository interface {
 	HasAssociatedExpenses(ctx context.Context, categoryID uuid.UUID) (bool, error)
 
 	CreateExpenseTx(ctx context.Context, tx *gorm.DB, expense *Expense) error
+	CreateExpenseItemsTx(ctx context.Context, tx *gorm.DB, items []ExpenseItem) error
+	CreateExpensePaymentTx(ctx context.Context, tx *gorm.DB, payment *ExpensePayment) error
+	UpdateExpenseStatusTx(ctx context.Context, tx *gorm.DB, id uuid.UUID, status string) error
 	FindExpenseByID(ctx context.Context, id uuid.UUID) (*Expense, error)
 	FindExpenseByIDTx(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*Expense, error)
 	FindAllExpenses(ctx context.Context, filter ExpenseFilter) ([]Expense, int64, error)
@@ -106,6 +170,8 @@ type ExpenseUsecase interface {
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 
 	CreateExpense(ctx context.Context, expense *Expense) error
+	PayInstallment(ctx context.Context, expenseID uuid.UUID, cashierID uuid.UUID, payments []ExpensePayment) error
+	FindExpenseByID(ctx context.Context, id uuid.UUID) (*Expense, error)
 	FindAllExpenses(ctx context.Context, filter ExpenseFilter) ([]Expense, int64, error)
 	DeleteExpense(ctx context.Context, id uuid.UUID) error
 

@@ -57,7 +57,7 @@ func (r *expenseRepository) DeleteCategory(ctx context.Context, id uuid.UUID) er
 
 func (r *expenseRepository) HasAssociatedExpenses(ctx context.Context, categoryID uuid.UUID) (bool, error) {
 	var count int64
-	if err := r.db.WithContext(ctx).Model(&domain.Expense{}).Where("expense_category_id = ?", categoryID).Count(&count).Error; err != nil {
+	if err := r.db.WithContext(ctx).Model(&domain.ExpenseItem{}).Where("expense_category_id = ?", categoryID).Count(&count).Error; err != nil {
 		return false, err
 	}
 	return count > 0, nil
@@ -67,10 +67,24 @@ func (r *expenseRepository) CreateExpenseTx(ctx context.Context, tx *gorm.DB, ex
 	return tx.WithContext(ctx).Create(expense).Error
 }
 
+func (r *expenseRepository) CreateExpenseItemsTx(ctx context.Context, tx *gorm.DB, items []domain.ExpenseItem) error {
+	return tx.WithContext(ctx).Create(&items).Error
+}
+
+func (r *expenseRepository) CreateExpensePaymentTx(ctx context.Context, tx *gorm.DB, payment *domain.ExpensePayment) error {
+	return tx.WithContext(ctx).Create(payment).Error
+}
+
+func (r *expenseRepository) UpdateExpenseStatusTx(ctx context.Context, tx *gorm.DB, id uuid.UUID, status string) error {
+	return tx.WithContext(ctx).Model(&domain.Expense{}).Where("id = ?", id).Update("status", status).Error
+}
+
 func (r *expenseRepository) FindExpenseByID(ctx context.Context, id uuid.UUID) (*domain.Expense, error) {
 	var expense domain.Expense
 	if err := r.db.WithContext(ctx).
-		Preload("ExpenseCategory.ProductCategory").
+		Preload("Supplier").
+		Preload("Items.ExpenseCategory.ProductCategory").
+		Preload("Payments").
 		First(&expense, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
@@ -80,7 +94,9 @@ func (r *expenseRepository) FindExpenseByID(ctx context.Context, id uuid.UUID) (
 func (r *expenseRepository) FindExpenseByIDTx(ctx context.Context, tx *gorm.DB, id uuid.UUID) (*domain.Expense, error) {
 	var expense domain.Expense
 	if err := tx.WithContext(ctx).
-		Preload("ExpenseCategory.ProductCategory").
+		Preload("Supplier").
+		Preload("Items.ExpenseCategory.ProductCategory").
+		Preload("Payments").
 		First(&expense, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
@@ -92,23 +108,29 @@ func (r *expenseRepository) FindAllExpenses(ctx context.Context, filter domain.E
 	var total int64
 
 	db := r.db.WithContext(ctx).Model(&domain.Expense{}).
-		Joins("JOIN expense_categories ON expenses.expense_category_id = expense_categories.id").
-		Preload("ExpenseCategory.ProductCategory")
+		Preload("Supplier").
+		Preload("Items.ExpenseCategory.ProductCategory").
+		Preload("Payments")
 
-	if filter.Group != "" {
-		db = db.Where("expense_categories.group = ?", filter.Group)
+	if filter.Search != "" {
+		db = db.Where("expense_number ILIKE ? OR vendor_name ILIKE ? OR invoice_number ILIKE ?", "%"+filter.Search+"%", "%"+filter.Search+"%", "%"+filter.Search+"%")
 	}
-	if filter.CategoryID != nil {
-		db = db.Where("expenses.expense_category_id = ?", *filter.CategoryID)
+	if filter.Status != "" {
+		db = db.Where("status = ?", filter.Status)
 	}
 	if filter.StartDate != nil {
-		db = db.Where("expenses.expense_date >= ?", *filter.StartDate)
+		db = db.Where("expense_date >= ?", *filter.StartDate)
 	}
 	if filter.EndDate != nil {
-		db = db.Where("expenses.expense_date <= ?", *filter.EndDate)
+		db = db.Where("expense_date <= ?", *filter.EndDate)
 	}
-	if filter.Search != "" {
-		db = db.Where("expenses.description ILIKE ?", "%"+filter.Search+"%")
+	if filter.CategoryID != nil {
+		// Filter expenses where at least one item belongs to the category
+		db = db.Where("id IN (SELECT expense_id FROM expense_items WHERE expense_category_id = ? AND deleted_at IS NULL)", *filter.CategoryID)
+	}
+	if filter.Group != "" {
+		// Filter expenses where at least one item belongs to a category with the specified group
+		db = db.Where("id IN (SELECT ei.expense_id FROM expense_items ei JOIN expense_categories ec ON ei.expense_category_id = ec.id WHERE ec.group = ? AND ei.deleted_at IS NULL AND ec.deleted_at IS NULL)", filter.Group)
 	}
 
 	if err := db.Count(&total).Error; err != nil {
@@ -124,7 +146,7 @@ func (r *expenseRepository) FindAllExpenses(ctx context.Context, filter domain.E
 		limit = filter.Limit
 	}
 
-	if err := db.Order("expenses.expense_date desc").
+	if err := db.Order("expense_date desc").
 		Limit(limit).
 		Offset(offset).
 		Find(&expenses).Error; err != nil {
@@ -141,13 +163,19 @@ func (r *expenseRepository) DeleteExpenseTx(ctx context.Context, tx *gorm.DB, id
 func (r *expenseRepository) GetSummary(ctx context.Context, startDate *time.Time, endDate *time.Time) (*domain.ExpenseSummaryRes, error) {
 	var summary domain.ExpenseSummaryRes
 
-	queryProd := r.db.WithContext(ctx).Model(&domain.Expense{}).
-		Joins("JOIN expense_categories ON expenses.expense_category_id = expense_categories.id").
-		Where("expense_categories.group = ?", domain.GroupProduction)
+	queryProd := r.db.WithContext(ctx).Model(&domain.ExpenseItem{}).
+		Joins("JOIN expenses ON expense_items.expense_id = expenses.id").
+		Joins("JOIN expense_categories ON expense_items.expense_category_id = expense_categories.id").
+		Where("expense_categories.group = ?", domain.GroupProduction).
+		Where("expenses.deleted_at IS NULL").
+		Where("expense_items.deleted_at IS NULL")
 
-	queryOps := r.db.WithContext(ctx).Model(&domain.Expense{}).
-		Joins("JOIN expense_categories ON expenses.expense_category_id = expense_categories.id").
-		Where("expense_categories.group = ?", domain.GroupOperational)
+	queryOps := r.db.WithContext(ctx).Model(&domain.ExpenseItem{}).
+		Joins("JOIN expenses ON expense_items.expense_id = expenses.id").
+		Joins("JOIN expense_categories ON expense_items.expense_category_id = expense_categories.id").
+		Where("expense_categories.group = ?", domain.GroupOperational).
+		Where("expenses.deleted_at IS NULL").
+		Where("expense_items.deleted_at IS NULL")
 
 	if startDate != nil {
 		queryProd = queryProd.Where("expenses.expense_date >= ?", *startDate)
@@ -159,8 +187,8 @@ func (r *expenseRepository) GetSummary(ctx context.Context, startDate *time.Time
 	}
 
 	var totalProd, totalOps float64
-	queryProd.Select("COALESCE(SUM(expenses.amount), 0)").Row().Scan(&totalProd)
-	queryOps.Select("COALESCE(SUM(expenses.amount), 0)").Row().Scan(&totalOps)
+	queryProd.Select("COALESCE(SUM(expense_items.amount), 0)").Row().Scan(&totalProd)
+	queryOps.Select("COALESCE(SUM(expense_items.amount), 0)").Row().Scan(&totalOps)
 
 	summary.TotalProduction = totalProd
 	summary.TotalOperational = totalOps
@@ -172,11 +200,14 @@ func (r *expenseRepository) GetSummary(ctx context.Context, startDate *time.Time
 func (r *expenseRepository) GetByProductCategory(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]domain.ExpenseByProductCategoryRes, error) {
 	var results []domain.ExpenseByProductCategoryRes
 
-	db := r.db.WithContext(ctx).Model(&domain.Expense{}).
-		Select("expense_categories.product_category_id, categories.name as product_category_name, COALESCE(SUM(expenses.amount), 0) as total_amount").
-		Joins("JOIN expense_categories ON expenses.expense_category_id = expense_categories.id").
+	db := r.db.WithContext(ctx).Model(&domain.ExpenseItem{}).
+		Select("expense_categories.product_category_id, categories.name as product_category_name, COALESCE(SUM(expense_items.amount), 0) as total_amount").
+		Joins("JOIN expenses ON expense_items.expense_id = expenses.id").
+		Joins("JOIN expense_categories ON expense_items.expense_category_id = expense_categories.id").
 		Joins("JOIN categories ON expense_categories.product_category_id = categories.id").
 		Where("expense_categories.group = ?", domain.GroupProduction).
+		Where("expenses.deleted_at IS NULL").
+		Where("expense_items.deleted_at IS NULL").
 		Group("expense_categories.product_category_id, categories.name")
 
 	if startDate != nil {

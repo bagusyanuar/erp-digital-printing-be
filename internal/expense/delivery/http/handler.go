@@ -128,13 +128,46 @@ func (h *ExpenseHandler) CreateExpense(c fiber.Ctx) error {
 		expenseDate = time.Now()
 	}
 
+	items := make([]domain.ExpenseItem, len(req.Items))
+	for i, item := range req.Items {
+		qty := item.Qty
+		if qty <= 0 {
+			qty = 1
+		}
+		items[i] = domain.ExpenseItem{
+			ExpenseCategoryID: item.ExpenseCategoryID,
+			Description:       item.Description,
+			Qty:               qty,
+			Price:             item.Price,
+		}
+	}
+
+	payments := make([]domain.ExpensePayment, len(req.Payments))
+	for i, p := range req.Payments {
+		var pDate time.Time
+		if p.PaymentDate != nil {
+			pDate = *p.PaymentDate
+		} else {
+			pDate = time.Now()
+		}
+		payments[i] = domain.ExpensePayment{
+			Amount:        p.Amount,
+			PaymentMethod: p.PaymentMethod,
+			PaymentDate:   pDate,
+			CashierID:     cashierID,
+		}
+	}
+
 	expense := &domain.Expense{
-		ExpenseCategoryID: req.ExpenseCategoryID,
-		Amount:            req.Amount,
-		ExpenseDate:       expenseDate,
-		PaymentMethod:     req.PaymentMethod,
-		Description:       req.Description,
-		CashierID:         cashierID,
+		InvoiceNumber: req.InvoiceNumber,
+		SupplierID:    req.SupplierID,
+		VendorName:    req.VendorName,
+		ExpenseDate:   expenseDate,
+		Description:   req.Description,
+		CashierID:     cashierID,
+		Discount:      req.Discount,
+		Items:         items,
+		Payments:      payments,
 	}
 
 	if err := h.usecase.CreateExpense(c.Context(), expense); err != nil {
@@ -142,6 +175,61 @@ func (h *ExpenseHandler) CreateExpense(c fiber.Ctx) error {
 	}
 
 	return response.Created(c, "Expense recorded successfully", expense)
+}
+
+func (h *ExpenseHandler) PayInstallment(c fiber.Ctx) error {
+	cashierID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized: Cashier ID not found in context", nil)
+	}
+
+	idStr := c.Params("id")
+	expenseID, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid expense ID", err.Error())
+	}
+
+	var req dto.PayInstallmentReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	payments := make([]domain.ExpensePayment, len(req.Payments))
+	for i, p := range req.Payments {
+		var pDate time.Time
+		if p.PaymentDate != nil {
+			pDate = *p.PaymentDate
+		} else {
+			pDate = time.Now()
+		}
+		payments[i] = domain.ExpensePayment{
+			Amount:        p.Amount,
+			PaymentMethod: p.PaymentMethod,
+			PaymentDate:   pDate,
+			CashierID:     cashierID,
+		}
+	}
+
+	if err := h.usecase.PayInstallment(c.Context(), expenseID, cashierID, payments); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to record payment installment", err.Error())
+	}
+
+	return response.Success[any](c, "Payment installment recorded successfully", nil, nil)
+}
+
+func (h *ExpenseHandler) FindExpenseByID(c fiber.Ctx) error {
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid expense ID", err.Error())
+	}
+
+	expense, err := h.usecase.FindExpenseByID(c.Context(), id)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, "Expense not found", err.Error())
+	}
+
+	return response.Success(c, "Expense fetched successfully", expense, nil)
 }
 
 func (h *ExpenseHandler) FindAllExpenses(c fiber.Ctx) error {
@@ -190,6 +278,7 @@ func (h *ExpenseHandler) FindAllExpenses(c fiber.Ctx) error {
 	}
 
 	search := c.Query("search", "")
+	status := c.Query("status", "")
 
 	filter := domain.ExpenseFilter{
 		StartDate:  startDate,
@@ -197,6 +286,7 @@ func (h *ExpenseHandler) FindAllExpenses(c fiber.Ctx) error {
 		Group:      group,
 		CategoryID: categoryID,
 		Search:     search,
+		Status:     status,
 		Page:       page,
 		Limit:      limit,
 	}

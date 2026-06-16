@@ -1,0 +1,21 @@
+meta {
+  name: Get Expense By ID
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/expenses/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+docs {
+  # Get Expense By ID
+  
+  Mendapatkan rincian data transaksi pengeluaran beserta detail items dan log payments/cicilan yang sudah dibayarkan.
+}
