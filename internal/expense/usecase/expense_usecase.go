@@ -159,7 +159,7 @@ func (u *expenseUsecase) CreateExpense(ctx context.Context, expense *domain.Expe
 		}
 
 		// 5. Save header
-		if err := tx.Create(expense).Error; err != nil {
+		if err := tx.Omit("Items", "Payments").Create(expense).Error; err != nil {
 			return fmt.Errorf("failed to create expense: %w", err)
 		}
 
