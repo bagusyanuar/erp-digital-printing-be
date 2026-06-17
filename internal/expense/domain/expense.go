@@ -76,9 +76,7 @@ type ExpenseItem struct {
 	ExpenseCategoryID uuid.UUID       `gorm:"type:uuid;not null" json:"expense_category_id"`
 	ExpenseCategory   ExpenseCategory `gorm:"foreignKey:ExpenseCategoryID" json:"expense_category"`
 	Description       *string         `gorm:"type:varchar(255)" json:"description"`
-	Qty               int             `gorm:"type:int;not null;default:1" json:"qty"`
-	Price             float64         `gorm:"type:decimal(15,2);not null;default:0" json:"price"`
-	Amount            float64         `gorm:"type:decimal(15,2);not null;default:0" json:"amount"` // Qty * Price
+	Amount            float64         `gorm:"type:decimal(15,2);not null;default:0" json:"amount"`
 	
 	CreatedAt         time.Time       `json:"created_at"`
 	UpdatedAt         time.Time       `json:"updated_at"`
@@ -89,7 +87,6 @@ func (ei *ExpenseItem) BeforeCreate(tx *gorm.DB) error {
 	if ei.ID == uuid.Nil {
 		ei.ID = uuid.New()
 	}
-	ei.Amount = float64(ei.Qty) * ei.Price
 	return nil
 }
 

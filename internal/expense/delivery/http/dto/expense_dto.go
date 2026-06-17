@@ -32,8 +32,7 @@ type CreateExpenseReq struct {
 type ExpenseItemReq struct {
 	ExpenseCategoryID uuid.UUID `json:"expense_category_id"`
 	Description       *string   `json:"description"`
-	Qty               int       `json:"qty"`
-	Price             float64   `json:"price"`
+	Amount            float64   `json:"amount"`
 }
 
 type PaymentReq struct {

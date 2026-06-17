@@ -94,8 +94,7 @@ func (u *expenseUsecase) CreateExpense(ctx context.Context, expense *domain.Expe
 				ID:                uuid.New(),
 				ExpenseCategoryID: discountCategoryIdx,
 				Description:       &desc,
-				Qty:               1,
-				Price:             -expense.Discount,
+				Amount:            -expense.Discount,
 			})
 		}
 
@@ -116,7 +115,6 @@ func (u *expenseUsecase) CreateExpense(ctx context.Context, expense *domain.Expe
 			if item.ID == uuid.Nil {
 				item.ID = uuid.New()
 			}
-			item.Amount = float64(item.Qty) * item.Price
 			totalBelanja += item.Amount
 		}
 		expense.Amount = totalBelanja

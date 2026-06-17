@@ -35,8 +35,6 @@ Table expense_items {
   expense_id uuid [not null]
   expense_category_id uuid [not null]
   description varchar(255) [null]
-  qty int [not null, default: 1]
-  price decimal(15,2) [not null, default: 0]
   amount decimal(15,2) [not null, default: 0]
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]

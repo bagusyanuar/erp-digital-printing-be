@@ -1,0 +1,2 @@
+ALTER TABLE expense_items DROP COLUMN IF EXISTS qty;
+ALTER TABLE expense_items DROP COLUMN IF EXISTS price;

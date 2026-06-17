@@ -130,15 +130,10 @@ func (h *ExpenseHandler) CreateExpense(c fiber.Ctx) error {
 
 	items := make([]domain.ExpenseItem, len(req.Items))
 	for i, item := range req.Items {
-		qty := item.Qty
-		if qty <= 0 {
-			qty = 1
-		}
 		items[i] = domain.ExpenseItem{
 			ExpenseCategoryID: item.ExpenseCategoryID,
 			Description:       item.Description,
-			Qty:               qty,
-			Price:             item.Price,
+			Amount:            item.Amount,
 		}
 	}
 
