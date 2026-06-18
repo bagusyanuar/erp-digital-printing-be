@@ -18,4 +18,67 @@ docs {
   # Get Expense By ID
   
   Mendapatkan rincian data transaksi pengeluaran beserta detail items dan log payments/cicilan yang sudah dibayarkan.
+
+  ### Sample Response JSON:
+  ```json
+  {
+    "message": "Expense fetched successfully",
+    "data": {
+      "id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+      "expense_number": "EXP/20260617/0001",
+      "invoice_number": "INV/2026/001",
+      "supplier_id": "a81d77a8-3f53-431e-b8cc-cc6eb6fbfbb9",
+      "supplier": {
+        "id": "a81d77a8-3f53-431e-b8cc-cc6eb6fbfbb9",
+        "name": "PT. Supplier Jaya",
+        "contact_name": "Pak Eko",
+        "phone": "081234567890",
+        "email": "eko@supplier.com",
+        "address": "Surabaya"
+      },
+      "vendor_name": "PT. Supplier Jaya",
+      "amount": 1000000,
+      "discount": 50000,
+      "status": "PARTIAL",
+      "expense_date": "2026-06-17T21:40:00Z",
+      "description": "Pembelian kertas art paper dan tinta outdoor",
+      "cashier_id": "d81d77a8-3f53-431e-b8cc-cc6eb6fbfbb5",
+      "items": [
+        {
+          "id": "d81d77a8-3f53-431e-b8cc-cc6eb6fbfbb3",
+          "expense_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+          "expense_category_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+          "expense_category": {
+            "id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+            "name": "Kertas",
+            "group": "PRODUCTION",
+            "product_category_id": "c81d77a8-3f53-431e-b8cc-cc6eb6fbfbb4",
+            "product_category": {
+              "id": "c81d77a8-3f53-431e-b8cc-cc6eb6fbfbb4",
+              "name": "Art Paper"
+            }
+          },
+          "description": "Kertas Art Paper 150g",
+          "amount": 1000000,
+          "created_at": "2026-06-17T21:40:00Z",
+          "updated_at": "2026-06-17T21:40:00Z"
+        }
+      ],
+      "payments": [
+        {
+          "id": "b81d77a8-3f53-431e-b8cc-cc6eb6fbfbb5",
+          "expense_id": "e81d77a8-3f53-431e-b8cc-cc6eb6fbfbb2",
+          "amount": 500000,
+          "payment_date": "2026-06-17T21:40:00Z",
+          "payment_method": "transfer",
+          "cashier_id": "d81d77a8-3f53-431e-b8cc-cc6eb6fbfbb5",
+          "created_at": "2026-06-17T21:40:00Z",
+          "updated_at": "2026-06-17T21:40:00Z"
+        }
+      ],
+      "created_at": "2026-06-17T21:40:00Z",
+      "updated_at": "2026-06-17T21:40:00Z"
+    }
+  }
+  ```
 }

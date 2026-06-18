@@ -88,6 +88,7 @@ func (r *expenseRepository) FindExpenseByID(ctx context.Context, id uuid.UUID) (
 		First(&expense, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
+	processDiscount(&expense)
 	return &expense, nil
 }
 
@@ -100,6 +101,7 @@ func (r *expenseRepository) FindExpenseByIDTx(ctx context.Context, tx *gorm.DB, 
 		First(&expense, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
+	processDiscount(&expense)
 	return &expense, nil
 }
 
@@ -151,6 +153,10 @@ func (r *expenseRepository) FindAllExpenses(ctx context.Context, filter domain.E
 		Offset(offset).
 		Find(&expenses).Error; err != nil {
 		return nil, 0, err
+	}
+
+	for i := range expenses {
+		processDiscount(&expenses[i])
 	}
 
 	return expenses, total, nil
@@ -222,4 +228,16 @@ func (r *expenseRepository) GetByProductCategory(ctx context.Context, startDate 
 	}
 
 	return results, nil
+}
+
+func processDiscount(expense *domain.Expense) {
+	var filteredItems []domain.ExpenseItem
+	for _, item := range expense.Items {
+		if item.ExpenseCategoryID.String() == "00000000-0000-0000-0000-000000000000" {
+			expense.Discount += item.Amount
+		} else {
+			filteredItems = append(filteredItems, item)
+		}
+	}
+	expense.Items = filteredItems
 }

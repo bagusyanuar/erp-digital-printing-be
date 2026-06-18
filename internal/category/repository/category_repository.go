@@ -33,7 +33,7 @@ func (r *categoryRepository) FindAll(ctx context.Context, params request.Paginat
 	var categories []domain.Category
 	var total int64
 
-	db := r.db.WithContext(ctx).Model(&domain.Category{})
+	db := r.db.WithContext(ctx).Model(&domain.Category{}).Where("id != ?", "00000000-0000-0000-0000-000000000000")
 
 	if search != "" {
 		searchText := "%" + search + "%"
