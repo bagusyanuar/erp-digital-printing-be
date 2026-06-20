@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/expense/domain"
@@ -118,7 +119,8 @@ func (r *expenseRepository) FindAllExpenses(ctx context.Context, filter domain.E
 		db = db.Where("expense_number ILIKE ? OR vendor_name ILIKE ? OR invoice_number ILIKE ?", "%"+filter.Search+"%", "%"+filter.Search+"%", "%"+filter.Search+"%")
 	}
 	if filter.Status != "" {
-		db = db.Where("status = ?", filter.Status)
+		statuses := strings.Split(filter.Status, ",")
+		db = db.Where("status IN ?", statuses)
 	}
 	if filter.StartDate != nil {
 		db = db.Where("expense_date >= ?", *filter.StartDate)
@@ -228,6 +230,65 @@ func (r *expenseRepository) GetByProductCategory(ctx context.Context, startDate 
 	}
 
 	return results, nil
+}
+
+func (r *expenseRepository) GetWidgets(ctx context.Context, filter domain.ExpenseFilter) (*domain.ExpenseWidgetsRes, error) {
+	var widgets domain.ExpenseWidgetsRes
+
+	// 1. Calculate remaining debt (Sisa Hutang Aktual - tidak terpengaruh filter)
+	var remainingDebt float64
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT COALESCE(SUM(e.amount - COALESCE(p.paid, 0)), 0)
+		FROM expenses e
+		LEFT JOIN (
+			SELECT expense_id, SUM(amount) as paid
+			FROM expense_payments
+			WHERE deleted_at IS NULL
+			GROUP BY expense_id
+		) p ON e.id = p.expense_id
+		WHERE e.deleted_at IS NULL
+	`).Scan(&remainingDebt).Error
+	if err != nil {
+		return nil, err
+	}
+	widgets.RemainingDebt = remainingDebt
+
+	// 2. Query total_expense and transaction_volume with filters
+	db := r.db.WithContext(ctx).Model(&domain.Expense{})
+
+	if filter.Search != "" {
+		db = db.Where("expense_number ILIKE ? OR vendor_name ILIKE ? OR invoice_number ILIKE ?", "%"+filter.Search+"%", "%"+filter.Search+"%", "%"+filter.Search+"%")
+	}
+	if filter.Status != "" {
+		statuses := strings.Split(filter.Status, ",")
+		db = db.Where("status IN ?", statuses)
+	}
+	if filter.StartDate != nil {
+		db = db.Where("expense_date >= ?", *filter.StartDate)
+	}
+	if filter.EndDate != nil {
+		db = db.Where("expense_date <= ?", *filter.EndDate)
+	}
+	if filter.CategoryID != nil {
+		db = db.Where("id IN (SELECT expense_id FROM expense_items WHERE expense_category_id = ? AND deleted_at IS NULL)", *filter.CategoryID)
+	}
+	if filter.Group != "" {
+		db = db.Where("id IN (SELECT ei.expense_id FROM expense_items ei JOIN expense_categories ec ON ei.expense_category_id = ec.id WHERE ec.group = ? AND ei.deleted_at IS NULL AND ec.deleted_at IS NULL)", filter.Group)
+	}
+
+	var totalExpense float64
+	if err := db.Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalExpense); err != nil {
+		return nil, err
+	}
+	widgets.TotalExpense = totalExpense
+
+	var transactionVolume int64
+	if err := db.Count(&transactionVolume).Error; err != nil {
+		return nil, err
+	}
+	widgets.TransactionVolume = transactionVolume
+
+	return &widgets, nil
 }
 
 func processDiscount(expense *domain.Expense) {

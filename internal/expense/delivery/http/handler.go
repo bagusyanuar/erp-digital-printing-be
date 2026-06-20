@@ -382,3 +382,56 @@ func (h *ExpenseHandler) GetByProductCategory(c fiber.Ctx) error {
 
 	return response.Success(c, "Expense by product category fetched successfully", byProductCategory, nil)
 }
+
+func (h *ExpenseHandler) GetWidgets(c fiber.Ctx) error {
+	var startDate, endDate *time.Time
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+
+	if startDateStr != "" {
+		t, err := time.Parse("2006-01-02", startDateStr)
+		if err != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid start_date format", err.Error())
+		}
+		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+		startDate = &t
+	}
+
+	if endDateStr != "" {
+		t, err := time.Parse("2006-01-02", endDateStr)
+		if err != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid end_date format", err.Error())
+		}
+		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, t.Location())
+		endDate = &t
+	}
+
+	group := c.Query("group", "")
+	categoryIDStr := c.Query("expense_category_id", "")
+	var categoryID *uuid.UUID
+	if categoryIDStr != "" {
+		parsed, err := uuid.Parse(categoryIDStr)
+		if err == nil {
+			categoryID = &parsed
+		}
+	}
+
+	search := c.Query("search", "")
+	status := c.Query("status", "")
+
+	filter := domain.ExpenseFilter{
+		StartDate:  startDate,
+		EndDate:    endDate,
+		Group:      group,
+		CategoryID: categoryID,
+		Search:     search,
+		Status:     status,
+	}
+
+	widgets, err := h.usecase.GetWidgets(c.Context(), filter)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch expense widgets", err.Error())
+	}
+
+	return response.Success(c, "Expense widgets fetched successfully", widgets, nil)
+}

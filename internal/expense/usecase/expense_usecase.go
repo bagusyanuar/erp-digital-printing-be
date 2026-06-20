@@ -364,3 +364,7 @@ func (u *expenseUsecase) GetSummary(ctx context.Context, startDate *time.Time, e
 func (u *expenseUsecase) GetByProductCategory(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]domain.ExpenseByProductCategoryRes, error) {
 	return u.repo.GetByProductCategory(ctx, startDate, endDate)
 }
+
+func (u *expenseUsecase) GetWidgets(ctx context.Context, filter domain.ExpenseFilter) (*domain.ExpenseWidgetsRes, error) {
+	return u.repo.GetWidgets(ctx, filter)
+}

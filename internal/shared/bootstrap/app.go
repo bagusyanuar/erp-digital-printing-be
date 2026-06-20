@@ -182,6 +182,7 @@ func (a *App) SetupRoutes() {
 	// Expenses Routes
 	expenseRoutes := protected.Group("/expenses")
 	expenseRoutes.Post("/", a.Container.ExpenseHandler.CreateExpense)
+	expenseRoutes.Get("/reports/widgets", a.Container.ExpenseHandler.GetWidgets)
 	expenseRoutes.Get("/", a.Container.ExpenseHandler.FindAllExpenses)
 	expenseRoutes.Get("/:id", a.Container.ExpenseHandler.FindExpenseByID)
 	expenseRoutes.Post("/:id/payments", a.Container.ExpenseHandler.PayInstallment)

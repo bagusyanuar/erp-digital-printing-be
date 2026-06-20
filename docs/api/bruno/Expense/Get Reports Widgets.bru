@@ -1,0 +1,51 @@
+meta {
+  name: Get Reports Widgets
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{base_url}}/expenses/reports/widgets?start_date=&end_date=&group=&expense_category_id=&search=&status=
+  body: none
+  auth: inherit
+}
+
+query {
+  start_date: 
+  end_date: 
+  group: 
+  expense_category_id: 
+  search: 
+  status: 
+}
+
+docs {
+  # Get Reports Widgets
+  
+  Mendapatkan data statistik ringkasan (widgets) untuk laporan pengeluaran berdasarkan filter yang sama seperti pencarian expense.
+
+  ### Query Parameters:
+  - `start_date`: Tanggal awal pengeluaran (format YYYY-MM-DD, optional)
+  - `end_date`: Tanggal akhir pengeluaran (format YYYY-MM-DD, optional)
+  - `group`: Kelompok pengeluaran (`PRODUCTION` atau `OPERATIONAL`, optional)
+  - `expense_category_id`: ID Kategori pengeluaran (UUID, optional)
+  - `search`: Kata kunci pencarian no expense / vendor / no invoice (optional)
+  - `status`: Status pembayaran. Mendukung multiple filter dipisahkan koma (contoh: `UNPAID,PARTIAL` atau `PAID`, optional)
+
+  > [!NOTE]
+  > Parameter `start_date`, `end_date`, `group`, `expense_category_id`, `search`, dan `status` hanya memengaruhi pencarian `total_expense` dan `transaction_volume`. Sedangkan `remaining_debt` (Sisa Hutang) bersifat aktual akumulatif dan mengabaikan filter.
+
+  ### Response Example (OK - 200)
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Expense widgets fetched successfully",
+    "data": {
+      "total_expense": 1500000.00,
+      "remaining_debt": 500000.00,
+      "transaction_volume": 12
+    }
+  }
+  ```
+}

@@ -130,6 +130,12 @@ type ExpenseSummaryRes struct {
 	TotalExpense     float64 `json:"total_expense"`
 }
 
+type ExpenseWidgetsRes struct {
+	TotalExpense      float64 `json:"total_expense"`
+	RemainingDebt     float64 `json:"remaining_debt"`
+	TransactionVolume int64   `json:"transaction_volume"`
+}
+
 type ExpenseByProductCategoryRes struct {
 	ProductCategoryID   *uuid.UUID `json:"product_category_id"`
 	ProductCategoryName string     `json:"product_category_name"`
@@ -155,6 +161,7 @@ type ExpenseRepository interface {
 
 	GetSummary(ctx context.Context, startDate *time.Time, endDate *time.Time) (*ExpenseSummaryRes, error)
 	GetByProductCategory(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]ExpenseByProductCategoryRes, error)
+	GetWidgets(ctx context.Context, filter ExpenseFilter) (*ExpenseWidgetsRes, error)
 
 	GetDB() *gorm.DB
 }
@@ -174,4 +181,5 @@ type ExpenseUsecase interface {
 
 	GetSummary(ctx context.Context, startDate *time.Time, endDate *time.Time) (*ExpenseSummaryRes, error)
 	GetByProductCategory(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]ExpenseByProductCategoryRes, error)
+	GetWidgets(ctx context.Context, filter ExpenseFilter) (*ExpenseWidgetsRes, error)
 }
