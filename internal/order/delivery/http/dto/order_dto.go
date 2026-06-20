@@ -116,3 +116,15 @@ type UpdateOrderStatusReq struct {
 	Status string `json:"status" validate:"required,oneof=DRAFT PENDING_PAYMENT IN_PRODUCTION READY_FOR_PICKUP COMPLETED CANCELLED"`
 }
 
+type OrderReportsStatusNotaRes struct {
+	Lunas      int64 `json:"lunas"`
+	BelumLunas int64 `json:"belum_lunas"`
+}
+
+type OrderReportsWidgetsRes struct {
+	OmsetPenjualan     float64                   `json:"omset_penjualan"`
+	VolumeTransaksi    int64                     `json:"volume_transaksi"`
+	TotalProdukTerjual int64                     `json:"total_produk_terjual"`
+	StatusNota         OrderReportsStatusNotaRes `json:"status_nota"`
+}
+

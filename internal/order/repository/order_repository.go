@@ -61,7 +61,7 @@ func (r *orderRepository) FindByIDWithCategoryPreload(ctx context.Context, id uu
 	return &order, nil
 }
 
-func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time) ([]domain.Order, int64, error) {
+func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]domain.Order, int64, error) {
 	var orders []domain.Order
 	var total int64
 
@@ -90,6 +90,13 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 
 	if startDate != nil && endDate != nil {
 		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
+	}
+
+	switch customerType {
+	case "reseller":
+		query = query.Where("reseller_id IS NOT NULL")
+	case "end_user":
+		query = query.Where("reseller_id IS NULL")
 	}
 
 	err := query.Count(&total).Error
@@ -233,4 +240,89 @@ func (r *orderRepository) ReplaceItems(ctx context.Context, orderID uuid.UUID, i
 		}
 		return nil
 	})
+}
+
+func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*domain.OrderReportsWidgetsRes, error) {
+	query := r.db.WithContext(ctx).Model(&domain.Order{})
+
+	if len(statuses) > 0 {
+		query = query.Where("status IN ?", statuses)
+	} else {
+		// Default reports exclude DRAFT and CANCELLED
+		query = query.Where("status NOT IN ?", []string{domain.StatusDraft, domain.StatusCancelled})
+	}
+
+	if len(paymentStatuses) > 0 {
+		query = query.Where("payment_status IN ?", paymentStatuses)
+	}
+
+	if designerID != nil && *designerID != uuid.Nil {
+		query = query.Where("designer_id = ?", *designerID)
+	}
+
+	if cashierID != nil && *cashierID != uuid.Nil {
+		query = query.Where("cashier_id = ?", *cashierID)
+	}
+
+	if search != "" {
+		searchText := "%" + search + "%"
+		query = query.Where("invoice_number ILIKE ? OR customer_name ILIKE ? OR job_number ILIKE ?", searchText, searchText, searchText)
+	}
+
+	if startDate != nil && endDate != nil {
+		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
+	}
+
+	switch customerType {
+	case "reseller":
+		query = query.Where("reseller_id IS NOT NULL")
+	case "end_user":
+		query = query.Where("reseller_id IS NULL")
+	}
+
+	// 1. Get OmsetPenjualan (SUM of grand_total) and VolumeTransaksi (COUNT of orders)
+	var stats struct {
+		Omset  float64
+		Volume int64
+	}
+	err := query.Select("COALESCE(SUM(grand_total), 0) as omset, COUNT(id) as volume").Scan(&stats).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Get TotalProdukTerjual (SUM of quantity from order_items)
+	var totalQty int64
+	subQuery := query.Session(&gorm.Session{}).Select("id")
+	err = r.db.WithContext(ctx).Model(&domain.OrderItem{}).
+		Where("order_id IN (?)", subQuery).
+		Select("COALESCE(SUM(quantity), 0)").
+		Scan(&totalQty).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Get StatusNota counts (Lunas vs Belum Lunas)
+	var lunasCount int64
+	err = query.Session(&gorm.Session{}).
+		Where("payment_status = ?", domain.PaymentStatusPaid).
+		Count(&lunasCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var belumLunasCount int64
+	err = query.Session(&gorm.Session{}).
+		Where("payment_status IN ?", []string{domain.PaymentStatusUnpaid, domain.PaymentStatusPartialPaid}).
+		Count(&belumLunasCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.OrderReportsWidgetsRes{
+		OmsetPenjualan:     stats.Omset,
+		VolumeTransaksi:    stats.Volume,
+		TotalProdukTerjual: totalQty,
+		LunasCount:         lunasCount,
+		BelumLunasCount:    belumLunasCount,
+	}, nil
 }

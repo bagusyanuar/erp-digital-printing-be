@@ -197,8 +197,8 @@ func (u *orderUsecase) FindByID(ctx context.Context, id uuid.UUID) (*orderDomain
 	return u.orderRepo.FindByID(ctx, id)
 }
 
-func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time) ([]orderDomain.Order, int64, error) {
-	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate)
+func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]orderDomain.Order, int64, error) {
+	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate, customerType)
 }
 
 func (u *orderUsecase) ProcessPayment(
@@ -329,7 +329,7 @@ func (u *orderUsecase) ProcessPayment(
 		orders, _, err := u.orderRepo.FindAll(ctx, params, []string{
 			orderDomain.StatusInProduction,
 			orderDomain.StatusReadyForPickup,
-		}, nil, nil, nil, "", nil, nil)
+		}, nil, nil, nil, "", nil, nil, "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch outstanding orders for credit limit validation: %w", err)
 		}
@@ -711,5 +711,9 @@ func (u *orderUsecase) UpdateDraft(ctx context.Context, id uuid.UUID, orderReq *
 		return updatedOrder, nil
 	}
 	return order, nil
+}
+
+func (u *orderUsecase) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*orderDomain.OrderReportsWidgetsRes, error) {
+	return u.orderRepo.GetReportsWidgets(ctx, statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate, customerType)
 }
 

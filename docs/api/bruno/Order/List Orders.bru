@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&designer_id=&cashier_id=&search=&start_date=&end_date=
+  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
   body: none
   auth: inherit
 }
@@ -20,12 +20,13 @@ query {
   search: 
   start_date: 
   end_date: 
+  customer_type: 
 }
 
 docs {
   # List Orders
   
-  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, ID designer, ID cashier, pencarian keyword, serta rentang tanggal order.
+  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, ID designer, ID cashier, pencarian keyword, rentang tanggal order, dan tipe customer.
   
   ### Query Parameters:
   - `page`: Nomor halaman (default: 1)
@@ -39,4 +40,5 @@ docs {
   - `search`: Kata kunci pencarian berdasarkan `invoice_number`, `customer_name`, atau `job_number`
   - `start_date`: Tanggal awal rentang pencarian (format: `YYYY-MM-DD`). Harus dikirim bersamaan dengan `end_date`.
   - `end_date`: Tanggal akhir rentang pencarian (format: `YYYY-MM-DD`). Harus dikirim bersamaan dengan `start_date`.
+  - `customer_type`: Filter tipe pelanggan (`reseller` untuk reseller/biro yang memiliki `reseller_id`, atau `end_user` untuk pelanggan umum di mana `reseller_id` bernilai NULL).
 }

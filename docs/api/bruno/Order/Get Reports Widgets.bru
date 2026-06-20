@@ -1,0 +1,48 @@
+meta {
+  name: Get Reports Widgets
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{base_url}}/orders/reports/widgets?status=&payment_status=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
+  body: none
+  auth: inherit
+}
+
+query {
+  status: 
+  payment_status: 
+  designer_id: 
+  cashier_id: 
+  search: 
+  start_date: 
+  end_date: 
+  customer_type: 
+}
+
+docs {
+  # Get Reports Widgets
+  
+  Mendapatkan data statistik ringkasan (widgets) untuk laporan penjualan berdasarkan filter yang sama seperti pencarian order.
+  
+  ### Query Parameters:
+  - `customer_type`: Filter tipe pelanggan (`reseller` untuk reseller/biro yang memiliki `reseller_id`, atau `end_user` untuk pelanggan umum di mana `reseller_id` bernilai NULL).
+  
+  ### Response Structure:
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "data": {
+      "omset_penjualan": 109500,
+      "volume_transaksi": 5,
+      "total_produk_terjual": 18,
+      "status_nota": {
+        "lunas": 4,
+        "belum_lunas": 1
+      }
+    }
+  }
+  ```
+}
