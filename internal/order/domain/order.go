@@ -20,6 +20,7 @@ const (
 	StatusReadyForPickup = "READY_FOR_PICKUP"
 	StatusCompleted      = "COMPLETED"
 	StatusCancelled      = "CANCELLED"
+	StatusRefund         = "REFUND"
 )
 
 // Payment Status Constants
@@ -130,11 +131,9 @@ func (op *OrderPayment) BeforeCreate(tx *gorm.DB) error {
 }
 
 type OrderReportsWidgetsRes struct {
-	OmsetPenjualan     float64 `json:"omset_penjualan"`
-	VolumeTransaksi    int64   `json:"volume_transaksi"`
-	TotalProdukTerjual int64   `json:"total_produk_terjual"`
-	LunasCount         int64   `json:"lunas_count"`
-	BelumLunasCount    int64   `json:"belum_lunas_count"`
+	OmsetPenjualan  float64 `json:"omset_penjualan"`
+	TotalPiutang    float64 `json:"total_piutang"`
+	BelumLunasCount int64   `json:"belum_lunas_count"`
 }
 
 // OrderRepository interface
@@ -142,7 +141,7 @@ type OrderRepository interface {
 	Create(ctx context.Context, order *Order) error
 	Update(ctx context.Context, order *Order) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]Order, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]Order, int64, error)
 	GetNextJobSeq(ctx context.Context, dateStr string) (int, error)
 	GetNextInvSeq(ctx context.Context, dateStr string) (int, error)
 	FindFinishingsByIDs(ctx context.Context, ids []uuid.UUID) ([]Finishing, error)
@@ -151,7 +150,7 @@ type OrderRepository interface {
 	FindByIDWithCategoryPreload(ctx context.Context, id uuid.UUID) (*Order, error)
 	CreatePayment(ctx context.Context, payment *OrderPayment) error
 	ReplaceItems(ctx context.Context, orderID uuid.UUID, items []OrderItem) error
-	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*OrderReportsWidgetsRes, error)
+	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*OrderReportsWidgetsRes, error)
 }
 
 type PaymentItem struct {
@@ -165,7 +164,7 @@ type OrderUsecase interface {
 	SubmitToCashier(ctx context.Context, order *Order) error
 	SubmitExistingToCashier(ctx context.Context, orderID uuid.UUID) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]Order, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]Order, int64, error)
 	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, payments []PaymentItem) (*Order, error)
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
@@ -173,5 +172,6 @@ type OrderUsecase interface {
 	Repay(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, payments []PaymentItem) (*Order, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) (*Order, error)
 	UpdateDraft(ctx context.Context, id uuid.UUID, order *Order) (*Order, error)
-	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*OrderReportsWidgetsRes, error)
+	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*OrderReportsWidgetsRes, error)
+	Refund(ctx context.Context, id uuid.UUID, cashierID uuid.UUID, paymentMethod string, amount float64, reason string) (*Order, error)
 }

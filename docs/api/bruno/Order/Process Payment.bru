@@ -41,6 +41,7 @@ docs {
   - Jika pembayaran lunas (`amount_paid >= grand_total`), `payment_status` akan bernilai `PAID` dan `payment_type` pada log otomatis diset `FULL_PAYMENT`.
   - Jika pembayaran sebagian (`0 < amount_paid < grand_total`), `payment_status` akan bernilai `PARTIAL_PAID` dan `payment_type` diset `DOWN_PAYMENT`.
   - Jika pembayaran tempo/DP 0 (`amount_paid == 0`), `payment_status` akan bernilai `UNPAID` (khusus reseller, divalidasi dengan `CreditLimit` mereka).
+    - **Catatan:** Jika akumulasi hutang (order yang `UNPAID` atau `PARTIAL_PAID`) ditambah order baru ini melebihi `CreditLimit` reseller, maka akan mereturn error `Credit limit exceeded`.
   
   ### Path Parameters:
   - `id`: UUID Order (Required)

@@ -61,7 +61,7 @@ func (r *orderRepository) FindByIDWithCategoryPreload(ctx context.Context, id uu
 	return &order, nil
 }
 
-func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]domain.Order, int64, error) {
+func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]domain.Order, int64, error) {
 	var orders []domain.Order
 	var total int64
 
@@ -74,6 +74,11 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 	if len(paymentStatuses) > 0 {
 		query = query.Where("payment_status IN ?", paymentStatuses)
 	}
+
+	if len(paymentMethods) > 0 {
+		query = query.Where("EXISTS (SELECT 1 FROM order_payments WHERE order_payments.order_id = orders.id AND order_payments.payment_method IN ? AND order_payments.deleted_at IS NULL)", paymentMethods)
+	}
+
 
 	if designerID != nil && *designerID != uuid.Nil {
 		query = query.Where("designer_id = ?", *designerID)
@@ -242,7 +247,7 @@ func (r *orderRepository) ReplaceItems(ctx context.Context, orderID uuid.UUID, i
 	})
 }
 
-func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*domain.OrderReportsWidgetsRes, error) {
+func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*domain.OrderReportsWidgetsRes, error) {
 	query := r.db.WithContext(ctx).Model(&domain.Order{})
 
 	if len(statuses) > 0 {
@@ -254,6 +259,10 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 
 	if len(paymentStatuses) > 0 {
 		query = query.Where("payment_status IN ?", paymentStatuses)
+	}
+
+	if len(paymentMethods) > 0 {
+		query = query.Where("EXISTS (SELECT 1 FROM order_payments WHERE order_payments.order_id = orders.id AND order_payments.payment_method IN ? AND order_payments.deleted_at IS NULL)", paymentMethods)
 	}
 
 	if designerID != nil && *designerID != uuid.Nil {
@@ -280,36 +289,24 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 		query = query.Where("reseller_id IS NULL")
 	}
 
-	// 1. Get OmsetPenjualan (SUM of grand_total) and VolumeTransaksi (COUNT of orders)
-	var stats struct {
-		Omset  float64
-		Volume int64
-	}
-	err := query.Select("COALESCE(SUM(grand_total), 0) as omset, COUNT(id) as volume").Scan(&stats).Error
+	// 1. Get OmsetPenjualan (SUM of grand_total)
+	var omset float64
+	err := query.Select("COALESCE(SUM(grand_total), 0)").Scan(&omset).Error
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Get TotalProdukTerjual (SUM of quantity from order_items)
-	var totalQty int64
-	subQuery := query.Session(&gorm.Session{}).Select("id")
-	err = r.db.WithContext(ctx).Model(&domain.OrderItem{}).
-		Where("order_id IN (?)", subQuery).
-		Select("COALESCE(SUM(quantity), 0)").
-		Scan(&totalQty).Error
-	if err != nil {
-		return nil, err
-	}
-
-	// 3. Get StatusNota counts (Lunas vs Belum Lunas)
-	var lunasCount int64
+	// 2. Get TotalPiutang (SUM of grand_total - amount_paid for unpaid & partial paid)
+	var totalPiutang float64
 	err = query.Session(&gorm.Session{}).
-		Where("payment_status = ?", domain.PaymentStatusPaid).
-		Count(&lunasCount).Error
+		Where("payment_status IN ?", []string{domain.PaymentStatusUnpaid, domain.PaymentStatusPartialPaid}).
+		Select("COALESCE(SUM(grand_total - amount_paid), 0)").
+		Scan(&totalPiutang).Error
 	if err != nil {
 		return nil, err
 	}
 
+	// 3. Get BelumLunasCount (COUNT of unpaid & partial paid invoices)
 	var belumLunasCount int64
 	err = query.Session(&gorm.Session{}).
 		Where("payment_status IN ?", []string{domain.PaymentStatusUnpaid, domain.PaymentStatusPartialPaid}).
@@ -319,10 +316,8 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 	}
 
 	return &domain.OrderReportsWidgetsRes{
-		OmsetPenjualan:     stats.Omset,
-		VolumeTransaksi:    stats.Volume,
-		TotalProdukTerjual: totalQty,
-		LunasCount:         lunasCount,
-		BelumLunasCount:    belumLunasCount,
+		OmsetPenjualan:  omset,
+		TotalPiutang:    totalPiutang,
+		BelumLunasCount: belumLunasCount,
 	}, nil
 }

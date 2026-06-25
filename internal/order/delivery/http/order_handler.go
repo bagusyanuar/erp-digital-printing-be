@@ -213,6 +213,17 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		}
 	}
 
+	var paymentMethods []string
+	if paymentMethodQuery := c.Query("payment_method", ""); paymentMethodQuery != "" {
+		parts := strings.Split(paymentMethodQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentMethods = append(paymentMethods, trimmed)
+			}
+		}
+	}
+
 	var designerID *uuid.UUID
 	if designerQuery := c.Query("designer_id", ""); designerQuery != "" {
 		if did, err := uuid.Parse(designerQuery); err == nil {
@@ -249,7 +260,7 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate, customerType)
+	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch orders", err.Error())
 	}
@@ -670,6 +681,17 @@ func (h *OrderHandler) GetReportsWidgets(c fiber.Ctx) error {
 		}
 	}
 
+	var paymentMethods []string
+	if paymentMethodQuery := c.Query("payment_method", ""); paymentMethodQuery != "" {
+		parts := strings.Split(paymentMethodQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentMethods = append(paymentMethods, trimmed)
+			}
+		}
+	}
+
 	var designerID *uuid.UUID
 	if designerQuery := c.Query("designer_id", ""); designerQuery != "" {
 		if did, err := uuid.Parse(designerQuery); err == nil {
@@ -706,22 +728,44 @@ func (h *OrderHandler) GetReportsWidgets(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	data, err := h.orderUsecase.GetReportsWidgets(c.Context(), statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate, customerType)
+	data, err := h.orderUsecase.GetReportsWidgets(c.Context(), statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch reports widgets", err.Error())
 	}
 
 	res := dto.OrderReportsWidgetsRes{
-		OmsetPenjualan:     data.OmsetPenjualan,
-		VolumeTransaksi:    data.VolumeTransaksi,
-		TotalProdukTerjual: data.TotalProdukTerjual,
-		StatusNota: dto.OrderReportsStatusNotaRes{
-			Lunas:      data.LunasCount,
-			BelumLunas: data.BelumLunasCount,
-		},
+		OmsetPenjualan:  data.OmsetPenjualan,
+		TotalPiutang:    data.TotalPiutang,
+		BelumLunasCount: data.BelumLunasCount,
 	}
 
 	return response.Success(c, "Reports widgets fetched successfully", res, nil)
 }
+
+func (h *OrderHandler) Refund(c fiber.Ctx) error {
+	cashierID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized: Cashier ID not found in context", nil)
+	}
+
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid order ID", err.Error())
+	}
+
+	var req dto.RefundReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	order, err := h.orderUsecase.Refund(c.Context(), id, cashierID, req.PaymentMethod, req.Amount, req.Reason)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Failed to process refund", err.Error())
+	}
+
+	return response.Success(c, "Refund processed successfully", mapOrderToRes(order), nil)
+}
+
 
 

@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
+  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&payment_method=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
   body: none
   auth: inherit
 }
@@ -15,6 +15,7 @@ query {
   limit: 10
   status: PENDING_PAYMENT,IN_PRODUCTION
   payment_status: 
+  payment_method: 
   designer_id: 
   cashier_id: 
   search: 
@@ -26,15 +27,16 @@ query {
 docs {
   # List Orders
   
-  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, ID designer, ID cashier, pencarian keyword, rentang tanggal order, dan tipe customer.
+  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, metode pembayaran, ID designer, ID cashier, pencarian keyword, rentang tanggal order, dan tipe customer.
   
   ### Query Parameters:
   - `page`: Nomor halaman (default: 1)
   - `limit`: Jumlah data per halaman (default: 10)
   - `status`: Filter berdasarkan status order. Mendukung multi-status dengan dipisah menggunakan tanda koma (contoh: `status=PENDING_PAYMENT,IN_PRODUCTION` atau `status=DRAFT`).
-    - Pilihan status: `DRAFT`, `PENDING_PAYMENT`, `IN_PRODUCTION`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`
+    - Pilihan status: `DRAFT`, `PENDING_PAYMENT`, `IN_PRODUCTION`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`, `REFUND`
   - `payment_status`: Filter berdasarkan status pembayaran. Mendukung multi-status dengan dipisah menggunakan tanda koma (contoh: `payment_status=UNPAID,PARTIAL_PAID` atau `payment_status=PAID`).
     - Pilihan status: `UNPAID`, `PARTIAL_PAID`, `PAID`
+  - `payment_method`: Filter berdasarkan metode pembayaran yang digunakan. Mendukung multi-status dengan dipisah koma (contoh: `payment_method=cash,qris`).
   - `designer_id`: Filter berdasarkan UUID designer yang membuat order
   - `cashier_id`: Filter berdasarkan UUID cashier yang memproses order
   - `search`: Kata kunci pencarian berdasarkan `invoice_number`, `customer_name`, atau `job_number`

@@ -152,6 +152,7 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Put("/:id/submit", a.Container.OrderHandler.SubmitExistingToCashier)
 	orderRoutes.Post("/:id/pay", a.Container.OrderHandler.ProcessPayment)
 	orderRoutes.Post("/:id/repay", a.Container.OrderHandler.Repay)
+	orderRoutes.Post("/:id/refund", a.Container.OrderHandler.Refund)
 	orderRoutes.Get("/reports/widgets", a.Container.OrderHandler.GetReportsWidgets)
 	orderRoutes.Get("/", a.Container.OrderHandler.FindAll)
 	orderRoutes.Get("/:id", a.Container.OrderHandler.FindByID)

@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{base_url}}/orders/reports/widgets?status=&payment_status=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
+  url: {{base_url}}/orders/reports/widgets?status=&payment_status=&payment_method=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
   body: none
   auth: inherit
 }
@@ -13,6 +13,7 @@ get {
 query {
   status: 
   payment_status: 
+  payment_method: 
   designer_id: 
   cashier_id: 
   search: 
@@ -27,6 +28,14 @@ docs {
   Mendapatkan data statistik ringkasan (widgets) untuk laporan penjualan berdasarkan filter yang sama seperti pencarian order.
   
   ### Query Parameters:
+  - `status`: Filter berdasarkan status order (comma separated)
+  - `payment_status`: Filter berdasarkan status pembayaran (comma separated)
+  - `payment_method`: Filter berdasarkan metode pembayaran (comma separated)
+  - `designer_id`: Filter berdasarkan designer ID
+  - `cashier_id`: Filter berdasarkan cashier ID
+  - `search`: Filter pencarian nama customer/invoice
+  - `start_date`: Tanggal mulai filter
+  - `end_date`: Tanggal akhir filter
   - `customer_type`: Filter tipe pelanggan (`reseller` untuk reseller/biro yang memiliki `reseller_id`, atau `end_user` untuk pelanggan umum di mana `reseller_id` bernilai NULL).
   
   ### Response Structure:
@@ -35,13 +44,9 @@ docs {
     "code": 200,
     "status": "OK",
     "data": {
-      "omset_penjualan": 109500,
-      "volume_transaksi": 5,
-      "total_produk_terjual": 18,
-      "status_nota": {
-        "lunas": 4,
-        "belum_lunas": 1
-      }
+      "omset_penjualan": 97500,
+      "total_piutang": 0,
+      "belum_lunas_count": 0
     }
   }
   ```

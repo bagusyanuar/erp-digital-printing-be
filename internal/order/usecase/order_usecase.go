@@ -197,8 +197,8 @@ func (u *orderUsecase) FindByID(ctx context.Context, id uuid.UUID) (*orderDomain
 	return u.orderRepo.FindByID(ctx, id)
 }
 
-func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]orderDomain.Order, int64, error) {
-	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate, customerType)
+func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]orderDomain.Order, int64, error) {
+	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
 }
 
 func (u *orderUsecase) ProcessPayment(
@@ -329,7 +329,7 @@ func (u *orderUsecase) ProcessPayment(
 		orders, _, err := u.orderRepo.FindAll(ctx, params, []string{
 			orderDomain.StatusInProduction,
 			orderDomain.StatusReadyForPickup,
-		}, nil, nil, nil, "", nil, nil, "")
+		}, nil, nil, nil, nil, "", nil, nil, "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch outstanding orders for credit limit validation: %w", err)
 		}
@@ -713,7 +713,101 @@ func (u *orderUsecase) UpdateDraft(ctx context.Context, id uuid.UUID, orderReq *
 	return order, nil
 }
 
-func (u *orderUsecase) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*orderDomain.OrderReportsWidgetsRes, error) {
-	return u.orderRepo.GetReportsWidgets(ctx, statuses, paymentStatuses, designerID, cashierID, search, startDate, endDate, customerType)
+func (u *orderUsecase) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*orderDomain.OrderReportsWidgetsRes, error) {
+	return u.orderRepo.GetReportsWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
 }
+
+func (u *orderUsecase) Refund(
+	ctx context.Context,
+	id uuid.UUID,
+	cashierID uuid.UUID,
+	paymentMethod string,
+	amount float64,
+	reason string,
+) (*orderDomain.Order, error) {
+	order, err := u.orderRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
+	}
+
+	if amount <= 0 {
+		return nil, errors.New("refund amount must be greater than 0")
+	}
+
+	if amount > order.AmountPaid {
+		return nil, fmt.Errorf("refund amount (%.2f) exceeds amount paid (%.2f)", amount, order.AmountPaid)
+	}
+
+	order.AmountPaid -= amount
+	order.Status = orderDomain.StatusRefund
+
+	if order.AmountPaid <= 0 {
+		order.PaymentStatus = orderDomain.PaymentStatusUnpaid
+	} else {
+		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
+	}
+
+	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		payment := &orderDomain.OrderPayment{
+			OrderID:       order.ID,
+			CashierID:     cashierID,
+			Amount:        amount,
+			PaymentMethod: paymentMethod,
+			PaymentType:   "REFUND",
+		}
+		if err := tx.Create(payment).Error; err != nil {
+			return fmt.Errorf("failed to create payment log for refund: %w", err)
+		}
+
+		acc, err := u.cashFlowRepo.FindAccountByNameWithLock(ctx, tx, paymentMethod)
+		if err != nil {
+			return fmt.Errorf("failed to find cash account %s: %w", paymentMethod, err)
+		}
+		acc.Balance -= amount
+		if err := u.cashFlowRepo.UpdateAccount(ctx, tx, acc); err != nil {
+			return fmt.Errorf("failed to update cash account balance: %w", err)
+		}
+
+		desc := fmt.Sprintf("Refund Order %s", order.JobNumber)
+		if order.InvoiceNumber != nil {
+			desc = fmt.Sprintf("Refund Invoice %s", *order.InvoiceNumber)
+		}
+		if reason != "" {
+			desc = fmt.Sprintf("%s (%s)", desc, reason)
+		}
+
+		cf := &cashFlowDomain.CashFlow{
+			ID:              uuid.New(),
+			TransactionDate: time.Now(),
+			ReferenceType:   cashFlowDomain.RefRefund,
+			ReferenceID:     &payment.ID,
+			Type:            cashFlowDomain.TypeCredit,
+			Amount:          amount,
+			PaymentMethod:   paymentMethod,
+			Description:     &desc,
+			CustomerName:    order.CustomerName,
+			InvoiceNumber:   order.InvoiceNumber,
+			CashierID:       cashierID,
+		}
+		if err := u.cashFlowRepo.CreateTx(ctx, tx, cf); err != nil {
+			return fmt.Errorf("failed to create cash flow record: %w", err)
+		}
+
+		if err := tx.Save(order).Error; err != nil {
+			return fmt.Errorf("failed to save refunded order: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	updatedOrder, err := u.orderRepo.FindByID(ctx, order.ID)
+	if err == nil {
+		return updatedOrder, nil
+	}
+	return order, nil
+}
+
 

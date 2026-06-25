@@ -1,0 +1,37 @@
+meta {
+  name: Process Refund
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{base_url}}/orders/:id/refund
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+body:json {
+  {
+    "payment_method": "cash",
+    "amount": 50000,
+    "reason": "Salah input produk"
+  }
+}
+
+docs {
+  # Process Refund
+
+  Kasir memproses pengembalian dana (refund) untuk order. Status order akan diubah menjadi `REFUND`, dan pengembalian uang akan dicatat di Cash Flow dengan tipe `CREDIT` (Uang Keluar) dan referensi type `REFUND`.
+
+  ### Path Parameters:
+  - `id`: UUID Order (Required)
+
+  ### Request Body:
+  - `payment_method`: Metode pembayaran pengembalian uang, misal: `cash`, `transfer`, `qris` (Required).
+  - `amount`: Jumlah uang yang di-refund (Required, > 0 dan tidak boleh melebihi jumlah uang yang sudah dibayar).
+  - `reason`: Alasan melakukan refund (Optional).
+}

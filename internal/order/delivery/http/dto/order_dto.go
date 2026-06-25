@@ -113,7 +113,7 @@ type OrderRes struct {
 }
 
 type UpdateOrderStatusReq struct {
-	Status string `json:"status" validate:"required,oneof=DRAFT PENDING_PAYMENT IN_PRODUCTION READY_FOR_PICKUP COMPLETED CANCELLED"`
+	Status string `json:"status" validate:"required,oneof=DRAFT PENDING_PAYMENT IN_PRODUCTION READY_FOR_PICKUP COMPLETED CANCELLED REFUND"`
 }
 
 type OrderReportsStatusNotaRes struct {
@@ -122,9 +122,15 @@ type OrderReportsStatusNotaRes struct {
 }
 
 type OrderReportsWidgetsRes struct {
-	OmsetPenjualan     float64                   `json:"omset_penjualan"`
-	VolumeTransaksi    int64                     `json:"volume_transaksi"`
-	TotalProdukTerjual int64                     `json:"total_produk_terjual"`
-	StatusNota         OrderReportsStatusNotaRes `json:"status_nota"`
+	OmsetPenjualan  float64 `json:"omset_penjualan"`
+	TotalPiutang    float64 `json:"total_piutang"`
+	BelumLunasCount int64   `json:"belum_lunas_count"`
 }
+
+type RefundReq struct {
+	PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash qris transfer tempo"`
+	Amount        float64 `json:"amount" validate:"required,numeric,gt=0"`
+	Reason        string  `json:"reason" validate:"omitempty"`
+}
+
 
