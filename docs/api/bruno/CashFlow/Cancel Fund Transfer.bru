@@ -1,0 +1,24 @@
+meta {
+  name: Cancel Fund Transfer
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{base_url}}/reports/cash-flow/transfers/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: 
+}
+
+docs {
+  # Cancel Fund Transfer
+  
+  Membatalkan transaksi pemindahan dana (fund transfer) yang pernah dibuat berdasarkan UUID. Pembatalan ini akan membalikkan saldo akun kas yang terpengaruh.
+  
+  ### Path Parameters:
+  - `id`: UUID dari transaksi fund transfer yang ingin dibatalkan.
+}

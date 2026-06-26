@@ -3,7 +3,7 @@
 Table cash_flows {
   id uuid [pk, default: `gen_random_uuid()`]
   transaction_date timestamp [default: `now()`]       // Waktu terjadinya mutasi
-  reference_type varchar(50) [not null]               // 'ORDER_PAYMENT', 'EXPENSE', 'REFUND', 'CAPITAL', 'ADJUSTMENT'
+  reference_type varchar(50) [not null]               // 'ORDER_PAYMENT', 'EXPENSE', 'REFUND', 'CAPITAL', 'ADJUSTMENT', 'FUND_TRANSFER'
   reference_id uuid [null]                            // ID referensi (bisa null jika penyesuaian manual tanpa tabel detail)
   type varchar(10) [not null]                         // 'DEBIT' (Masuk), 'CREDIT' (Keluar)
   amount decimal(15,2) [not null, default: 0]
@@ -29,5 +29,23 @@ Table cash_accounts {
   Note: 'Master data laci kasir dan digital account untuk menyimpan running balance'
 }
 
+Table fund_transfers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  transfer_date timestamp [default: `now()`]
+  from_account_id uuid [not null]
+  to_account_id uuid [not null]
+  amount decimal(15,2) [not null]
+  notes text [null]
+  cashier_id uuid [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Mencatat pemindahan dana antar cash_accounts'
+}
+
 // Relationships
 Ref: cash_flows.cashier_id > users.id [delete: restrict]
+Ref: fund_transfers.from_account_id > cash_accounts.id [delete: restrict]
+Ref: fund_transfers.to_account_id > cash_accounts.id [delete: restrict]
+Ref: fund_transfers.cashier_id > users.id [delete: restrict]

@@ -1,0 +1,32 @@
+meta {
+  name: Create Fund Transfer
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/reports/cash-flow/transfers
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "from_account": "cash",
+    "to_account": "bank",
+    "amount": 10000000.00,
+    "notes": "Setoran tunai ke Bank BCA"
+  }
+}
+
+docs {
+  # Create Fund Transfer
+  
+  Melakukan transfer saldo antar akun kas (misal: dari Kas Kasir/Admin ke rekening Bank).
+  
+  ### Request Body:
+  - `from_account`: Kode/Nama akun kas asal (`cash`, `bank`, etc.)
+  - `to_account`: Kode/Nama akun kas tujuan (`cash`, `bank`, etc.)
+  - `amount`: Jumlah dana yang ditransfer (harus > 0)
+  - `notes`: Catatan / keterangan transfer
+}

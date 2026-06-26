@@ -12,11 +12,12 @@ import (
 )
 
 type CashFlowHandler struct {
-	usecase domain.CashFlowUsecase
+	usecase             domain.CashFlowUsecase
+	fundTransferUsecase domain.FundTransferUsecase
 }
 
-func NewCashFlowHandler(usecase domain.CashFlowUsecase) *CashFlowHandler {
-	return &CashFlowHandler{usecase: usecase}
+func NewCashFlowHandler(usecase domain.CashFlowUsecase, fundTransferUsecase domain.FundTransferUsecase) *CashFlowHandler {
+	return &CashFlowHandler{usecase: usecase, fundTransferUsecase: fundTransferUsecase}
 }
 
 func (h *CashFlowHandler) GetReport(c fiber.Ctx) error {
@@ -184,4 +185,134 @@ func (h *CashFlowHandler) FindAllAccounts(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch cash accounts", err.Error())
 	}
 	return response.Success(c, "Cash accounts fetched successfully", accounts, nil)
+}
+
+func (h *CashFlowHandler) CreateFundTransfer(c fiber.Ctx) error {
+	cashierID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized: Cashier ID not found in context", nil)
+	}
+
+	var req dto.CreateFundTransferReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	transfer, err := h.fundTransferUsecase.Transfer(c.Context(), cashierID, req.FromAccount, req.ToAccount, req.Amount, req.Notes)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to execute fund transfer", err.Error())
+	}
+
+	res := dto.FundTransferRes{
+		ID:           transfer.ID,
+		TransferDate: transfer.TransferDate.Format("2006-01-02 15:04:05"),
+		FromAccount:  req.FromAccount,
+		ToAccount:    req.ToAccount,
+		Amount:       transfer.Amount,
+		Notes:        transfer.Notes,
+		CreatedAt:    transfer.CreatedAt.Format("2006-01-02 15:04:05"),
+	}
+
+	return response.Created(c, "Fund transfer executed successfully", res)
+}
+
+func (h *CashFlowHandler) GetFundTransfers(c fiber.Ctx) error {
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+
+	var startDate, endDate time.Time
+	if startDateStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", startDateStr)
+		if err == nil {
+			startDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, parsedDate.Location())
+		}
+	}
+	if endDateStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", endDateStr)
+		if err == nil {
+			endDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 23, 59, 59, 999999999, parsedDate.Location())
+		}
+	}
+
+	pageStr := c.Query("page", "1")
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		page = 1
+	}
+	limitStr := c.Query("limit", "10")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 10
+	}
+
+	filter := domain.FundTransferFilter{
+		StartDate: startDate,
+		EndDate:   endDate,
+		Page:      page,
+		Limit:     limit,
+	}
+
+	transfers, total, err := h.fundTransferUsecase.FindAll(c.Context(), filter)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch fund transfers", err.Error())
+	}
+
+	resList := make([]dto.FundTransferRes, 0, len(transfers))
+	for _, t := range transfers {
+		cashierName := "System"
+		if t.Cashier != nil {
+			cashierName = t.Cashier.Username
+		}
+		fromName := ""
+		if t.FromAccount != nil {
+			fromName = t.FromAccount.Name
+		}
+		toName := ""
+		if t.ToAccount != nil {
+			toName = t.ToAccount.Name
+		}
+
+		resList = append(resList, dto.FundTransferRes{
+			ID:           t.ID,
+			TransferDate: t.TransferDate.Format("2006-01-02 15:04:05"),
+			FromAccount:  fromName,
+			ToAccount:    toName,
+			Amount:       t.Amount,
+			Notes:        t.Notes,
+			CashierName:  cashierName,
+			CreatedAt:    t.CreatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+	meta := response.Meta{
+		Pagination: &response.Pagination{
+			TotalItems:  total,
+			TotalPages:  totalPages,
+			CurrentPage: page,
+			Limit:       limit,
+		},
+	}
+
+	return response.Success(c, "Fund transfers fetched successfully", resList, meta)
+}
+
+func (h *CashFlowHandler) CancelFundTransfer(c fiber.Ctx) error {
+	cashierID, ok := c.Locals("user_id").(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized: Cashier ID not found in context", nil)
+	}
+
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid UUID format", err.Error())
+	}
+
+	err = h.fundTransferUsecase.Cancel(c.Context(), cashierID, id)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to cancel fund transfer", err.Error())
+	}
+
+	return response.Success[any](c, "Fund transfer cancelled successfully", nil, nil)
 }

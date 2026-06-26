@@ -1,0 +1,30 @@
+meta {
+  name: Get Fund Transfers
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{base_url}}/reports/cash-flow/transfers?page=1&limit=10
+  body: none
+  auth: inherit
+}
+
+params:query {
+  page: 1
+  limit: 10
+  ~start_date: 2026-06-01
+  ~end_date: 2026-06-30
+}
+
+docs {
+  # Get Fund Transfers
+  
+  Mendapatkan daftar riwayat pemindahan dana (fund transfer) antar akun kas dengan dukungan paginasi dan filter tanggal.
+  
+  ### Query Parameters:
+  - `page`: Nomor halaman (default: 1)
+  - `limit`: Jumlah data per halaman (default: 10)
+  - `start_date`: Tanggal awal filter (format: YYYY-MM-DD)
+  - `end_date`: Tanggal akhir filter (format: YYYY-MM-DD)
+}

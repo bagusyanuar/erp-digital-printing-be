@@ -17,10 +17,11 @@ const (
 
 // Reference Types
 const (
-	RefOrderPayment = "ORDER_PAYMENT"
-	RefRefund       = "REFUND"
-	RefCapital      = "CAPITAL"
-	RefAdjustment   = "ADJUSTMENT"
+	RefOrderPayment  = "ORDER_PAYMENT"
+	RefRefund        = "REFUND"
+	RefCapital       = "CAPITAL"
+	RefAdjustment    = "ADJUSTMENT"
+	RefFundTransfer  = "FUND_TRANSFER"
 )
 
 // CashFlow model

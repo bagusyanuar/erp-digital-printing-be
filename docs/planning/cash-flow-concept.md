@@ -12,11 +12,13 @@ Sistem mencatat seluruh mutasi kas secara tersentralisasi pada tabel `cash_flows
     *   `ORDER_PAYMENT`: Pembayaran pesanan lunas di depan, DP, atau pelunasan sisa piutang.
     *   `CAPITAL_INJECTION`: Penambahan modal atau setoran kasir.
     *   `ADJUSTMENT`: Penyesuaian kas (selisih lebih/surplus) saat Cash Opname.
+    *   `FUND_TRANSFER`: Penerimaan dana dari rekening internal lain.
 2.  **Arus Kas Keluar (CREDIT)**:
     *   `EXPENSE`: Pengeluaran untuk bahan baku, operasional, listrik, kas kecil, dll.
     *   `REFUND`: Pengembalian dana ke pelanggan karena pembatalan/kesalahan order.
     *   `ADJUSTMENT`: Penyesuaian kas (selisih kurang/shortage) saat Cash Opname.
     *   `CAPITAL_WITHDRAWAL`: Penarikan dana oleh owner (Prive) dari kas/rekening perusahaan.
+    *   `FUND_TRANSFER`: Pengiriman dana ke rekening internal lain.
 
 ---
 
@@ -29,7 +31,7 @@ Sistem menggunakan tabel utama `cash_flows` untuk pencatatan mutasi mendetail (j
 Table cash_flows {
   id uuid [pk, default: `gen_random_uuid()`]
   transaction_date timestamp [default: `now()`]       // Waktu terjadinya mutasi
-  reference_type varchar(50) [not null]               // 'ORDER_PAYMENT', 'EXPENSE', 'REFUND', 'CAPITAL', 'ADJUSTMENT'
+  reference_type varchar(50) [not null]               // 'ORDER_PAYMENT', 'EXPENSE', 'REFUND', 'CAPITAL', 'ADJUSTMENT', 'FUND_TRANSFER'
   reference_id uuid [null]                            // ID referensi (bisa null jika penyesuaian manual tanpa tabel detail)
   type varchar(10) [not null]                         // 'DEBIT' (Masuk), 'CREDIT' (Keluar)
   amount decimal(15,2) [not null, default: 0]
@@ -51,6 +53,23 @@ Table cash_accounts {
   balance decimal(15,2) [not null, default: 0]
   created_at timestamp
   updated_at timestamp
+}
+```
+
+### C. Tabel Pemindahan Dana (`fund_transfers`)
+Mencatat pemindahan dana antar akun kas internal.
+```dbml
+Table fund_transfers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  transfer_date timestamp [default: `now()`]
+  from_account_id uuid [ref: > cash_accounts.id]
+  to_account_id uuid [ref: > cash_accounts.id]
+  amount decimal(15,2) [not null]
+  notes text [null]
+  cashier_id uuid [ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
 }
 ```
 

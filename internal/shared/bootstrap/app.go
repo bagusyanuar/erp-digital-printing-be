@@ -166,6 +166,9 @@ func (a *App) SetupRoutes() {
 	cashFlowRoutes.Get("/summary", a.Container.CashFlowHandler.GetSummary)
 	cashFlowRoutes.Post("/adjustment", a.Container.CashFlowHandler.CreateAdjustment)
 	cashFlowRoutes.Get("/accounts", a.Container.CashFlowHandler.FindAllAccounts)
+	cashFlowRoutes.Post("/transfers", a.Container.CashFlowHandler.CreateFundTransfer)
+	cashFlowRoutes.Get("/transfers", a.Container.CashFlowHandler.GetFundTransfers)
+	cashFlowRoutes.Delete("/transfers/:id", a.Container.CashFlowHandler.CancelFundTransfer)
 
 	// Finishing Routes
 	finishingRoutes := protected.Group("/finishings")
