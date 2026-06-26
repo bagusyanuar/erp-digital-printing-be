@@ -1,0 +1,20 @@
+// Capital transactions management schema (Setoran dan Penarikan Modal)
+
+Table capital_transactions {
+  id uuid [pk, default: `gen_random_uuid()`]
+  transaction_date timestamp [default: `now()`]
+  type varchar(50) [not null]                         // 'INJECTION', 'WITHDRAWAL'
+  amount decimal(15,2) [not null, default: 0]
+  payment_method varchar(50) [not null]               // 'cash', 'transfer', dll
+  description text [null]
+  created_by uuid [not null]                          // Admin/Kasir yang mencatat transaksi modal
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+  deleted_at timestamp [null]
+
+  Note: 'Mencatat transaksi setoran modal (injection) dan penarikan modal prive (withdrawal) oleh owner'
+}
+
+// Relationships
+Ref: capital_transactions.created_by > users.id [delete: restrict]
+Ref: cash_flows.reference_id > capital_transactions.id [delete: cascade]

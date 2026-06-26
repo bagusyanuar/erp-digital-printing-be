@@ -1,0 +1,34 @@
+meta {
+  name: Cancel Capital Transaction
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{base_url}}/capital/:id
+  body: none
+  auth: inherit
+}
+
+params:path {
+  id: e2c67ef8-82e4-4d8b-968b-5a1e2f5b6154
+}
+
+docs {
+  # Cancel Capital Transaction
+  
+  Membatalkan/menghapus transaksi modal berdasarkan ID (soft delete).
+  
+  ### Path Parameters:
+  - `id`: ID transaksi modal (UUID) yang akan dibatalkan
+  
+  ### Response Example (200 OK):
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Capital transaction cancelled successfully",
+    "data": null
+  }
+  ```
+}

@@ -1,0 +1,64 @@
+meta {
+  name: List Capital Transactions
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/capital?page=1&limit=10
+  body: none
+  auth: inherit
+}
+
+query {
+  page: 1
+  limit: 10
+  ~type: INJECTION
+  ~search: Setoran
+  ~start_date: 2026-06-01
+  ~end_date: 2026-06-30
+}
+
+docs {
+  # List Capital Transactions
+  
+  Mendapatkan daftar transaksi modal (setoran/injection dan penarikan/withdrawal) terpaginasi.
+  
+  ### Query Parameters:
+  - `page`: Nomor halaman (default: 1)
+  - `limit`: Jumlah data per halaman (default: 10)
+  - `type`: Tipe transaksi (`INJECTION` atau `WITHDRAWAL`) (opsional)
+  - `search`: Pencarian berdasarkan deskripsi (opsional)
+  - `start_date`: Tanggal mulai filter (format: YYYY-MM-DD) (opsional)
+  - `end_date`: Tanggal selesai filter (format: YYYY-MM-DD) (opsional)
+  
+  ### Response Example (200 OK):
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Capital transactions fetched successfully",
+    "data": [
+      {
+        "id": "e2c67ef8-82e4-4d8b-968b-5a1e2f5b6154",
+        "transaction_date": "2026-06-26 15:04:05",
+        "type": "INJECTION",
+        "amount": 10000000.00,
+        "payment_method": "transfer",
+        "description": "Setoran modal awal usaha",
+        "created_by": "b3c8f3a3-b26a-4638-b7f2-841a54774844",
+        "creator_name": "Owner Kece",
+        "created_at": "2026-06-26 15:04:05"
+      }
+    ],
+    "meta": {
+      "pagination": {
+        "total_items": 1,
+        "total_pages": 1,
+        "current_page": 1,
+        "limit": 10
+      }
+    }
+  }
+  ```
+}

@@ -1,0 +1,52 @@
+meta {
+  name: Create Capital Transaction
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/capital
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "type": "INJECTION",
+    "amount": 10000000.00,
+    "payment_method": "transfer",
+    "description": "Setoran modal awal usaha"
+  }
+}
+
+docs {
+  # Create Capital Transaction
+  
+  Mencatat transaksi setoran modal baru (`INJECTION`) atau penarikan modal (`WITHDRAWAL`).
+  
+  ### Request Body:
+  - `type`: Tipe transaksi (`INJECTION` untuk setoran modal, `WITHDRAWAL` untuk penarikan modal)
+  - `amount`: Nilai nominal transaksi (harus > 0)
+  - `payment_method`: Metode pembayaran (`cash`, `transfer`, dll)
+  - `description`: Deskripsi/keterangan transaksi (opsional)
+  
+  ### Response Example (201 Created):
+  ```json
+  {
+    "code": 201,
+    "status": "Created",
+    "message": "Capital transaction created successfully",
+    "data": {
+      "id": "e2c67ef8-82e4-4d8b-968b-5a1e2f5b6154",
+      "transaction_date": "2026-06-26 15:04:05",
+      "type": "INJECTION",
+      "amount": 10000000.00,
+      "payment_method": "transfer",
+      "description": "Setoran modal awal usaha",
+      "created_by": "b3c8f3a3-b26a-4638-b7f2-841a54774844",
+      "creator_name": "Owner Kece",
+      "created_at": "2026-06-26 15:04:05"
+    }
+  }
+  ```
+}

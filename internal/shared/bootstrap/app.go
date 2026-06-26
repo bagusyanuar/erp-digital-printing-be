@@ -201,6 +201,12 @@ func (a *App) SetupRoutes() {
 	supplierRoutes.Get("/:id", a.Container.SupplierHandler.FindByID)
 	supplierRoutes.Put("/:id", a.Container.SupplierHandler.Update)
 	supplierRoutes.Delete("/:id", a.Container.SupplierHandler.Delete)
+
+	// Capital Routes
+	capitalRoutes := protected.Group("/capital")
+	capitalRoutes.Post("/", a.Container.CapitalHandler.Create)
+	capitalRoutes.Get("/", a.Container.CapitalHandler.FindAll)
+	capitalRoutes.Delete("/:id", a.Container.CapitalHandler.Delete)
 }
 
 func (a *App) Start() error {
