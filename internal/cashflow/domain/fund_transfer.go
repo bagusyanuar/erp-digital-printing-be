@@ -50,7 +50,7 @@ type FundTransferRepository interface {
 }
 
 type FundTransferUsecase interface {
-	Transfer(ctx context.Context, cashierID uuid.UUID, fromAccountName string, toAccountName string, amount float64, notes string) (*FundTransfer, error)
+	Transfer(ctx context.Context, cashierID uuid.UUID, fromAccountName string, toAccountName string, amount float64, notes string, transferDate *time.Time) (*FundTransfer, error)
 	FindAll(ctx context.Context, filter FundTransferFilter) ([]FundTransfer, int64, error)
 	Cancel(ctx context.Context, cashierID uuid.UUID, id uuid.UUID) error
 }

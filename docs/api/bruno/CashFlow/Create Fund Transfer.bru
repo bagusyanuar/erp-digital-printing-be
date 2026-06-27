@@ -15,7 +15,8 @@ body:json {
     "from_account": "cash",
     "to_account": "bank",
     "amount": 10000000.00,
-    "notes": "Setoran tunai ke Bank BCA"
+    "notes": "Setoran tunai ke Bank BCA",
+    "transfer_date": "2026-06-26"
   }
 }
 
@@ -29,4 +30,24 @@ docs {
   - `to_account`: Kode/Nama akun kas tujuan (`cash`, `bank`, etc.)
   - `amount`: Jumlah dana yang ditransfer (harus > 0)
   - `notes`: Catatan / keterangan transfer
+  - `transfer_date`: Tanggal transfer (format: YYYY-MM-DD atau YYYY-MM-DD HH:mm:ss) (opsional, default: waktu server sekarang)
+
+  ### Response Example (201 Created):
+  ```json
+  {
+    "code": 201,
+    "status": "Created",
+    "message": "Fund transfer executed successfully",
+    "data": {
+      "id": "e2c67ef8-82e4-4d8b-968b-5a1e2f5b6154",
+      "transfer_date": "2026-06-26 00:00:00",
+      "from_account": "cash",
+      "to_account": "bank",
+      "amount": 10000000.00,
+      "notes": "Setoran tunai ke Bank BCA",
+      "cashier_name": "",
+      "created_at": "2026-06-27 10:55:00"
+      }
+  }
+  ```
 }

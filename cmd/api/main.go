@@ -5,9 +5,20 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
+	_ "time/tzdata"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/bootstrap"
 )
+
+func init() {
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		log.Printf("Failed to load timezone Asia/Jakarta: %v", err)
+		return
+	}
+	time.Local = loc
+}
 
 func main() {
 	app, err := bootstrap.NewApp()

@@ -198,7 +198,22 @@ func (h *CashFlowHandler) CreateFundTransfer(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
-	transfer, err := h.fundTransferUsecase.Transfer(c.Context(), cashierID, req.FromAccount, req.ToAccount, req.Amount, req.Notes)
+	var transferDate *time.Time
+	if req.TransferDate != "" {
+		var parsedDate time.Time
+		var err error
+		if len(req.TransferDate) > 10 {
+			parsedDate, err = time.ParseInLocation("2006-01-02 15:04:05", req.TransferDate, time.Local)
+		} else {
+			parsedDate, err = time.ParseInLocation("2006-01-02", req.TransferDate, time.Local)
+		}
+		if err != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid transfer_date format", "Date must be YYYY-MM-DD or YYYY-MM-DD HH:mm:ss")
+		}
+		transferDate = &parsedDate
+	}
+
+	transfer, err := h.fundTransferUsecase.Transfer(c.Context(), cashierID, req.FromAccount, req.ToAccount, req.Amount, req.Notes, transferDate)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to execute fund transfer", err.Error())
 	}

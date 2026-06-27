@@ -36,6 +36,7 @@ func (u *fundTransferUsecase) Transfer(
 	toAccountName string,
 	amount float64,
 	notes string,
+	transferDate *time.Time,
 ) (*domain.FundTransfer, error) {
 	if fromAccountName == toAccountName {
 		return nil, errors.New("origin and destination accounts cannot be the same")
@@ -91,14 +92,22 @@ func (u *fundTransferUsecase) Transfer(
 		if notes != "" {
 			notesPtr = &notes
 		}
+		
+		var trfDate time.Time
+		if transferDate != nil && !transferDate.IsZero() {
+			trfDate = *transferDate
+		} else {
+			trfDate = time.Now()
+		}
+
 		transfer = &domain.FundTransfer{
-			ID:           uuid.New(),
-			TransferDate: time.Now(),
+			ID:            uuid.New(),
+			TransferDate:  trfDate,
 			FromAccountID: accFrom.ID,
 			ToAccountID:   accTo.ID,
-			Amount:       amount,
-			Notes:        notesPtr,
-			CashierID:    cashierID,
+			Amount:        amount,
+			Notes:         notesPtr,
+			CashierID:     cashierID,
 		}
 
 		if err := u.fundTransferRepo.CreateTx(ctx, tx, transfer); err != nil {
@@ -106,7 +115,7 @@ func (u *fundTransferUsecase) Transfer(
 		}
 
 		// Create CashFlow ledger entries
-		desc := fmt.Sprintf("Fund transfer from %s to %s", fromAccountName, toAccountName)
+		desc := fmt.Sprintf("Pemindahan Dana dari %s ke %s", fromAccountName, toAccountName)
 		if notes != "" {
 			desc = fmt.Sprintf("%s (%s)", desc, notes)
 		}
