@@ -94,7 +94,7 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 	}
 
 	if startDate != nil && endDate != nil {
-		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
+		query = query.Where("orders.created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 
 	switch customerType {
@@ -279,7 +279,7 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 	}
 
 	if startDate != nil && endDate != nil {
-		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
+		query = query.Where("orders.created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 
 	switch customerType {
@@ -354,7 +354,7 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 	}
 
 	if startDate != nil && endDate != nil {
-		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
+		query = query.Where("orders.created_at BETWEEN ? AND ?", startDate, endDate)
 	}
 
 	switch customerType {
