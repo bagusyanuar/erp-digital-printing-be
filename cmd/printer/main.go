@@ -119,10 +119,17 @@ func main() {
 		return c.JSON(fiber.Map{
 			"status":  "success",
 			"message": "Test print berhasil diterima oleh agen lokal!",
-			"data": "========================\n" +
-				"     TEST PRINT ERP     \n" +
-				"========================\n" +
-				"Koneksi dari web ke printer berjalan lancar.\n",
+			"data": "\x1b\x40" + // Initialize printer
+				"\x1b\x61\x01" + // Align Center
+				"================================================\n" +
+				"                 TEST PRINT ERP                 \n" +
+				"================================================\n" +
+				"\x1b\x61\x00" + // Align Left
+				"Printer Model : POS80AB\n" +
+				"Paper Width   : 80mm\n" +
+				"Command       : ESC/POS\n\n" +
+				"Koneksi dari web ke printer berjalan lancar.\n\n\n\n" +
+				"\x1d\x56\x00", // Cut paper
 		})
 	})
 
