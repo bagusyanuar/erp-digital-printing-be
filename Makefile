@@ -62,6 +62,10 @@ build-printer: ## Build printer agent for Windows
 	@echo "Building Printer Agent for Windows..."
 	@GOOS=windows GOARCH=amd64 go build -ldflags "-H=windowsgui" -o printer.exe ./cmd/printer
 
+build-printer-debug: ## Build printer agent for Windows (with console for debugging)
+	@echo "Building Printer Agent for Windows (Debug Mode)..."
+	@GOOS=windows GOARCH=amd64 go build -o printer-debug.exe ./cmd/printer
+
 run-printer: ## Run printer agent locally
 	@echo "Running Printer Agent..."
 	@go run cmd/printer/main.go

@@ -96,6 +96,18 @@ func main() {
 			p.Close()
 		}()
 
+		err = p.StartRawDocument("ERP Print Job")
+		if err != nil {
+			log.Printf("Gagal memulai print job %s: %v\n", payload.PrinterName, err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Gagal memulai print job: " + err.Error(),
+			})
+		}
+		
+		defer func() {
+			_ = p.EndDocument()
+		}()
+
 		// Kirim raw data (ESCPOS)
 		_, err = p.Write([]byte(payload.RawData))
 		if err != nil {
@@ -133,8 +145,11 @@ func main() {
 		})
 	})
 
-	// 4. Start Server (jalan di port 9000 agar tidak bentrok dengan backend utama 8080)
-	port := ":9000"
+	// 4. Start Server (jalan di port 9876 agar tidak bentrok dengan backend utama 8080 atau php-fpm)
+	port := os.Getenv("PRINTER_PORT")
+	if port == "" {
+		port = "9876" // Default port baru
+	}
 	
 	// Graceful Shutdown Setup
 	c := make(chan os.Signal, 1)
@@ -146,8 +161,8 @@ func main() {
 		_ = app.Shutdown()
 	}()
 
-	log.Printf("Starting Local Print Agent on %s...\n", port)
-	if err := app.Listen(port); err != nil {
+	log.Printf("Starting Local Print Agent on :%s...\n", port)
+	if err := app.Listen(":" + port); err != nil {
 		log.Printf("Print Agent berhenti: %v\n", err)
 	}
 	
