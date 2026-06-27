@@ -42,15 +42,27 @@ type FundTransferFilter struct {
 	Limit     int
 }
 
+type FundTransferWidgetAccountBreakdown struct {
+	AccountName string  `json:"account_name"`
+	Amount      float64 `json:"amount"`
+}
+
+type FundTransferWidgetsRes struct {
+	TotalAmount float64                               `json:"total_amount"`
+	Breakdown   []FundTransferWidgetAccountBreakdown  `json:"breakdown"`
+}
+
 type FundTransferRepository interface {
 	CreateTx(ctx context.Context, tx *gorm.DB, transfer *FundTransfer) error
 	FindByID(ctx context.Context, id uuid.UUID) (*FundTransfer, error)
 	FindAll(ctx context.Context, filter FundTransferFilter) ([]FundTransfer, int64, error)
 	DeleteTx(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	GetWidgetsData(ctx context.Context, startDate, endDate time.Time) (float64, map[uuid.UUID]float64, error)
 }
 
 type FundTransferUsecase interface {
 	Transfer(ctx context.Context, cashierID uuid.UUID, fromAccountName string, toAccountName string, amount float64, notes string, transferDate *time.Time) (*FundTransfer, error)
 	FindAll(ctx context.Context, filter FundTransferFilter) ([]FundTransfer, int64, error)
 	Cancel(ctx context.Context, cashierID uuid.UUID, id uuid.UUID) error
+	GetWidgets(ctx context.Context, startDate, endDate time.Time) (*FundTransferWidgetsRes, error)
 }

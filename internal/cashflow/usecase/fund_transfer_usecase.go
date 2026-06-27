@@ -222,3 +222,29 @@ func (u *fundTransferUsecase) Cancel(ctx context.Context, cashierID uuid.UUID, i
 		return nil
 	})
 }
+
+func (u *fundTransferUsecase) GetWidgets(ctx context.Context, startDate, endDate time.Time) (*domain.FundTransferWidgetsRes, error) {
+	accounts, err := u.cashFlowRepo.FindAllAccounts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	total, dbBreakdown, err := u.fundTransferRepo.GetWidgetsData(ctx, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+
+	breakdown := make([]domain.FundTransferWidgetAccountBreakdown, 0, len(accounts))
+	for _, acc := range accounts {
+		amt := dbBreakdown[acc.ID]
+		breakdown = append(breakdown, domain.FundTransferWidgetAccountBreakdown{
+			AccountName: acc.Name,
+			Amount:      amt,
+		})
+	}
+
+	return &domain.FundTransferWidgetsRes{
+		TotalAmount: total,
+		Breakdown:   breakdown,
+	}, nil
+}

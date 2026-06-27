@@ -331,3 +331,29 @@ func (h *CashFlowHandler) CancelFundTransfer(c fiber.Ctx) error {
 
 	return response.Success[any](c, "Fund transfer cancelled successfully", nil, nil)
 }
+
+func (h *CashFlowHandler) GetFundTransferWidgets(c fiber.Ctx) error {
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+
+	var startDate, endDate time.Time
+	if startDateStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", startDateStr)
+		if err == nil {
+			startDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, parsedDate.Location())
+		}
+	}
+	if endDateStr != "" {
+		parsedDate, err := time.Parse("2006-01-02", endDateStr)
+		if err == nil {
+			endDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 23, 59, 59, 999999999, parsedDate.Location())
+		}
+	}
+
+	widgets, err := h.fundTransferUsecase.GetWidgets(c.Context(), startDate, endDate)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch fund transfer widgets", err.Error())
+	}
+
+	return response.Success(c, "Fund transfer widgets fetched successfully", widgets, nil)
+}

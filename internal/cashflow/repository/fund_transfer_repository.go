@@ -75,3 +75,43 @@ func (r *fundTransferRepository) DeleteTx(ctx context.Context, tx *gorm.DB, id u
 	}
 	return db.WithContext(ctx).Delete(&domain.FundTransfer{}, "id = ?", id).Error
 }
+
+func (r *fundTransferRepository) GetWidgetsData(ctx context.Context, startDate, endDate time.Time) (float64, map[uuid.UUID]float64, error) {
+	var total float64
+
+	queryTotal := r.db.WithContext(ctx).Model(&domain.FundTransfer{})
+	if !startDate.IsZero() && !endDate.IsZero() {
+		queryTotal = queryTotal.Where("transfer_date >= ? AND transfer_date <= ?", startDate, endDate)
+	}
+
+	err := queryTotal.Select("COALESCE(SUM(amount), 0)").Scan(&total).Error
+	if err != nil {
+		return 0, nil, err
+	}
+
+	type Row struct {
+		ToAccountID uuid.UUID
+		SumAmount   float64
+	}
+	var rows []Row
+
+	queryBreakdown := r.db.WithContext(ctx).Model(&domain.FundTransfer{})
+	if !startDate.IsZero() && !endDate.IsZero() {
+		queryBreakdown = queryBreakdown.Where("transfer_date >= ? AND transfer_date <= ?", startDate, endDate)
+	}
+
+	err = queryBreakdown.
+		Select("to_account_id, COALESCE(SUM(amount), 0) as sum_amount").
+		Group("to_account_id").
+		Scan(&rows).Error
+	if err != nil {
+		return 0, nil, err
+	}
+
+	breakdown := make(map[uuid.UUID]float64)
+	for _, row := range rows {
+		breakdown[row.ToAccountID] = row.SumAmount
+	}
+
+	return total, breakdown, nil
+}

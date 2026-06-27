@@ -168,6 +168,7 @@ func (a *App) SetupRoutes() {
 	cashFlowRoutes.Get("/accounts", a.Container.CashFlowHandler.FindAllAccounts)
 	cashFlowRoutes.Post("/transfers", a.Container.CashFlowHandler.CreateFundTransfer)
 	cashFlowRoutes.Get("/transfers", a.Container.CashFlowHandler.GetFundTransfers)
+	cashFlowRoutes.Get("/transfers/widgets", a.Container.CashFlowHandler.GetFundTransferWidgets)
 	cashFlowRoutes.Delete("/transfers/:id", a.Container.CashFlowHandler.CancelFundTransfer)
 
 	// Finishing Routes

@@ -1,0 +1,48 @@
+meta {
+  name: Get Fund Transfer Widgets
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_url}}/reports/cash-flow/transfers/widgets?start_date=2026-06-01&end_date=2026-06-30
+  body: none
+  auth: inherit
+}
+
+query {
+  start_date: 2026-06-01
+  end_date: 2026-06-30
+}
+
+docs {
+  # Get Fund Transfer Widgets
+  
+  Mendapatkan data statistik ringkasan (widgets) untuk transaksi pemindahan dana (fund transfer) berdasarkan filter rentang tanggal.
+  
+  ### Query Parameters:
+  - `start_date`: Tanggal awal (format: YYYY-MM-DD) (opsional)
+  - `end_date`: Tanggal akhir (format: YYYY-MM-DD) (opsional)
+  
+  ### Response Example (200 OK):
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Fund transfer widgets fetched successfully",
+    "data": {
+      "total_amount": 1000,
+      "breakdown": [
+        {
+          "account_name": "cash",
+          "amount": 0
+        },
+        {
+          "account_name": "transfer",
+          "amount": 1000
+        }
+      ]
+    }
+  }
+  ```
+}
