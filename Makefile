@@ -57,3 +57,11 @@ api-bundle: ## Bundle OpenAPI files into a single YAML
 api-lint: ## Lint OpenAPI files
 	@echo "Linting OpenAPI documentation..."
 	@npx @redocly/cli lint docs/api/openapi/index.yaml
+
+build-printer: ## Build printer agent for Windows
+	@echo "Building Printer Agent for Windows..."
+	@GOOS=windows GOARCH=amd64 go build -ldflags "-H=windowsgui" -o printer.exe ./cmd/printer
+
+run-printer: ## Run printer agent locally
+	@echo "Running Printer Agent..."
+	@go run cmd/printer/main.go
