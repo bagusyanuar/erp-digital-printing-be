@@ -321,3 +321,97 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 		BelumLunasCount: belumLunasCount,
 	}, nil
 }
+
+func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*domain.SalesReportWidgetsRes, error) {
+	query := r.db.WithContext(ctx).Model(&domain.Order{})
+
+	if len(statuses) > 0 {
+		query = query.Where("status IN ?", statuses)
+	} else {
+		// Default reports exclude DRAFT and CANCELLED
+		query = query.Where("status NOT IN ?", []string{domain.StatusDraft, domain.StatusCancelled})
+	}
+
+	if len(paymentStatuses) > 0 {
+		query = query.Where("payment_status IN ?", paymentStatuses)
+	}
+
+	if len(paymentMethods) > 0 {
+		query = query.Where("EXISTS (SELECT 1 FROM order_payments WHERE order_payments.order_id = orders.id AND order_payments.payment_method IN ? AND order_payments.deleted_at IS NULL)", paymentMethods)
+	}
+
+	if designerID != nil && *designerID != uuid.Nil {
+		query = query.Where("designer_id = ?", *designerID)
+	}
+
+	if cashierID != nil && *cashierID != uuid.Nil {
+		query = query.Where("cashier_id = ?", *cashierID)
+	}
+
+	if search != "" {
+		searchText := "%" + search + "%"
+		query = query.Where("invoice_number ILIKE ? OR customer_name ILIKE ? OR job_number ILIKE ?", searchText, searchText, searchText)
+	}
+
+	if startDate != nil && endDate != nil {
+		query = query.Where("created_at BETWEEN ? AND ?", startDate, endDate)
+	}
+
+	switch customerType {
+	case "reseller":
+		query = query.Where("reseller_id IS NOT NULL")
+	case "end_user":
+		query = query.Where("reseller_id IS NULL")
+	}
+
+	// 1. Get OmsetPenjualan (SUM of grand_total)
+	var omset float64
+	err := query.Select("COALESCE(SUM(grand_total), 0)").Scan(&omset).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Get VolumeTransaksi (COUNT of orders)
+	var volumeTransaksi int64
+	err = query.Session(&gorm.Session{}).Count(&volumeTransaksi).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 3. Get TotalProdukTerjual (SUM of order_items.quantity)
+	var totalProdukTerjual int64
+	err = query.Session(&gorm.Session{}).
+		Joins("JOIN order_items ON order_items.order_id = orders.id").
+		Where("order_items.deleted_at IS NULL").
+		Select("COALESCE(SUM(order_items.quantity), 0)").
+		Scan(&totalProdukTerjual).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 4. Get LunasCount (COUNT of paid orders)
+	var lunasCount int64
+	err = query.Session(&gorm.Session{}).
+		Where("payment_status = ?", domain.PaymentStatusPaid).
+		Count(&lunasCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 5. Get BelumLunasCount (COUNT of unpaid & partial paid orders)
+	var belumLunasCount int64
+	err = query.Session(&gorm.Session{}).
+		Where("payment_status IN ?", []string{domain.PaymentStatusUnpaid, domain.PaymentStatusPartialPaid}).
+		Count(&belumLunasCount).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.SalesReportWidgetsRes{
+		OmsetPenjualan:     omset,
+		VolumeTransaksi:    volumeTransaksi,
+		TotalProdukTerjual: totalProdukTerjual,
+		LunasCount:         lunasCount,
+		BelumLunasCount:    belumLunasCount,
+	}, nil
+}

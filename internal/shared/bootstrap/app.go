@@ -154,6 +154,7 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Post("/:id/repay", a.Container.OrderHandler.Repay)
 	orderRoutes.Post("/:id/refund", a.Container.OrderHandler.Refund)
 	orderRoutes.Get("/reports/widgets", a.Container.OrderHandler.GetReportsWidgets)
+	orderRoutes.Get("/reports/sales-widgets", a.Container.OrderHandler.GetSalesReportWidgets)
 	orderRoutes.Get("/", a.Container.OrderHandler.FindAll)
 	orderRoutes.Get("/:id", a.Container.OrderHandler.FindByID)
 	orderRoutes.Get("/:id/payments", a.Container.OrderHandler.GetPaymentsByOrderID)

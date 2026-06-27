@@ -127,6 +127,14 @@ type OrderReportsWidgetsRes struct {
 	BelumLunasCount int64   `json:"belum_lunas_count"`
 }
 
+type SalesReportWidgetsRes struct {
+	OmsetPenjualan     float64 `json:"omset_penjualan"`
+	VolumeTransaksi    int64   `json:"volume_transaksi"`
+	TotalProdukTerjual int64   `json:"total_produk_terjual"`
+	LunasCount         int64   `json:"lunas_count"`
+	BelumLunasCount    int64   `json:"belum_lunas_count"`
+}
+
 type RefundReq struct {
 	PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash qris transfer tempo"`
 	Amount        float64 `json:"amount" validate:"required,numeric,gt=0"`

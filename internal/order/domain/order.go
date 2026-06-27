@@ -136,6 +136,14 @@ type OrderReportsWidgetsRes struct {
 	BelumLunasCount int64   `json:"belum_lunas_count"`
 }
 
+type SalesReportWidgetsRes struct {
+	OmsetPenjualan     float64 `json:"omset_penjualan"`
+	VolumeTransaksi    int64   `json:"volume_transaksi"`
+	TotalProdukTerjual int64   `json:"total_produk_terjual"`
+	LunasCount         int64   `json:"lunas_count"`
+	BelumLunasCount    int64   `json:"belum_lunas_count"`
+}
+
 // OrderRepository interface
 type OrderRepository interface {
 	Create(ctx context.Context, order *Order) error
@@ -151,6 +159,7 @@ type OrderRepository interface {
 	CreatePayment(ctx context.Context, payment *OrderPayment) error
 	ReplaceItems(ctx context.Context, orderID uuid.UUID, items []OrderItem) error
 	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*OrderReportsWidgetsRes, error)
+	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*SalesReportWidgetsRes, error)
 }
 
 type PaymentItem struct {
@@ -173,5 +182,6 @@ type OrderUsecase interface {
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) (*Order, error)
 	UpdateDraft(ctx context.Context, id uuid.UUID, order *Order) (*Order, error)
 	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*OrderReportsWidgetsRes, error)
+	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*SalesReportWidgetsRes, error)
 	Refund(ctx context.Context, id uuid.UUID, cashierID uuid.UUID, paymentMethod string, amount float64, reason string) (*Order, error)
 }

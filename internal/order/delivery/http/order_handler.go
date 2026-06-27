@@ -742,6 +742,92 @@ func (h *OrderHandler) GetReportsWidgets(c fiber.Ctx) error {
 	return response.Success(c, "Reports widgets fetched successfully", res, nil)
 }
 
+func (h *OrderHandler) GetSalesReportWidgets(c fiber.Ctx) error {
+	var statuses []string
+	if statusQuery := c.Query("status", ""); statusQuery != "" {
+		parts := strings.Split(statusQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				statuses = append(statuses, trimmed)
+			}
+		}
+	}
+
+	var paymentStatuses []string
+	if paymentStatusQuery := c.Query("payment_status", ""); paymentStatusQuery != "" {
+		parts := strings.Split(paymentStatusQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentStatuses = append(paymentStatuses, trimmed)
+			}
+		}
+	}
+
+	var paymentMethods []string
+	if paymentMethodQuery := c.Query("payment_method", ""); paymentMethodQuery != "" {
+		parts := strings.Split(paymentMethodQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentMethods = append(paymentMethods, trimmed)
+			}
+		}
+	}
+
+	var designerID *uuid.UUID
+	if designerQuery := c.Query("designer_id", ""); designerQuery != "" {
+		if did, err := uuid.Parse(designerQuery); err == nil {
+			designerID = &did
+		}
+	}
+
+	var cashierID *uuid.UUID
+	if cashierQuery := c.Query("cashier_id", ""); cashierQuery != "" {
+		if cid, err := uuid.Parse(cashierQuery); err == nil {
+			cashierID = &cid
+		}
+	}
+
+	search := c.Query("search", "")
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+	customerType := c.Query("customer_type", "")
+
+	var startDate, endDate *time.Time
+	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
+	}
+
+	if startDateStr != "" && endDateStr != "" {
+		t1, err1 := time.Parse("2006-01-02", startDateStr)
+		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		if err1 != nil || err2 != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
+		}
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		startDate = &t1
+		endDate = &t2
+	}
+
+	data, err := h.orderUsecase.GetSalesReportWidgets(c.Context(), statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch sales report widgets", err.Error())
+	}
+
+	res := dto.SalesReportWidgetsRes{
+		OmsetPenjualan:     data.OmsetPenjualan,
+		VolumeTransaksi:    data.VolumeTransaksi,
+		TotalProdukTerjual: data.TotalProdukTerjual,
+		LunasCount:         data.LunasCount,
+		BelumLunasCount:    data.BelumLunasCount,
+	}
+
+	return response.Success(c, "Sales report widgets fetched successfully", res, nil)
+}
+
 func (h *OrderHandler) Refund(c fiber.Ctx) error {
 	cashierID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {
