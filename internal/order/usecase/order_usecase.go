@@ -721,6 +721,21 @@ func (u *orderUsecase) GetSalesReportWidgets(ctx context.Context, statuses []str
 	return u.orderRepo.GetSalesReportWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
 }
 
+func (u *orderUsecase) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]orderDomain.SalesTrendItem, error) {
+	return u.orderRepo.GetSalesTrend(ctx, trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+}
+
+func (u *orderUsecase) GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]orderDomain.CategorySalesItem, error) {
+	return u.orderRepo.GetCategorySales(ctx, startDate, endDate)
+}
+
+func (u *orderUsecase) GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]orderDomain.PaymentMethodSalesItem, error) {
+	return u.orderRepo.GetPaymentMethodSales(ctx, startDate, endDate)
+}
+
+
+
+
 func (u *orderUsecase) Refund(
 	ctx context.Context,
 	id uuid.UUID,

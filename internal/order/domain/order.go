@@ -144,6 +144,22 @@ type SalesReportWidgetsRes struct {
 	BelumLunasCount    int64   `json:"belum_lunas_count"`
 }
 
+type SalesTrendItem struct {
+	Label string  `json:"label"`
+	Total float64 `json:"total"`
+}
+
+type CategorySalesItem struct {
+	CategoryID   uuid.UUID `json:"category_id"`
+	CategoryName string    `json:"category_name"`
+	TotalSales   float64   `json:"total_sales"`
+}
+
+type PaymentMethodSalesItem struct {
+	PaymentMethod string  `json:"payment_method"`
+	TotalAmount   float64 `json:"total_amount"`
+}
+
 // OrderRepository interface
 type OrderRepository interface {
 	Create(ctx context.Context, order *Order) error
@@ -160,6 +176,9 @@ type OrderRepository interface {
 	ReplaceItems(ctx context.Context, orderID uuid.UUID, items []OrderItem) error
 	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*OrderReportsWidgetsRes, error)
 	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*SalesReportWidgetsRes, error)
+	GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]SalesTrendItem, error)
+	GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]CategorySalesItem, error)
+	GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]PaymentMethodSalesItem, error)
 }
 
 type PaymentItem struct {
@@ -183,5 +202,8 @@ type OrderUsecase interface {
 	UpdateDraft(ctx context.Context, id uuid.UUID, order *Order) (*Order, error)
 	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*OrderReportsWidgetsRes, error)
 	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*SalesReportWidgetsRes, error)
+	GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]SalesTrendItem, error)
+	GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]CategorySalesItem, error)
+	GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]PaymentMethodSalesItem, error)
 	Refund(ctx context.Context, id uuid.UUID, cashierID uuid.UUID, paymentMethod string, amount float64, reason string) (*Order, error)
 }

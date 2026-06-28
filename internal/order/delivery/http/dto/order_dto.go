@@ -141,4 +141,20 @@ type RefundReq struct {
 	Reason        string  `json:"reason" validate:"omitempty"`
 }
 
+type SalesTrendItemRes struct {
+	Label string  `json:"label"`
+	Total float64 `json:"total"`
+}
+
+type CategorySalesRes struct {
+	CategoryID   uuid.UUID `json:"category_id"`
+	CategoryName string    `json:"category_name"`
+	TotalSales   float64   `json:"total_sales"`
+}
+
+type PaymentMethodSalesRes struct {
+	PaymentMethod string  `json:"payment_method"`
+	TotalAmount   float64 `json:"total_amount"`
+}
+
 

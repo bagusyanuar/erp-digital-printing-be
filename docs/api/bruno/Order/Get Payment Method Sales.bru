@@ -1,0 +1,48 @@
+meta {
+  name: Get Payment Method Sales
+  type: http
+  seq: 17
+}
+
+get {
+  url: {{base_url}}/orders/reports/payment-sales?start_date=&end_date=
+  body: none
+  auth: inherit
+}
+
+query {
+  start_date: 
+  end_date: 
+}
+
+docs {
+  # Get Payment Method Sales
+  
+  Mendapatkan total nominal penjualan per metode pembayaran (cash, transfer, qris). Metode pembayaran yang belum memiliki transaksi tetap dikembalikan dengan nominal 0.
+  
+  ### Query Parameters:
+  - `start_date`: Tanggal mulai filter (format: YYYY-MM-DD)
+  - `end_date`: Tanggal akhir filter (format: YYYY-MM-DD)
+  
+  ### Response Structure:
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "data": [
+      {
+        "payment_method": "cash",
+        "total_amount": 15000000
+      },
+      {
+        "payment_method": "transfer",
+        "total_amount": 35000000
+      },
+      {
+        "payment_method": "qris",
+        "total_amount": 0
+      }
+    ]
+  }
+  ```
+}

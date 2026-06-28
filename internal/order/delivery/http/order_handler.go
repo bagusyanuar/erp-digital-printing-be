@@ -828,6 +828,175 @@ func (h *OrderHandler) GetSalesReportWidgets(c fiber.Ctx) error {
 	return response.Success(c, "Sales report widgets fetched successfully", res, nil)
 }
 
+func (h *OrderHandler) GetSalesTrend(c fiber.Ctx) error {
+	trendType := c.Query("type", "weekly")
+	if trendType != "weekly" && trendType != "monthly" && trendType != "yearly" {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid trend type", "Type must be weekly, monthly, or yearly")
+	}
+
+	var statuses []string
+	if statusQuery := c.Query("status", ""); statusQuery != "" {
+		parts := strings.Split(statusQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				statuses = append(statuses, trimmed)
+			}
+		}
+	}
+
+	var paymentStatuses []string
+	if paymentStatusQuery := c.Query("payment_status", ""); paymentStatusQuery != "" {
+		parts := strings.Split(paymentStatusQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentStatuses = append(paymentStatuses, trimmed)
+			}
+		}
+	}
+
+	var paymentMethods []string
+	if paymentMethodQuery := c.Query("payment_method", ""); paymentMethodQuery != "" {
+		parts := strings.Split(paymentMethodQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentMethods = append(paymentMethods, trimmed)
+			}
+		}
+	}
+
+	var designerID *uuid.UUID
+	if designerQuery := c.Query("designer_id", ""); designerQuery != "" {
+		if did, err := uuid.Parse(designerQuery); err == nil {
+			designerID = &did
+		}
+	}
+
+	var cashierID *uuid.UUID
+	if cashierQuery := c.Query("cashier_id", ""); cashierQuery != "" {
+		if cid, err := uuid.Parse(cashierQuery); err == nil {
+			cashierID = &cid
+		}
+	}
+
+	search := c.Query("search", "")
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+	customerType := c.Query("customer_type", "")
+
+	var startDate, endDate *time.Time
+	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
+	}
+
+	if startDateStr != "" && endDateStr != "" {
+		t1, err1 := time.Parse("2006-01-02", startDateStr)
+		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		if err1 != nil || err2 != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
+		}
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		startDate = &t1
+		endDate = &t2
+	}
+
+	data, err := h.orderUsecase.GetSalesTrend(c.Context(), trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch sales trend", err.Error())
+	}
+
+	res := make([]dto.SalesTrendItemRes, len(data))
+	for i, item := range data {
+		res[i] = dto.SalesTrendItemRes{
+			Label: item.Label,
+			Total: item.Total,
+		}
+	}
+
+	return response.Success(c, "Sales trend fetched successfully", res, nil)
+}
+
+func (h *OrderHandler) GetCategorySales(c fiber.Ctx) error {
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+
+	var startDate, endDate *time.Time
+	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
+	}
+
+	if startDateStr != "" && endDateStr != "" {
+		t1, err1 := time.Parse("2006-01-02", startDateStr)
+		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		if err1 != nil || err2 != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
+		}
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		startDate = &t1
+		endDate = &t2
+	}
+
+	data, err := h.orderUsecase.GetCategorySales(c.Context(), startDate, endDate)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch category sales", err.Error())
+	}
+
+	res := make([]dto.CategorySalesRes, len(data))
+	for i, item := range data {
+		res[i] = dto.CategorySalesRes{
+			CategoryID:   item.CategoryID,
+			CategoryName: item.CategoryName,
+			TotalSales:   item.TotalSales,
+		}
+	}
+
+	return response.Success(c, "Category sales fetched successfully", res, nil)
+}
+
+func (h *OrderHandler) GetPaymentMethodSales(c fiber.Ctx) error {
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+
+	var startDate, endDate *time.Time
+	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
+	}
+
+	if startDateStr != "" && endDateStr != "" {
+		t1, err1 := time.Parse("2006-01-02", startDateStr)
+		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		if err1 != nil || err2 != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
+		}
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		startDate = &t1
+		endDate = &t2
+	}
+
+	data, err := h.orderUsecase.GetPaymentMethodSales(c.Context(), startDate, endDate)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch payment method sales", err.Error())
+	}
+
+	res := make([]dto.PaymentMethodSalesRes, len(data))
+	for i, item := range data {
+		res[i] = dto.PaymentMethodSalesRes{
+			PaymentMethod: item.PaymentMethod,
+			TotalAmount:   item.TotalAmount,
+		}
+	}
+
+	return response.Success(c, "Payment method sales fetched successfully", res, nil)
+}
+
+
+
+
 func (h *OrderHandler) Refund(c fiber.Ctx) error {
 	cashierID, ok := c.Locals("user_id").(uuid.UUID)
 	if !ok {

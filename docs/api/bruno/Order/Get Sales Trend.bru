@@ -1,0 +1,76 @@
+meta {
+  name: Get Sales Trend
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{base_url}}/orders/reports/sales-trend?type=weekly&status=&payment_status=&payment_method=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
+  body: none
+  auth: inherit
+}
+
+query {
+  type: weekly
+  status: 
+  payment_status: 
+  payment_method: 
+  designer_id: 
+  cashier_id: 
+  search: 
+  start_date: 
+  end_date: 
+  customer_type: 
+}
+
+docs {
+  # Get Sales Trend
+  
+  Mendapatkan data tren penjualan (omset) dalam deret waktu teragregasi (weekly, monthly, atau yearly) berdasarkan filter.
+  
+  ### Query Parameters:
+  - `type`: Tipe tren (`weekly`, `monthly`, atau `yearly`). Default: `weekly`.
+  - `status`: Filter berdasarkan status order (comma separated)
+  - `payment_status`: Filter berdasarkan status pembayaran (comma separated)
+  - `payment_method`: Filter berdasarkan metode pembayaran (comma separated)
+  - `designer_id`: Filter berdasarkan designer ID
+  - `cashier_id`: Filter berdasarkan cashier ID
+  - `search`: Filter pencarian nama customer/invoice
+  - `start_date`: Tanggal mulai filter
+  - `end_date`: Tanggal akhir filter
+  - `customer_type`: Filter tipe pelanggan (`reseller` untuk reseller/biro, `end_user` untuk pelanggan umum).
+  
+  ### Response Structure (Weekly):
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "data": [
+      {
+        "label": "2026-05-25",
+        "total": 45000000
+      },
+      {
+        "label": "2026-06-01",
+        "total": 12500000
+      },
+      {
+        "label": "2026-06-08",
+        "total": 0
+      },
+      {
+        "label": "2026-06-15",
+        "total": 30000000
+      },
+      {
+        "label": "2026-06-22",
+        "total": 15000000
+      },
+      {
+        "label": "2026-06-29",
+        "total": 0
+      }
+    ]
+  }
+  ```
+}
