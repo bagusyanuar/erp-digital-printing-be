@@ -1,0 +1,42 @@
+meta {
+  name: Get Widgets
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/dashboard/widgets?start_date=&end_date=
+  body: none
+  auth: inherit
+}
+
+query {
+  ~start_date: 
+  ~end_date: 
+}
+
+docs {
+  # Get Widgets
+  
+  Mendapatkan data statistik ringkasan (widgets) dashboard untuk omzet, pendapatan, pengeluaran, dan volume transaksi.
+  
+  ### Query Parameters:
+  - `start_date`: Tanggal mulai filter (format YYYY-MM-DD, opsional)
+  - `end_date`: Tanggal akhir filter (format YYYY-MM-DD, opsional)
+  
+  *Catatan: Jika salah satu tanggal diisi, maka keduanya wajib diisi secara bersamaan.*
+  
+  ### Sample Success Response:
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "data": {
+      "total_omzet": 1500000.0,
+      "total_pendapatan": 1200000.0,
+      "total_pengeluaran": 300000.0,
+      "volume_transaksi": 45
+    }
+  }
+  ```
+}

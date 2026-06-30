@@ -215,6 +215,10 @@ func (a *App) SetupRoutes() {
 	capitalRoutes.Post("/", a.Container.CapitalHandler.Create)
 	capitalRoutes.Get("/", a.Container.CapitalHandler.FindAll)
 	capitalRoutes.Delete("/:id", a.Container.CapitalHandler.Delete)
+
+	// Dashboard Routes
+	dashboardRoutes := protected.Group("/dashboard")
+	dashboardRoutes.Get("/widgets", a.Container.DashboardHandler.GetWidgets)
 }
 
 func (a *App) Start() error {
