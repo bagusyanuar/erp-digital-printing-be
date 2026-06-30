@@ -1,6 +1,7 @@
 package http
 
 import (
+	rbacDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/rbac/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/user/delivery/http/dto"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/user/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/response"
@@ -22,9 +23,15 @@ func (h *UserHandler) Create(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
+	var roles []rbacDomain.Role
+	for _, roleID := range req.RoleIDs {
+		roles = append(roles, rbacDomain.Role{ID: roleID})
+	}
+
 	user := &domain.User{
 		Username: req.Username,
 		Password: req.Password,
+		Roles:    roles,
 	}
 
 	if err := h.userUsecase.Create(c.Context(), user); err != nil {
@@ -78,6 +85,14 @@ func (h *UserHandler) Update(c fiber.Ctx) error {
 	user.Username = req.Username
 	if req.Password != "" {
 		user.Password = req.Password
+	}
+
+	if req.RoleIDs != nil {
+		var roles []rbacDomain.Role
+		for _, roleID := range req.RoleIDs {
+			roles = append(roles, rbacDomain.Role{ID: roleID})
+		}
+		user.Roles = roles
 	}
 
 	if err := h.userUsecase.Update(c.Context(), user); err != nil {

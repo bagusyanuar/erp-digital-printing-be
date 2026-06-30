@@ -45,7 +45,15 @@ func (r *userRepository) FindAll(ctx context.Context) ([]domain.User, error) {
 }
 
 func (r *userRepository) Update(ctx context.Context, user *domain.User) error {
-	return r.db.WithContext(ctx).Save(user).Error
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Save(user).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(user).Association("Roles").Replace(user.Roles); err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
 func (r *userRepository) Delete(ctx context.Context, id uuid.UUID) error {
