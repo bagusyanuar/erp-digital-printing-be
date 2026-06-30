@@ -75,23 +75,45 @@ func main() {
 	db.Where("action = ?", "read").Find(&designerPerms)
 	db.Model(&designerRole).Association("Permissions").Replace(designerPerms)
 
-	// 4. Seed Admin User
+	// 4. Seed Users
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("@Administrator1234"), bcrypt.DefaultCost)
+	
 	adminUser := userDomain.User{
 		Username: "administrator",
 		Password: string(hashedPassword),
 	}
-
 	db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "username"}},
 		DoUpdates: clause.AssignmentColumns([]string{"password"}),
 	}).Create(&adminUser)
 
-	// Fetch user to get ID
-	db.Where("username = ?", "administrator").First(&adminUser)
+	adminStaffUser := userDomain.User{
+		Username: "admin",
+		Password: string(hashedPassword),
+	}
+	db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "username"}},
+		DoUpdates: clause.AssignmentColumns([]string{"password"}),
+	}).Create(&adminStaffUser)
 
-	// 5. Link User to Role
+	designerStaffUser := userDomain.User{
+		Username: "designer",
+		Password: string(hashedPassword),
+	}
+	db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "username"}},
+		DoUpdates: clause.AssignmentColumns([]string{"password"}),
+	}).Create(&designerStaffUser)
+
+	// Fetch users to get IDs
+	db.Where("username = ?", "administrator").First(&adminUser)
+	db.Where("username = ?", "admin").First(&adminStaffUser)
+	db.Where("username = ?", "designer").First(&designerStaffUser)
+
+	// 5. Link Users to Roles
 	db.Model(&adminUser).Association("Roles").Replace(&superAdminRole)
+	db.Model(&adminStaffUser).Association("Roles").Replace(&adminRole)
+	db.Model(&designerStaffUser).Association("Roles").Replace(&designerRole)
 
 	// 6. Sync to Casbin
 	syncCasbin(db)

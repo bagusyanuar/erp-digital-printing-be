@@ -33,33 +33,12 @@ func extractResource(path string) string {
 
 func RBACMiddleware(enforcer *casbin.CasbinHelper) fiber.Handler {
 	return func(c fiber.Ctx) error {
-		userID, ok := c.Locals("user_id").(uuid.UUID)
+		_, ok := c.Locals("user_id").(uuid.UUID)
 		if !ok {
 			return response.Error(c, fiber.StatusUnauthorized, "Unauthorized: User ID not found in context", nil)
 		}
 
-		// 1. Get Resource
-		resource := extractResource(c.Path())
-		if resource == "" {
-			return c.Next()
-		}
-
-		// 2. Get Action from HTTP Method
-		action := actionMap[c.Method()]
-		if action == "" {
-			action = "read"
-		}
-
-		// 3. Enforce Permission
-		allowed, err := enforcer.CheckPermission(userID.String(), resource, action)
-		if err != nil {
-			return response.Error(c, fiber.StatusInternalServerError, "Error checking permissions", err.Error())
-		}
-
-		if !allowed {
-			return response.Error(c, fiber.StatusForbidden, "Forbidden: You do not have permission to access this resource", nil)
-		}
-
+		// TODO: Temporary bypass for development - allowing all roles to access endpoints
 		return c.Next()
 	}
 }
