@@ -156,6 +156,46 @@ func (h *ProductHandler) Update(c fiber.Ctx) error {
 	product.UOM = req.UOM
 	product.BasePrice = req.BasePrice
 
+	// Map nested variants from request if provided
+	if len(req.Variants) > 0 {
+		product.Variants = make([]domain.ProductVariant, len(req.Variants))
+		for i, v := range req.Variants {
+			variant := domain.ProductVariant{
+				VariantName:    v.VariantName,
+				AdditionalCost: v.AdditionalCost,
+				IsDefault:      false,
+			}
+
+			// Map attributes
+			if len(v.Attributes) > 0 {
+				variant.AttributeValues = make([]domain.ProductAttributeValue, len(v.Attributes))
+				for j, a := range v.Attributes {
+					variant.AttributeValues[j] = domain.ProductAttributeValue{
+						AttributeID: a.AttributeID,
+						Value:       a.Value,
+					}
+				}
+			}
+
+			// Map price tiers
+			if len(v.PriceTiers) > 0 {
+				variant.PriceTiers = make([]domain.PriceTier, len(v.PriceTiers))
+				for j, t := range v.PriceTiers {
+					variant.PriceTiers[j] = domain.PriceTier{
+						CustomerLevelID: t.CustomerLevelID,
+						MinQty:          t.MinQty,
+						MaxQty:          t.MaxQty,
+						PricePerUnit:    t.PricePerUnit,
+					}
+				}
+			}
+
+			product.Variants[i] = variant
+		}
+	} else {
+		product.Variants = nil
+	}
+
 	if err := h.productUsecase.Update(c.Context(), product); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to update product", err.Error())
 	}

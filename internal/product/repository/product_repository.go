@@ -78,7 +78,35 @@ func (r *productRepository) FindAll(ctx context.Context, params request.Paginati
 }
 
 func (r *productRepository) Update(ctx context.Context, product *domain.Product) error {
-	return r.db.WithContext(ctx).Save(product).Error
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 1. Get all variant IDs for this product to delete their nested structures
+		var variantIDs []uuid.UUID
+		if err := tx.Model(&domain.ProductVariant{}).Where("product_id = ?", product.ID).Pluck("id", &variantIDs).Error; err != nil {
+			return err
+		}
+
+		if len(variantIDs) > 0 {
+			// Delete attribute values
+			if err := tx.Where("product_variant_id IN ?", variantIDs).Delete(&domain.ProductAttributeValue{}).Error; err != nil {
+				return err
+			}
+			// Delete price tiers
+			if err := tx.Where("product_variant_id IN ?", variantIDs).Delete(&domain.PriceTier{}).Error; err != nil {
+				return err
+			}
+			// Delete variants
+			if err := tx.Where("product_id = ?", product.ID).Delete(&domain.ProductVariant{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 2. Save the product itself and its new variants
+		if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(product).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r *productRepository) Delete(ctx context.Context, id uuid.UUID) error {

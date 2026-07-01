@@ -45,6 +45,16 @@ func (u *productUsecase) FindAll(ctx context.Context, params request.PaginationP
 }
 
 func (u *productUsecase) Update(ctx context.Context, product *domain.Product) error {
+	// Only auto create default variant if no variants provided by request
+	if len(product.Variants) == 0 {
+		product.Variants = []domain.ProductVariant{
+			{
+				VariantName:    "Default",
+				AdditionalCost: 0,
+				IsDefault:      true,
+			},
+		}
+	}
 	return u.productRepo.Update(ctx, product)
 }
 
