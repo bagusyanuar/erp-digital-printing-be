@@ -48,28 +48,27 @@ func (u *orderUsecase) validateUOMAndGetQty(item *orderDomain.OrderItem) (float6
 	if item.Quantity <= 0 {
 		return 0, errors.New("quantity must be greater than 0")
 	}
-
 	switch item.UOM {
 	case productDomain.UomM2:
-		if item.LengthCM == nil || *item.LengthCM <= 0 {
-			return 0, errors.New("length_cm is required and must be greater than 0 for UOM m2")
+		if item.LengthM == nil || *item.LengthM <= 0 {
+			return 0, errors.New("length_m is required and must be greater than 0 for UOM m2")
 		}
-		if item.WidthCM == nil || *item.WidthCM <= 0 {
-			return 0, errors.New("width_cm is required and must be greater than 0 for UOM m2")
+		if item.WidthM == nil || *item.WidthM <= 0 {
+			return 0, errors.New("width_m is required and must be greater than 0 for UOM m2")
 		}
-		areaM2 := (*item.LengthCM / 100.0) * (*item.WidthCM / 100.0) * float64(item.Quantity)
+		areaM2 := *item.LengthM * *item.WidthM * float64(item.Quantity)
 		return areaM2, nil
 
 	case productDomain.UomMLari:
-		if item.LengthCM == nil || *item.LengthCM <= 0 {
-			return 0, errors.New("length_cm is required and must be greater than 0 for UOM m_lari")
+		if item.LengthM == nil || *item.LengthM <= 0 {
+			return 0, errors.New("length_m is required and must be greater than 0 for UOM m_lari")
 		}
-		lengthM := (*item.LengthCM / 100.0) * float64(item.Quantity)
+		lengthM := *item.LengthM * float64(item.Quantity)
 		return lengthM, nil
 
 	case productDomain.UomBox, productDomain.UomPcs:
-		item.LengthCM = nil
-		item.WidthCM = nil
+		item.LengthM = nil
+		item.WidthM = nil
 		return float64(item.Quantity), nil
 
 	default:

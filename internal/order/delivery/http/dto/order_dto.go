@@ -5,8 +5,8 @@ import "github.com/google/uuid"
 type OrderItemReq struct {
 	ProductVariantID uuid.UUID   `json:"product_variant_id" validate:"required"`
 	UOM              string      `json:"uom" validate:"required,oneof=pcs m2 m_lari box"`
-	LengthCM         *float64    `json:"length_cm" validate:"omitempty,numeric,gt=0"`
-	WidthCM          *float64    `json:"width_cm" validate:"omitempty,numeric,gt=0"`
+	LengthM          *float64    `json:"length_m" validate:"omitempty,numeric,gt=0"`
+	WidthM           *float64    `json:"width_m" validate:"omitempty,numeric,gt=0"`
 	Quantity         int         `json:"quantity" validate:"required,gt=0"`
 	DesignFileURL    *string     `json:"design_file_url" validate:"omitempty,url"`
 	ProductionNotes  *string     `json:"production_notes" validate:"omitempty"`
@@ -55,8 +55,8 @@ type OrderItemRes struct {
 	ProductName      string         `json:"product_name"`
 	VariantName      string         `json:"variant_name"`
 	UOM              string         `json:"uom"`
-	LengthCM         *float64       `json:"length_cm,omitempty"`
-	WidthCM          *float64       `json:"width_cm,omitempty"`
+	LengthM          *float64       `json:"length_m,omitempty"`
+	WidthM           *float64       `json:"width_m,omitempty"`
 	Quantity         int            `json:"quantity"`
 	DesignFileURL    *string        `json:"design_file_url,omitempty"`
 	ProductionNotes  *string        `json:"production_notes,omitempty"`

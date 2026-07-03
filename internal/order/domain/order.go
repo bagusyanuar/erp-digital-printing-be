@@ -88,8 +88,8 @@ type OrderItem struct {
 	ProductVariantID uuid.UUID                     `gorm:"type:uuid;not null" json:"product_variant_id"`
 	ProductVariant   *productDomain.ProductVariant `gorm:"foreignKey:ProductVariantID" json:"product_variant,omitempty"`
 	UOM              string                        `gorm:"type:varchar(50);not null" json:"uom"`
-	LengthCM         *float64                      `gorm:"type:decimal(10,2)" json:"length_cm,omitempty"`
-	WidthCM          *float64                      `gorm:"type:decimal(10,2)" json:"width_cm,omitempty"`
+	LengthM          *float64                      `gorm:"type:decimal(10,2);column:length_m" json:"length_m,omitempty"`
+	WidthM           *float64                      `gorm:"type:decimal(10,2);column:width_m" json:"width_m,omitempty"`
 	Quantity         int                           `gorm:"type:int;not null" json:"quantity"`
 	DesignFileURL    *string                       `gorm:"type:text" json:"design_file_url,omitempty"`
 	ProductionNotes  *string                       `gorm:"type:text" json:"production_notes,omitempty"`

@@ -7,8 +7,8 @@ type SPKItemRes struct {
 	ProductName      string         `json:"product_name"`
 	VariantName      string         `json:"variant_name"`
 	UOM              string         `json:"uom"`
-	LengthCM         *float64       `json:"length_cm"`
-	WidthCM          *float64       `json:"width_cm"`
+	LengthM          *float64       `json:"length_m"`
+	WidthM           *float64       `json:"width_m"`
 	Quantity         int            `json:"quantity"`
 	DesignFileURL    *string        `json:"design_file_url,omitempty"`
 	ProductionNotes  *string        `json:"production_notes,omitempty"`
