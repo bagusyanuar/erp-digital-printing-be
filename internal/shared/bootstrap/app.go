@@ -95,6 +95,9 @@ func (a *App) SetupRoutes() {
 	// Protected Routes (Auth + RBAC)
 	protected := v1.Group("/", middleware.AuthMiddleware(a.Container.JWTUtil), middleware.RBACMiddleware(a.Container.Casbin))
 
+	// Get Current Profile
+	protected.Get("/me", a.Container.UserHandler.GetMe)
+
 	// User Routes
 	userRoutes := protected.Group("/users")
 	userRoutes.Post("/", a.Container.UserHandler.Create)

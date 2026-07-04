@@ -115,3 +115,18 @@ func (h *UserHandler) Delete(c fiber.Ctx) error {
 
 	return response.Success[any](c, "User deleted successfully", nil, nil)
 }
+
+func (h *UserHandler) GetMe(c fiber.Ctx) error {
+	userIDVal := c.Locals("user_id")
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		return response.Error(c, fiber.StatusUnauthorized, "Unauthorized", "User ID not found in context")
+	}
+
+	user, err := h.userUsecase.FindByID(c.Context(), userID)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, "User not found", err.Error())
+	}
+
+	return response.Success(c, "Profile fetched successfully", user, nil)
+}
