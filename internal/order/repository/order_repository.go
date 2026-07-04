@@ -185,7 +185,7 @@ func (r *orderRepository) GetNextInvSeq(ctx context.Context, dateStr string) (in
 	}
 
 	var seq int
-	_, err = fmt.Sscanf(*maxNum, prefix+"%04d", &seq)
+	_, err = fmt.Sscanf(*maxNum, prefix+"%05d", &seq)
 	if err != nil {
 		return 1, nil
 	}

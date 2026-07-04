@@ -354,12 +354,12 @@ func (u *orderUsecase) ProcessPayment(
 	order.Status = orderDomain.StatusInProduction
 
 	// Generate INV Number
-	dateStr := time.Now().Format("20060102")
-	seq, err := u.orderRepo.GetNextInvSeq(ctx, dateStr)
+	monthStr := time.Now().Format("200601")
+	seq, err := u.orderRepo.GetNextInvSeq(ctx, monthStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate invoice number: %w", err)
 	}
-	invNo := fmt.Sprintf("INV/%s/%04d", dateStr, seq)
+	invNo := fmt.Sprintf("INV/%s/%05d", monthStr, seq)
 	order.InvoiceNumber = &invNo
 
 	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
