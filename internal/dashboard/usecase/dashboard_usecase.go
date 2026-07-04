@@ -24,6 +24,6 @@ func (u *dashboardUsecase) GetWidgets(ctx context.Context, startDate *time.Time,
 	return u.dashboardRepo.GetWidgets(ctx, startDate, endDate)
 }
 
-func (u *dashboardUsecase) GetWeeklyRevenue(ctx context.Context, targetDate time.Time) ([]domain.WeeklyRevenueItem, error) {
+func (u *dashboardUsecase) GetWeeklyRevenue(ctx context.Context, targetDate time.Time) (*domain.WeeklyRevenueRes, error) {
 	return u.dashboardRepo.GetWeeklyRevenue(ctx, targetDate)
 }

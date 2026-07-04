@@ -77,7 +77,7 @@ func (r *dashboardRepository) GetWidgets(ctx context.Context, startDate *time.Ti
 	return &res, nil
 }
 
-func (r *dashboardRepository) GetWeeklyRevenue(ctx context.Context, targetDate time.Time) ([]domain.WeeklyRevenueItem, error) {
+func (r *dashboardRepository) GetWeeklyRevenue(ctx context.Context, targetDate time.Time) (*domain.WeeklyRevenueRes, error) {
 	// Find Monday of the week
 	// targetDate.Weekday() returns 0 for Sunday, 1 for Monday, etc.
 	wd := int(targetDate.Weekday())
@@ -91,7 +91,11 @@ func (r *dashboardRepository) GetWeeklyRevenue(ctx context.Context, targetDate t
 	sunday := monday.AddDate(0, 0, 6)
 	sundayEnd := time.Date(sunday.Year(), sunday.Month(), sunday.Day(), 23, 59, 59, 999999999, sunday.Location())
 
-	// Query aggregate revenues group by date
+	// Awal & Akhir minggu lalu
+	lastMonday := monday.AddDate(0, 0, -7)
+	lastSundayEnd := time.Date(monday.Year(), monday.Month(), monday.Day(), 23, 59, 59, 999999999, monday.Location()).AddDate(0, 0, -1)
+
+	// Query aggregate revenues group by date for this week
 	type dbResult struct {
 		OrderDate time.Time `gorm:"column:order_date"`
 		Revenue   float64   `gorm:"column:revenue"`
@@ -112,24 +116,55 @@ func (r *dashboardRepository) GetWeeklyRevenue(ctx context.Context, targetDate t
 
 	// Map DB results for quick lookup
 	revenueMap := make(map[string]float64)
+	var totalThisWeek float64
 	for _, row := range dbRes {
 		dateStr := row.OrderDate.Format("2006-01-02")
 		revenueMap[dateStr] = row.Revenue
+		totalThisWeek += row.Revenue
+	}
+
+	// Query total revenue for last week
+	var totalLastWeek float64
+	err = r.db.WithContext(ctx).
+		Model(&orderDomain.Order{}).
+		Select("COALESCE(SUM(grand_total), 0)").
+		Where("status IN ?", []string{orderDomain.StatusInProduction, orderDomain.StatusReadyForPickup, orderDomain.StatusCompleted}).
+		Where("created_at BETWEEN ? AND ?", lastMonday, lastSundayEnd).
+		Scan(&totalLastWeek).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Hitung persentase kenaikan/penurunan
+	var percentageChange float64
+	if totalLastWeek > 0 {
+		percentageChange = ((totalThisWeek - totalLastWeek) / totalLastWeek) * 100
+	} else if totalThisWeek > 0 {
+		// Jika minggu lalu 0 tapi minggu ini ada omzet, kenaikan +100%
+		percentageChange = 100
+	} else {
+		percentageChange = 0
 	}
 
 	// Generate full 7 days response
 	dayNames := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
-	results := make([]domain.WeeklyRevenueItem, 7)
+	weeklyData := make([]domain.WeeklyRevenueItem, 7)
 	for i := 0; i < 7; i++ {
 		currentDay := monday.AddDate(0, 0, i)
 		dateStr := currentDay.Format("2006-01-02")
 		
-		results[i] = domain.WeeklyRevenueItem{
+		weeklyData[i] = domain.WeeklyRevenueItem{
 			Date:    dateStr,
 			DayName: dayNames[i],
 			Revenue: revenueMap[dateStr],
 		}
 	}
 
-	return results, nil
+	return &domain.WeeklyRevenueRes{
+		TotalThisWeek:    totalThisWeek,
+		TotalLastWeek:    totalLastWeek,
+		PercentageChange: percentageChange,
+		WeeklyData:       weeklyData,
+	}, nil
 }
