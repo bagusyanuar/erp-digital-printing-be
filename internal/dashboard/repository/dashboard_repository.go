@@ -76,3 +76,60 @@ func (r *dashboardRepository) GetWidgets(ctx context.Context, startDate *time.Ti
 
 	return &res, nil
 }
+
+func (r *dashboardRepository) GetWeeklyRevenue(ctx context.Context, targetDate time.Time) ([]domain.WeeklyRevenueItem, error) {
+	// Find Monday of the week
+	// targetDate.Weekday() returns 0 for Sunday, 1 for Monday, etc.
+	wd := int(targetDate.Weekday())
+	offsetDays := wd - 1
+	if wd == 0 { // Sunday should be offset by 6 days from Monday
+		offsetDays = 6
+	}
+
+	monday := time.Date(targetDate.Year(), targetDate.Month(), targetDate.Day(), 0, 0, 0, 0, targetDate.Location()).
+		AddDate(0, 0, -offsetDays)
+	sunday := monday.AddDate(0, 0, 6)
+	sundayEnd := time.Date(sunday.Year(), sunday.Month(), sunday.Day(), 23, 59, 59, 999999999, sunday.Location())
+
+	// Query aggregate revenues group by date
+	type dbResult struct {
+		OrderDate time.Time `gorm:"column:order_date"`
+		Revenue   float64   `gorm:"column:revenue"`
+	}
+	var dbRes []dbResult
+
+	err := r.db.WithContext(ctx).
+		Model(&orderDomain.Order{}).
+		Select("DATE(created_at) AS order_date, COALESCE(SUM(grand_total), 0) AS revenue").
+		Where("status IN ?", []string{orderDomain.StatusInProduction, orderDomain.StatusReadyForPickup, orderDomain.StatusCompleted}).
+		Where("created_at BETWEEN ? AND ?", monday, sundayEnd).
+		Group("DATE(created_at)").
+		Scan(&dbRes).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Map DB results for quick lookup
+	revenueMap := make(map[string]float64)
+	for _, row := range dbRes {
+		dateStr := row.OrderDate.Format("2006-01-02")
+		revenueMap[dateStr] = row.Revenue
+	}
+
+	// Generate full 7 days response
+	dayNames := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+	results := make([]domain.WeeklyRevenueItem, 7)
+	for i := 0; i < 7; i++ {
+		currentDay := monday.AddDate(0, 0, i)
+		dateStr := currentDay.Format("2006-01-02")
+		
+		results[i] = domain.WeeklyRevenueItem{
+			Date:    dateStr,
+			DayName: dayNames[i],
+			Revenue: revenueMap[dateStr],
+		}
+	}
+
+	return results, nil
+}

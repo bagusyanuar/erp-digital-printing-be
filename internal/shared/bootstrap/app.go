@@ -222,6 +222,7 @@ func (a *App) SetupRoutes() {
 	// Dashboard Routes
 	dashboardRoutes := protected.Group("/dashboard")
 	dashboardRoutes.Get("/widgets", a.Container.DashboardHandler.GetWidgets)
+	dashboardRoutes.Get("/weekly-revenue", a.Container.DashboardHandler.GetWeeklyRevenue)
 }
 
 func (a *App) Start() error {

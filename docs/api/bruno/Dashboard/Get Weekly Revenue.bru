@@ -1,0 +1,74 @@
+meta {
+  name: Get Weekly Revenue
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/dashboard/weekly-revenue?date=
+  body: none
+  auth: inherit
+}
+
+query {
+  ~date: 
+}
+
+docs {
+  # Get Weekly Revenue
+  
+  Mendapatkan data tren omzet mingguan (Senin s/d Minggu) berdasarkan tanggal referensi target. 
+  
+  ### Query Parameters:
+  - `date`: Tanggal referensi target untuk melihat minggu yang bersangkutan (format YYYY-MM-DD, opsional). Jika dikosongkan, backend otomatis menggunakan tanggal hari ini.
+  
+  ### Detail Perhitungan:
+  - Hari Senin ditentukan sebagai awal minggu dan Minggu sebagai akhir minggu.
+  - Hanya transaksi dengan status `IN_PRODUCTION`, `READY_FOR_PICKUP`, dan `COMPLETED` yang akan dihitung sebagai omzet.
+  
+  ### Sample Success Response:
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Weekly revenue retrieved successfully",
+    "data": [
+      {
+        "date": "2026-06-29",
+        "day_name": "Monday",
+        "revenue": 500000
+      },
+      {
+        "date": "2026-06-30",
+        "day_name": "Tuesday",
+        "revenue": 0
+      },
+      {
+        "date": "2026-07-01",
+        "day_name": "Wednesday",
+        "revenue": 1200000
+      },
+      {
+        "date": "2026-07-02",
+        "day_name": "Thursday",
+        "revenue": 350000
+      },
+      {
+        "date": "2026-07-03",
+        "day_name": "Friday",
+        "revenue": 0
+      },
+      {
+        "date": "2026-07-04",
+        "day_name": "Saturday",
+        "revenue": 750000
+      },
+      {
+        "date": "2026-07-05",
+        "day_name": "Sunday",
+        "revenue": 100000
+      }
+    ]
+  }
+  ```
+}

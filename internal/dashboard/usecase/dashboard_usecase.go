@@ -23,3 +23,7 @@ func NewDashboardUsecase(dashboardRepo domain.DashboardRepository, logger *zap.L
 func (u *dashboardUsecase) GetWidgets(ctx context.Context, startDate *time.Time, endDate *time.Time) (*domain.DashboardWidgetsRes, error) {
 	return u.dashboardRepo.GetWidgets(ctx, startDate, endDate)
 }
+
+func (u *dashboardUsecase) GetWeeklyRevenue(ctx context.Context, targetDate time.Time) ([]domain.WeeklyRevenueItem, error) {
+	return u.dashboardRepo.GetWeeklyRevenue(ctx, targetDate)
+}

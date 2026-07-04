@@ -44,3 +44,23 @@ func (h *DashboardHandler) GetWidgets(c fiber.Ctx) error {
 
 	return response.Success(c, "Dashboard widgets retrieved successfully", res, nil)
 }
+
+func (h *DashboardHandler) GetWeeklyRevenue(c fiber.Ctx) error {
+	dateStr := c.Query("date", "")
+	targetDate := time.Now().In(time.Local)
+
+	if dateStr != "" {
+		parsedDate, err := time.ParseInLocation("2006-01-02", dateStr, time.Local)
+		if err != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Date must be in YYYY-MM-DD format")
+		}
+		targetDate = parsedDate
+	}
+
+	res, err := h.dashboardUsecase.GetWeeklyRevenue(c.Context(), targetDate)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch weekly revenue", err.Error())
+	}
+
+	return response.Success(c, "Weekly revenue retrieved successfully", res, nil)
+}
