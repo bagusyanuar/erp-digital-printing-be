@@ -249,13 +249,13 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 	}
 
 	if startDateStr != "" && endDateStr != "" {
-		t1, err1 := time.Parse("2006-01-02", startDateStr)
-		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		t1, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+		t2, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err1 != nil || err2 != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
 		}
-		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
-		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, time.Local)
 		startDate = &t1
 		endDate = &t2
 	}
@@ -717,13 +717,13 @@ func (h *OrderHandler) GetReportsWidgets(c fiber.Ctx) error {
 	}
 
 	if startDateStr != "" && endDateStr != "" {
-		t1, err1 := time.Parse("2006-01-02", startDateStr)
-		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		t1, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+		t2, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err1 != nil || err2 != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
 		}
-		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
-		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, time.Local)
 		startDate = &t1
 		endDate = &t2
 	}
@@ -801,13 +801,13 @@ func (h *OrderHandler) GetSalesReportWidgets(c fiber.Ctx) error {
 	}
 
 	if startDateStr != "" && endDateStr != "" {
-		t1, err1 := time.Parse("2006-01-02", startDateStr)
-		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		t1, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+		t2, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err1 != nil || err2 != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
 		}
-		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
-		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, time.Local)
 		startDate = &t1
 		endDate = &t2
 	}
@@ -892,13 +892,13 @@ func (h *OrderHandler) GetSalesTrend(c fiber.Ctx) error {
 	}
 
 	if startDateStr != "" && endDateStr != "" {
-		t1, err1 := time.Parse("2006-01-02", startDateStr)
-		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		t1, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+		t2, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err1 != nil || err2 != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
 		}
-		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
-		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, time.Local)
 		startDate = &t1
 		endDate = &t2
 	}
@@ -929,13 +929,13 @@ func (h *OrderHandler) GetCategorySales(c fiber.Ctx) error {
 	}
 
 	if startDateStr != "" && endDateStr != "" {
-		t1, err1 := time.Parse("2006-01-02", startDateStr)
-		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		t1, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+		t2, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err1 != nil || err2 != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
 		}
-		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
-		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, time.Local)
 		startDate = &t1
 		endDate = &t2
 	}
@@ -967,13 +967,13 @@ func (h *OrderHandler) GetPaymentMethodSales(c fiber.Ctx) error {
 	}
 
 	if startDateStr != "" && endDateStr != "" {
-		t1, err1 := time.Parse("2006-01-02", startDateStr)
-		t2, err2 := time.Parse("2006-01-02", endDateStr)
+		t1, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+		t2, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err1 != nil || err2 != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
 		}
-		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, t1.Location())
-		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, t2.Location())
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, time.Local)
 		startDate = &t1
 		endDate = &t2
 	}

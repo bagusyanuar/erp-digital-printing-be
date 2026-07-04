@@ -28,15 +28,15 @@ func (h *CashFlowHandler) GetReport(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Missing parameters", "Both start_date and end_date are required")
 	}
 
-	startDate, err1 := time.Parse("2006-01-02", startDateStr)
-	endDate, err2 := time.Parse("2006-01-02", endDateStr)
+	startDate, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+	endDate, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 	if err1 != nil || err2 != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
 	}
 
 	// Set to start and end of day respectively
-	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
-	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 999999999, endDate.Location())
+	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.Local)
+	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 999999999, time.Local)
 
 	// Parsing Pagination
 	pageStr := c.Query("page", "1")
@@ -104,15 +104,15 @@ func (h *CashFlowHandler) GetSummary(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Missing parameters", "Both start_date and end_date are required")
 	}
 
-	startDate, err1 := time.Parse("2006-01-02", startDateStr)
-	endDate, err2 := time.Parse("2006-01-02", endDateStr)
+	startDate, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+	endDate, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 	if err1 != nil || err2 != nil {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
 	}
 
 	// Set to start and end of day respectively
-	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, startDate.Location())
-	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 999999999, endDate.Location())
+	startDate = time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.Local)
+	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 999999999, time.Local)
 
 	// Parsing Optional Filters
 	paymentMethod := c.Query("payment_method", "")
@@ -237,15 +237,15 @@ func (h *CashFlowHandler) GetFundTransfers(c fiber.Ctx) error {
 
 	var startDate, endDate time.Time
 	if startDateStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", startDateStr)
+		parsedDate, err := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
 		if err == nil {
-			startDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, parsedDate.Location())
+			startDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, time.Local)
 		}
 	}
 	if endDateStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", endDateStr)
+		parsedDate, err := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err == nil {
-			endDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 23, 59, 59, 999999999, parsedDate.Location())
+			endDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 23, 59, 59, 999999999, time.Local)
 		}
 	}
 
@@ -338,15 +338,15 @@ func (h *CashFlowHandler) GetFundTransferWidgets(c fiber.Ctx) error {
 
 	var startDate, endDate time.Time
 	if startDateStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", startDateStr)
+		parsedDate, err := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
 		if err == nil {
-			startDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, parsedDate.Location())
+			startDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 0, 0, 0, 0, time.Local)
 		}
 	}
 	if endDateStr != "" {
-		parsedDate, err := time.Parse("2006-01-02", endDateStr)
+		parsedDate, err := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err == nil {
-			endDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 23, 59, 59, 999999999, parsedDate.Location())
+			endDate = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(), 23, 59, 59, 999999999, time.Local)
 		}
 	}
 

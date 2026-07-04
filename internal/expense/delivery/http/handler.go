@@ -233,20 +233,20 @@ func (h *ExpenseHandler) FindAllExpenses(c fiber.Ctx) error {
 	endDateStr := c.Query("end_date", "")
 
 	if startDateStr != "" {
-		t, err := time.Parse("2006-01-02", startDateStr)
+		t, err := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
 		if err != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid start_date format", err.Error())
 		}
-		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 		startDate = &t
 	}
 
 	if endDateStr != "" {
-		t, err := time.Parse("2006-01-02", endDateStr)
+		t, err := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid end_date format", err.Error())
 		}
-		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, t.Location())
+		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, time.Local)
 		endDate = &t
 	}
 
@@ -327,20 +327,20 @@ func (h *ExpenseHandler) GetSummary(c fiber.Ctx) error {
 	endDateStr := c.Query("end_date", "")
 
 	if startDateStr != "" {
-		t, err := time.Parse("2006-01-02", startDateStr)
+		t, err := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
 		if err != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid start_date format", err.Error())
 		}
-		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 		startDate = &t
 	}
 
 	if endDateStr != "" {
-		t, err := time.Parse("2006-01-02", endDateStr)
+		t, err := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid end_date format", err.Error())
 		}
-		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, t.Location())
+		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, time.Local)
 		endDate = &t
 	}
 
@@ -358,20 +358,20 @@ func (h *ExpenseHandler) GetByProductCategory(c fiber.Ctx) error {
 	endDateStr := c.Query("end_date", "")
 
 	if startDateStr != "" {
-		t, err := time.Parse("2006-01-02", startDateStr)
+		t, err := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
 		if err != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid start_date format", err.Error())
 		}
-		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 		startDate = &t
 	}
 
 	if endDateStr != "" {
-		t, err := time.Parse("2006-01-02", endDateStr)
+		t, err := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid end_date format", err.Error())
 		}
-		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, t.Location())
+		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, time.Local)
 		endDate = &t
 	}
 
@@ -389,20 +389,20 @@ func (h *ExpenseHandler) GetWidgets(c fiber.Ctx) error {
 	endDateStr := c.Query("end_date", "")
 
 	if startDateStr != "" {
-		t, err := time.Parse("2006-01-02", startDateStr)
+		t, err := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
 		if err != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid start_date format", err.Error())
 		}
-		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+		t = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
 		startDate = &t
 	}
 
 	if endDateStr != "" {
-		t, err := time.Parse("2006-01-02", endDateStr)
+		t, err := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err != nil {
 			return response.Error(c, fiber.StatusBadRequest, "Invalid end_date format", err.Error())
 		}
-		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, t.Location())
+		t = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, time.Local)
 		endDate = &t
 	}
 

@@ -70,18 +70,18 @@ func (h *CapitalHandler) FindAll(c fiber.Ctx) error {
 
 	startDateStr := c.Query("start_date", "")
 	if startDateStr != "" {
-		parsed, err := time.Parse("2006-01-02", startDateStr)
+		parsed, err := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
 		if err == nil {
-			sDate := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, parsed.Location())
+			sDate := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 0, 0, 0, 0, time.Local)
 			startDate = &sDate
 		}
 	}
 
 	endDateStr := c.Query("end_date", "")
 	if endDateStr != "" {
-		parsed, err := time.Parse("2006-01-02", endDateStr)
+		parsed, err := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
 		if err == nil {
-			eDate := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 999999999, parsed.Location())
+			eDate := time.Date(parsed.Year(), parsed.Month(), parsed.Day(), 23, 59, 59, 999999999, time.Local)
 			endDate = &eDate
 		}
 	}
