@@ -13,13 +13,17 @@ DB_URL=postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?ssl
 MIGRATION_PATH=./migrations
 MIGRATE=migrate
 
-.PHONY: help migrate-create migrate-up migrate-down migrate-force migrate-status migrate-drop migrate-fresh
+.PHONY: help dev migrate-create migrate-up migrate-down migrate-force migrate-status migrate-drop migrate-fresh
 
 help: ## Show this help menu
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+dev: ## Run development server using air
+	@echo "Starting dev server with air..."
+	@air -c .air.toml
 
 migrate-create: ## Create a new migration file. Usage: make migrate-create name=init_schema
 	@echo "Creating migration: $(name)"

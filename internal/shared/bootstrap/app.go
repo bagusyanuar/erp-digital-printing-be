@@ -219,6 +219,10 @@ func (a *App) SetupRoutes() {
 	capitalRoutes.Get("/", a.Container.CapitalHandler.FindAll)
 	capitalRoutes.Delete("/:id", a.Container.CapitalHandler.Delete)
 
+	// Report Routes
+	reportRoutes := protected.Group("/reports")
+	reportRoutes.Get("/sales/export", a.Container.ReportHandler.ExportSalesReport)
+
 	// Dashboard Routes
 	dashboardRoutes := protected.Group("/dashboard")
 	dashboardRoutes.Get("/widgets", a.Container.DashboardHandler.GetWidgets)

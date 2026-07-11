@@ -1,0 +1,30 @@
+meta {
+  name: Export Sales Report
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/reports/sales/export?start_date=&end_date=
+  body: none
+  auth: inherit
+}
+
+query {
+  ~start_date: 
+  ~end_date: 
+}
+
+docs {
+  # Export Sales Report
+  
+  Mengekspor laporan penjualan ke dalam format Excel (.xlsx).
+  File Excel memiliki 3 sheet: Ringkasan, Detail Transaksi, dan Detail Produk Terjual.
+  
+  ### Query Parameters:
+  - `start_date`: Tanggal mulai filter (format YYYY-MM-DD, opsional)
+  - `end_date`: Tanggal akhir filter (format YYYY-MM-DD, opsional)
+  
+  ### Response
+  File akan terunduh langsung dengan tipe `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`.
+}
