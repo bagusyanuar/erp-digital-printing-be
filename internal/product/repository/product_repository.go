@@ -68,6 +68,7 @@ func (r *productRepository) FindAll(ctx context.Context, params request.Paginati
 		Preload("Variants.PriceTiers.CustomerLevel").
 		Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
+		Order("sequence ASC").
 		Order(params.GetSort()).
 		Find(&products).Error
 	if err != nil {
@@ -148,4 +149,15 @@ func (r *productRepository) CheckPrice(ctx context.Context, variantID uuid.UUID,
 		AdditionalCost:    variant.AdditionalCost,
 		TotalPrice:        pricePerUnit * float64(qty),
 	}, nil
+}
+
+func (r *productRepository) Reorder(ctx context.Context, items []request.ReorderItem) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			if err := tx.Model(&domain.Product{}).Where("id = ?", item.ID).Update("sequence", item.Sequence).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

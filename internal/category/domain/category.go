@@ -12,6 +12,7 @@ import (
 type Category struct {
 	ID        uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Name      string         `gorm:"not null" json:"name"`
+	Sequence  int            `gorm:"type:int;default:0" json:"sequence"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -30,6 +31,7 @@ type CategoryRepository interface {
 	FindAll(ctx context.Context, params request.PaginationParam, search string) ([]Category, int64, error)
 	Update(ctx context.Context, category *Category) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	Reorder(ctx context.Context, items []request.ReorderItem) error
 }
 
 type CategoryUsecase interface {
@@ -38,4 +40,5 @@ type CategoryUsecase interface {
 	FindAll(ctx context.Context, params request.PaginationParam, search string) ([]Category, int64, error)
 	Update(ctx context.Context, category *Category) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	Reorder(ctx context.Context, items []request.ReorderItem) error
 }

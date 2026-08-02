@@ -115,3 +115,16 @@ func (h *CategoryHandler) Delete(c fiber.Ctx) error {
 
 	return response.Success[any](c, "Category deleted successfully", nil, nil)
 }
+
+func (h *CategoryHandler) Reorder(c fiber.Ctx) error {
+	var req request.ReorderRequest
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	if err := h.categoryUsecase.Reorder(c.Context(), req.Items); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to reorder categories", err.Error())
+	}
+
+	return response.Success[any](c, "Categories reordered successfully", nil, nil)
+}

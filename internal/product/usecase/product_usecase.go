@@ -69,3 +69,7 @@ func (u *productUsecase) CreateVariant(ctx context.Context, variant *domain.Prod
 func (u *productUsecase) CheckPrice(ctx context.Context, variantID uuid.UUID, customerLevelID uuid.UUID, qty int) (*domain.PriceCheckResult, error) {
 	return u.productRepo.CheckPrice(ctx, variantID, customerLevelID, qty)
 }
+
+func (u *productUsecase) Reorder(ctx context.Context, items []request.ReorderItem) error {
+	return u.productRepo.Reorder(ctx, items)
+}

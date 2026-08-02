@@ -27,6 +27,7 @@ type Product struct {
 	SKU        string                  `gorm:"type:varchar(100);unique;not null" json:"sku"`
 	UOM        string                  `gorm:"type:varchar(50);not null" json:"uom"`
 	BasePrice  float64                 `gorm:"type:decimal(15,2);not null;default:0" json:"base_price"`
+	Sequence   int                     `gorm:"type:int;default:0" json:"sequence"`
 	Variants   []ProductVariant        `gorm:"foreignKey:ProductID" json:"variants,omitempty"`
 	CreatedAt  time.Time               `json:"created_at"`
 	UpdatedAt  time.Time               `json:"updated_at"`
@@ -158,6 +159,7 @@ type ProductRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	CreateVariant(ctx context.Context, variant *ProductVariant) error
 	CheckPrice(ctx context.Context, variantID uuid.UUID, customerLevelID uuid.UUID, qty int) (*PriceCheckResult, error)
+	Reorder(ctx context.Context, items []request.ReorderItem) error
 }
 
 type ProductUsecase interface {
@@ -168,6 +170,7 @@ type ProductUsecase interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	CreateVariant(ctx context.Context, variant *ProductVariant) error
 	CheckPrice(ctx context.Context, variantID uuid.UUID, customerLevelID uuid.UUID, qty int) (*PriceCheckResult, error)
+	Reorder(ctx context.Context, items []request.ReorderItem) error
 }
 
 type AttributeRepository interface {

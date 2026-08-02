@@ -46,6 +46,7 @@ func (r *categoryRepository) FindAll(ctx context.Context, params request.Paginat
 
 	if err := db.Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
+		Order("sequence ASC").
 		Order(params.GetSort()).
 		Find(&categories).Error; err != nil {
 		return nil, 0, err
@@ -60,4 +61,15 @@ func (r *categoryRepository) Update(ctx context.Context, category *domain.Catego
 
 func (r *categoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&domain.Category{}, "id = ?", id).Error
+}
+
+func (r *categoryRepository) Reorder(ctx context.Context, items []request.ReorderItem) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			if err := tx.Model(&domain.Category{}).Where("id = ?", item.ID).Update("sequence", item.Sequence).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

@@ -40,3 +40,7 @@ func (u *categoryUsecase) Update(ctx context.Context, category *domain.Category)
 func (u *categoryUsecase) Delete(ctx context.Context, id uuid.UUID) error {
 	return u.categoryRepo.Delete(ctx, id)
 }
+
+func (u *categoryUsecase) Reorder(ctx context.Context, items []request.ReorderItem) error {
+	return u.categoryRepo.Reorder(ctx, items)
+}

@@ -296,6 +296,19 @@ func (h *ProductHandler) CheckPrice(c fiber.Ctx) error {
 	return response.Success(c, "Price checked successfully", result, nil)
 }
 
+func (h *ProductHandler) Reorder(c fiber.Ctx) error {
+	var req request.ReorderRequest
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	if err := h.productUsecase.Reorder(c.Context(), req.Items); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to reorder products", err.Error())
+	}
+
+	return response.Success[any](c, "Products reordered successfully", nil, nil)
+}
+
 // Helpers mapping
 func mapProductToRes(p *domain.Product) dto.ProductRes {
 	res := dto.ProductRes{
@@ -305,6 +318,7 @@ func mapProductToRes(p *domain.Product) dto.ProductRes {
 		SKU:       p.SKU,
 		UOM:       p.UOM,
 		BasePrice:  p.BasePrice,
+		Sequence:  p.Sequence,
 		CreatedAt: p.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt: p.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}

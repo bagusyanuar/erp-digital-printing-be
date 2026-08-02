@@ -74,6 +74,7 @@ type ProductRes struct {
 	SKU          string              `json:"sku"`
 	UOM          string              `json:"uom"`
 	BasePrice    float64             `json:"base_price"`
+	Sequence     int                 `json:"sequence"`
 	Variants     []ProductVariantRes `json:"variants,omitempty"`
 	CreatedAt    string              `json:"created_at"`
 	UpdatedAt    string              `json:"updated_at"`

@@ -13,6 +13,7 @@ type UpdateCategoryReq struct {
 type CategoryRes struct {
 	ID        uuid.UUID `json:"id"`
 	Name      string    `json:"name"`
+	Sequence  int       `json:"sequence"`
 	CreatedAt string    `json:"created_at"`
 	UpdatedAt string    `json:"updated_at"`
 }

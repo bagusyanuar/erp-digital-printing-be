@@ -2,6 +2,7 @@
 Table categories {
   id uuid [pk, default: `gen_random_uuid()`]
   name varchar(255) [not null]
+  sequence int [default: 0, note: 'Untuk custom sorting (urutan)']
   created_at timestamp [default: `now()`]
   updated_at timestamp [default: `now()`]
   deleted_at timestamp [null]
