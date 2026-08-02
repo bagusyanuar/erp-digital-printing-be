@@ -65,11 +65,25 @@ func (r *categoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (r *categoryRepository) Reorder(ctx context.Context, items []request.ReorderItem) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Update sequence as requested
 		for _, item := range items {
 			if err := tx.Model(&domain.Category{}).Where("id = ?", item.ID).Update("sequence", item.Sequence).Error; err != nil {
 				return err
 			}
 		}
+
+		// Brute-force Auto Resync
+		var categories []domain.Category
+		if err := tx.Order("sequence ASC, created_at DESC").Find(&categories).Error; err != nil {
+			return err
+		}
+
+		for i, cat := range categories {
+			if err := tx.Model(&domain.Category{}).Where("id = ?", cat.ID).Update("sequence", i+1).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }

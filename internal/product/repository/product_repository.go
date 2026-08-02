@@ -153,11 +153,25 @@ func (r *productRepository) CheckPrice(ctx context.Context, variantID uuid.UUID,
 
 func (r *productRepository) Reorder(ctx context.Context, items []request.ReorderItem) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Update sequence as requested
 		for _, item := range items {
 			if err := tx.Model(&domain.Product{}).Where("id = ?", item.ID).Update("sequence", item.Sequence).Error; err != nil {
 				return err
 			}
 		}
+
+		// Brute-force Auto Resync
+		var products []domain.Product
+		if err := tx.Order("sequence ASC, created_at DESC").Find(&products).Error; err != nil {
+			return err
+		}
+
+		for i, p := range products {
+			if err := tx.Model(&domain.Product{}).Where("id = ?", p.ID).Update("sequence", i+1).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }
