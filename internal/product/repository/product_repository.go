@@ -101,8 +101,11 @@ func (r *productRepository) Update(ctx context.Context, product *domain.Product)
 			}
 		}
 
-		// 2. Save the product itself and its new variants
-		if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(product).Error; err != nil {
+		// 2. Save the product itself and its new variants.
+		// Category is omitted: it's a belongs-to loaded via Preload on read,
+		// and FullSaveAssociations would otherwise re-save the stale Category
+		// and overwrite product.CategoryID with its old value.
+		if err := tx.Session(&gorm.Session{FullSaveAssociations: true}).Omit("Category").Save(product).Error; err != nil {
 			return err
 		}
 
