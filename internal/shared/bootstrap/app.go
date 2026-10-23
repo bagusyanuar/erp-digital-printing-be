@@ -129,6 +129,7 @@ func (a *App) SetupRoutes() {
 	categoryRoutes.Put("/reorder", a.Container.CategoryHandler.Reorder)
 	categoryRoutes.Get("/:id", a.Container.CategoryHandler.FindByID)
 	categoryRoutes.Put("/:id", a.Container.CategoryHandler.Update)
+	categoryRoutes.Patch("/:id/spk-category", a.Container.CategoryHandler.AssignSPKCategory)
 	categoryRoutes.Delete("/:id", a.Container.CategoryHandler.Delete)
 
 	// Attribute Routes

@@ -26,7 +26,8 @@ func (h *CategoryHandler) Create(c fiber.Ctx) error {
 	}
 
 	category := &domain.Category{
-		Name: req.Name,
+		Name:          req.Name,
+		SPKCategoryID: req.SPKCategoryID,
 	}
 
 	if err := h.categoryUsecase.Create(c.Context(), category); err != nil {
@@ -94,12 +95,48 @@ func (h *CategoryHandler) Update(c fiber.Ctx) error {
 	}
 
 	category.Name = req.Name
+	category.SPKCategoryID = req.SPKCategoryID
 
 	if err := h.categoryUsecase.Update(c.Context(), category); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to update category", err.Error())
 	}
 
 	return response.Success(c, "Category updated successfully", category, nil)
+}
+
+func (h *CategoryHandler) AssignSPKCategory(c fiber.Ctx) error {
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid category ID", err.Error())
+	}
+
+	var req dto.AssignSPKCategoryReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	category, err := h.categoryUsecase.FindByID(c.Context(), id)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, "Category not found", err.Error())
+	}
+
+	if req.SPKCategoryID != nil && *req.SPKCategoryID == id {
+		return response.Error(c, fiber.StatusBadRequest, "Cannot assign category to itself", nil)
+	}
+
+	category.SPKCategoryID = req.SPKCategoryID
+
+	if err := h.categoryUsecase.Update(c.Context(), category); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to assign SPK category", err.Error())
+	}
+
+	updated, _ := h.categoryUsecase.FindByID(c.Context(), id)
+	if updated != nil {
+		category = updated
+	}
+
+	return response.Success(c, "SPK category assigned successfully", category, nil)
 }
 
 func (h *CategoryHandler) Delete(c fiber.Ctx) error {

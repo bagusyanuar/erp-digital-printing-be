@@ -23,7 +23,7 @@ func (r *categoryRepository) Create(ctx context.Context, category *domain.Catego
 
 func (r *categoryRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.Category, error) {
 	var category domain.Category
-	if err := r.db.WithContext(ctx).First(&category, "id = ?", id).Error; err != nil {
+	if err := r.db.WithContext(ctx).Preload("SPKCategory").First(&category, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &category, nil
@@ -44,7 +44,8 @@ func (r *categoryRepository) FindAll(ctx context.Context, params request.Paginat
 		return nil, 0, err
 	}
 
-	if err := db.Limit(params.GetLimit()).
+	if err := db.Preload("SPKCategory").
+		Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
 		Order("sequence ASC").
 		Order(params.GetSort()).

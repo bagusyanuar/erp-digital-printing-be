@@ -465,9 +465,19 @@ func (h *OrderHandler) GetSPKByID(c fiber.Ctx) error {
 		catName := "Uncategorized"
 
 		if item.ProductVariant != nil && item.ProductVariant.Product.CategoryID != uuid.Nil {
-			catID = item.ProductVariant.Product.CategoryID
-			if item.ProductVariant.Product.Category.Name != "" {
-				catName = item.ProductVariant.Product.Category.Name
+			category := item.ProductVariant.Product.Category
+			if category.SPKCategoryID != nil && *category.SPKCategoryID != uuid.Nil {
+				catID = *category.SPKCategoryID
+				if category.SPKCategory != nil && category.SPKCategory.Name != "" {
+					catName = category.SPKCategory.Name
+				} else if category.Name != "" {
+					catName = category.Name
+				}
+			} else {
+				catID = category.ID
+				if category.Name != "" {
+					catName = category.Name
+				}
 			}
 		} else {
 			catID = uuid.Nil

@@ -54,6 +54,7 @@ func (r *orderRepository) FindByIDWithCategoryPreload(ctx context.Context, id uu
 		Preload("OrderItems.ProductVariant").
 		Preload("OrderItems.ProductVariant.Product").
 		Preload("OrderItems.ProductVariant.Product.Category").
+		Preload("OrderItems.ProductVariant.Product.Category.SPKCategory").
 		Preload("OrderItems.Finishings").
 		First(&order, "id = ?", id).Error
 	if err != nil {
