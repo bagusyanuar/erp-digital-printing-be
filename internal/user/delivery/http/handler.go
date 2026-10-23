@@ -82,7 +82,9 @@ func (h *UserHandler) Update(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusNotFound, "User not found", err.Error())
 	}
 
-	user.Username = req.Username
+	if req.Username != "" {
+		user.Username = req.Username
+	}
 	if req.Password != "" {
 		user.Password = req.Password
 	}
@@ -100,6 +102,35 @@ func (h *UserHandler) Update(c fiber.Ctx) error {
 	}
 
 	return response.Success(c, "User updated successfully", user, nil)
+}
+
+func (h *UserHandler) ChangePassword(c fiber.Ctx) error {
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid user ID", err.Error())
+	}
+
+	var req dto.ChangePasswordReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	if len(req.Password) < 6 {
+		return response.Error(c, fiber.StatusBadRequest, "Password minimal 6 karakter", nil)
+	}
+
+	user, err := h.userUsecase.FindByID(c.Context(), id)
+	if err != nil {
+		return response.Error(c, fiber.StatusNotFound, "User not found", err.Error())
+	}
+
+	user.Password = req.Password
+	if err := h.userUsecase.Update(c.Context(), user); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to update password", err.Error())
+	}
+
+	return response.Success[any](c, "Password updated successfully", nil, nil)
 }
 
 func (h *UserHandler) Delete(c fiber.Ctx) error {

@@ -15,7 +15,7 @@ type User struct {
 	Password  string     `gorm:"not null" json:"-"`
 	CreatedAt time.Time     `json:"created_at"`
 	UpdatedAt time.Time     `json:"updated_at"`
-	DeletedAt *time.Time    `gorm:"index" json:"deleted_at,omitempty"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
 	Roles     []domain.Role `gorm:"many2many:user_roles;" json:"roles,omitempty"`
 }
 

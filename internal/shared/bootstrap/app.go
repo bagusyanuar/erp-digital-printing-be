@@ -104,6 +104,7 @@ func (a *App) SetupRoutes() {
 	userRoutes.Get("/", a.Container.UserHandler.FindAll)
 	userRoutes.Get("/:id", a.Container.UserHandler.FindByID)
 	userRoutes.Put("/:id", a.Container.UserHandler.Update)
+	userRoutes.Put("/:id/password", a.Container.UserHandler.ChangePassword)
 	userRoutes.Delete("/:id", a.Container.UserHandler.Delete)
 
 	// RBAC Management Routes

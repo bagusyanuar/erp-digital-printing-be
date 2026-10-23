@@ -9,9 +9,13 @@ type CreateUserReq struct {
 }
 
 type UpdateUserReq struct {
-	Username string      `json:"username" validate:"required,min=3,max=50"`
+	Username string      `json:"username" validate:"omitempty,min=3,max=50"`
 	Password string      `json:"password" validate:"omitempty,min=6"`
 	RoleIDs  []uuid.UUID `json:"role_ids" validate:"omitempty,dive,uuid"`
+}
+
+type ChangePasswordReq struct {
+	Password string `json:"password" validate:"required,min=6"`
 }
 
 type UserRes struct {
