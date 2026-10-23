@@ -130,7 +130,7 @@ func (h *UserHandler) ChangePassword(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to update password", err.Error())
 	}
 
-	return response.Success[any](c, "Password updated successfully", nil, nil)
+	return response.Success(c, "Password updated successfully", user, nil)
 }
 
 func (h *UserHandler) Delete(c fiber.Ctx) error {
