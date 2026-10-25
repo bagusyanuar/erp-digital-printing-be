@@ -191,6 +191,7 @@ func (a *App) SetupRoutes() {
 	expenseCategoryRoutes := protected.Group("/expense-categories")
 	expenseCategoryRoutes.Post("/", a.Container.ExpenseHandler.CreateCategory)
 	expenseCategoryRoutes.Get("/", a.Container.ExpenseHandler.FindAllCategories)
+	expenseCategoryRoutes.Put("/reorder", a.Container.ExpenseHandler.ReorderCategories)
 	expenseCategoryRoutes.Get("/:id", a.Container.ExpenseHandler.FindCategoryByID)
 	expenseCategoryRoutes.Put("/:id", a.Container.ExpenseHandler.UpdateCategory)
 	expenseCategoryRoutes.Delete("/:id", a.Container.ExpenseHandler.DeleteCategory)

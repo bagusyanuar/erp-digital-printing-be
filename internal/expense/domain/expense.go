@@ -6,6 +6,7 @@ import (
 
 	categoryDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/category/domain"
 	supplierDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/supplier/domain"
+	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -25,6 +26,7 @@ type ExpenseCategory struct {
 	Group             string                   `gorm:"type:varchar(50);not null" json:"group"`
 	ProductCategoryID *uuid.UUID               `gorm:"type:uuid" json:"product_category_id"`
 	ProductCategory   *categoryDomain.Category `gorm:"foreignKey:ProductCategoryID" json:"product_category"`
+	Sequence          int                      `gorm:"type:int;default:0" json:"sequence"`
 	CreatedAt         time.Time                `json:"created_at"`
 	UpdatedAt         time.Time                `json:"updated_at"`
 	DeletedAt         gorm.DeletedAt           `gorm:"index" json:"deleted_at,omitempty"`
@@ -149,6 +151,7 @@ type ExpenseRepository interface {
 	UpdateCategory(ctx context.Context, category *ExpenseCategory) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	HasAssociatedExpenses(ctx context.Context, categoryID uuid.UUID) (bool, error)
+	ReorderCategories(ctx context.Context, items []request.ReorderItem) error
 
 	CreateExpenseTx(ctx context.Context, tx *gorm.DB, expense *Expense) error
 	CreateExpenseItemsTx(ctx context.Context, tx *gorm.DB, items []ExpenseItem) error
@@ -172,6 +175,7 @@ type ExpenseUsecase interface {
 	FindAllCategories(ctx context.Context, group string) ([]ExpenseCategory, error)
 	UpdateCategory(ctx context.Context, category *ExpenseCategory) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
+	ReorderCategories(ctx context.Context, items []request.ReorderItem) error
 
 	CreateExpense(ctx context.Context, expense *Expense) error
 	PayInstallment(ctx context.Context, expenseID uuid.UUID, cashierID uuid.UUID, payments []ExpensePayment) error

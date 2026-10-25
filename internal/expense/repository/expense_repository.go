@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/expense/domain"
+	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -42,7 +43,7 @@ func (r *expenseRepository) FindAllCategories(ctx context.Context, group string)
 	if group != "" {
 		db = db.Where(`"group" = ?`, group)
 	}
-	if err := db.Find(&categories).Error; err != nil {
+	if err := db.Order("sequence ASC, created_at ASC").Find(&categories).Error; err != nil {
 		return nil, err
 	}
 	return categories, nil
@@ -62,6 +63,31 @@ func (r *expenseRepository) HasAssociatedExpenses(ctx context.Context, categoryI
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func (r *expenseRepository) ReorderCategories(ctx context.Context, items []request.ReorderItem) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Update sequence as requested
+		for _, item := range items {
+			if err := tx.Model(&domain.ExpenseCategory{}).Where("id = ?", item.ID).Update("sequence", item.Sequence).Error; err != nil {
+				return err
+			}
+		}
+
+		// Brute-force Auto Resync
+		var categories []domain.ExpenseCategory
+		if err := tx.Order("sequence ASC, created_at DESC").Find(&categories).Error; err != nil {
+			return err
+		}
+
+		for i, c := range categories {
+			if err := tx.Model(&domain.ExpenseCategory{}).Where("id = ?", c.ID).Update("sequence", i+1).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 func (r *expenseRepository) CreateExpenseTx(ctx context.Context, tx *gorm.DB, expense *domain.Expense) error {

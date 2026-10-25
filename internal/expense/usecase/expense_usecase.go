@@ -8,6 +8,7 @@ import (
 
 	cfDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/expense/domain"
+	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -78,6 +79,10 @@ func (u *expenseUsecase) DeleteCategory(ctx context.Context, id uuid.UUID) error
 		return errors.New("cannot delete category with associated expenses")
 	}
 	return u.repo.DeleteCategory(ctx, id)
+}
+
+func (u *expenseUsecase) ReorderCategories(ctx context.Context, items []request.ReorderItem) error {
+	return u.repo.ReorderCategories(ctx, items)
 }
 
 func (u *expenseUsecase) CreateExpense(ctx context.Context, expense *domain.Expense) error {

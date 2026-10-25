@@ -10,12 +10,14 @@ type CreateCategoryReq struct {
 	Name              string     `json:"name"`
 	Group             string     `json:"group"`
 	ProductCategoryID *uuid.UUID `json:"product_category_id"`
+	Sequence          int        `json:"sequence,omitempty"`
 }
 
 type UpdateCategoryReq struct {
 	Name              string     `json:"name"`
 	Group             string     `json:"group"`
 	ProductCategoryID *uuid.UUID `json:"product_category_id"`
+	Sequence          int        `json:"sequence,omitempty"`
 }
 
 type CreateExpenseReq struct {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/expense/delivery/http/dto"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/expense/domain"
+	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/response"
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
@@ -32,6 +33,7 @@ func (h *ExpenseHandler) CreateCategory(c fiber.Ctx) error {
 		Name:              req.Name,
 		Group:             req.Group,
 		ProductCategoryID: req.ProductCategoryID,
+		Sequence:          req.Sequence,
 	}
 
 	if err := h.usecase.CreateCategory(c.Context(), category); err != nil {
@@ -86,6 +88,9 @@ func (h *ExpenseHandler) UpdateCategory(c fiber.Ctx) error {
 	category.Name = req.Name
 	category.Group = req.Group
 	category.ProductCategoryID = req.ProductCategoryID
+	if req.Sequence > 0 {
+		category.Sequence = req.Sequence
+	}
 
 	if err := h.usecase.UpdateCategory(c.Context(), category); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to update expense category", err.Error())
@@ -106,6 +111,19 @@ func (h *ExpenseHandler) DeleteCategory(c fiber.Ctx) error {
 	}
 
 	return response.Success[any](c, "Expense category deleted successfully", nil, nil)
+}
+
+func (h *ExpenseHandler) ReorderCategories(c fiber.Ctx) error {
+	var req request.ReorderRequest
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	if err := h.usecase.ReorderCategories(c.Context(), req.Items); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to reorder expense categories", err.Error())
+	}
+
+	return response.Success[any](c, "Expense categories reordered successfully", nil, nil)
 }
 
 // --- EXPENSES ---
