@@ -16,6 +16,7 @@ type Supplier struct {
 	Phone       string         `gorm:"type:varchar(50)" json:"phone"`
 	Email       string         `gorm:"type:varchar(100)" json:"email"`
 	Address     string         `gorm:"type:text" json:"address"`
+	Sequence    int            `gorm:"type:int;default:0" json:"sequence"`
 	CreatedAt   time.Time      `json:"created_at"`
 	UpdatedAt   time.Time      `json:"updated_at"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
@@ -35,6 +36,7 @@ type SupplierRepository interface {
 	Update(ctx context.Context, supplier *Supplier) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	FindByName(ctx context.Context, name string) (*Supplier, error)
+	Reorder(ctx context.Context, items []request.ReorderItem) error
 }
 
 type SupplierUsecase interface {
@@ -43,4 +45,5 @@ type SupplierUsecase interface {
 	FindAll(ctx context.Context, params request.PaginationParam, search string) ([]Supplier, int64, error)
 	Update(ctx context.Context, supplier *Supplier) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	Reorder(ctx context.Context, items []request.ReorderItem) error
 }

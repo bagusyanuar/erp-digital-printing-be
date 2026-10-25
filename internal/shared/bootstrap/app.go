@@ -213,6 +213,7 @@ func (a *App) SetupRoutes() {
 	supplierRoutes := protected.Group("/suppliers")
 	supplierRoutes.Post("/", a.Container.SupplierHandler.Create)
 	supplierRoutes.Get("/", a.Container.SupplierHandler.FindAll)
+	supplierRoutes.Put("/reorder", a.Container.SupplierHandler.Reorder)
 	supplierRoutes.Get("/:id", a.Container.SupplierHandler.FindByID)
 	supplierRoutes.Put("/:id", a.Container.SupplierHandler.Update)
 	supplierRoutes.Delete("/:id", a.Container.SupplierHandler.Delete)

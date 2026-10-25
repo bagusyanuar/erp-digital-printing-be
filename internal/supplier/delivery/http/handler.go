@@ -31,6 +31,7 @@ func (h *SupplierHandler) Create(c fiber.Ctx) error {
 		Phone:       req.Phone,
 		Email:       req.Email,
 		Address:     req.Address,
+		Sequence:    req.Sequence,
 	}
 
 	if err := h.supplierUsecase.Create(c.Context(), supplier); err != nil {
@@ -102,6 +103,9 @@ func (h *SupplierHandler) Update(c fiber.Ctx) error {
 	supplier.Phone = req.Phone
 	supplier.Email = req.Email
 	supplier.Address = req.Address
+	if req.Sequence > 0 {
+		supplier.Sequence = req.Sequence
+	}
 
 	if err := h.supplierUsecase.Update(c.Context(), supplier); err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to update supplier", err.Error())
@@ -122,4 +126,17 @@ func (h *SupplierHandler) Delete(c fiber.Ctx) error {
 	}
 
 	return response.Success[any](c, "Supplier deleted successfully", nil, nil)
+}
+
+func (h *SupplierHandler) Reorder(c fiber.Ctx) error {
+	var req request.ReorderRequest
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	if err := h.supplierUsecase.Reorder(c.Context(), req.Items); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to reorder suppliers", err.Error())
+	}
+
+	return response.Success[any](c, "Suppliers reordered successfully", nil, nil)
 }

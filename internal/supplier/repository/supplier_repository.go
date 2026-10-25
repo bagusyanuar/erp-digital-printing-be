@@ -47,6 +47,7 @@ func (r *supplierRepository) FindAll(ctx context.Context, params request.Paginat
 
 	if err := db.Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
+		Order("sequence ASC").
 		Order(params.GetSort()).
 		Find(&suppliers).Error; err != nil {
 		return nil, 0, err
@@ -72,4 +73,29 @@ func (r *supplierRepository) FindByName(ctx context.Context, name string) (*doma
 		return nil, err
 	}
 	return &supplier, nil
+}
+
+func (r *supplierRepository) Reorder(ctx context.Context, items []request.ReorderItem) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Update sequence as requested
+		for _, item := range items {
+			if err := tx.Model(&domain.Supplier{}).Where("id = ?", item.ID).Update("sequence", item.Sequence).Error; err != nil {
+				return err
+			}
+		}
+
+		// Brute-force Auto Resync
+		var suppliers []domain.Supplier
+		if err := tx.Order("sequence ASC, created_at DESC").Find(&suppliers).Error; err != nil {
+			return err
+		}
+
+		for i, s := range suppliers {
+			if err := tx.Model(&domain.Supplier{}).Where("id = ?", s.ID).Update("sequence", i+1).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }

@@ -1,0 +1,32 @@
+meta {
+  name: Reorder Suppliers
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{base_url}}/suppliers/reorder
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "items": [
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "sequence": 1
+      },
+      {
+        "id": "00000000-0000-0000-0000-000000000000",
+        "sequence": 2
+      }
+    ]
+  }
+}
+
+docs {
+  # Reorder Suppliers
+  
+  Bulk update urutan / sequence supplier.
+}

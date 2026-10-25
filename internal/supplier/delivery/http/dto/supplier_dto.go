@@ -8,6 +8,7 @@ type CreateSupplierReq struct {
 	Phone       string `json:"phone"`
 	Email       string `json:"email"`
 	Address     string `json:"address"`
+	Sequence    int    `json:"sequence,omitempty"`
 }
 
 type UpdateSupplierReq struct {
@@ -16,6 +17,7 @@ type UpdateSupplierReq struct {
 	Phone       string `json:"phone"`
 	Email       string `json:"email"`
 	Address     string `json:"address"`
+	Sequence    int    `json:"sequence,omitempty"`
 }
 
 type SupplierRes struct {
@@ -25,6 +27,7 @@ type SupplierRes struct {
 	Phone       string    `json:"phone"`
 	Email       string    `json:"email"`
 	Address     string    `json:"address"`
+	Sequence    int       `json:"sequence"`
 	CreatedAt   string    `json:"created_at"`
 	UpdatedAt   string    `json:"updated_at"`
 }

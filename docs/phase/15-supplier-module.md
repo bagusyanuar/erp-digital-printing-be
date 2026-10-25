@@ -24,6 +24,7 @@ Implement the `suppliers` table to manage vendor master data, provide CRUD API e
 - [x] **Suppliers Routes:**
   - [x] `POST /api/v1/suppliers`
   - [x] `GET /api/v1/suppliers` (with search & pagination support)
+  - [x] `PUT /api/v1/suppliers/reorder`
   - [x] `GET /api/v1/suppliers/:id`
   - [x] `PUT /api/v1/suppliers/:id`
   - [x] `DELETE /api/v1/suppliers/:id`

@@ -72,3 +72,7 @@ func (u *supplierUsecase) Delete(ctx context.Context, id uuid.UUID) error {
 
 	return u.supplierRepo.Delete(ctx, id)
 }
+
+func (u *supplierUsecase) Reorder(ctx context.Context, items []request.ReorderItem) error {
+	return u.supplierRepo.Reorder(ctx, items)
+}
