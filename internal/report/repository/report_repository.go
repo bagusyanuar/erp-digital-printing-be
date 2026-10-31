@@ -260,3 +260,4 @@ func (r *reportRepository) GetMonthlyProfitLossTrend(ctx context.Context, months
 
 	return results, nil
 }
+
