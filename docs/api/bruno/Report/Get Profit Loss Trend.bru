@@ -1,0 +1,51 @@
+meta {
+  name: Get Profit Loss Trend
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/reports/profit-loss/trend?months=6
+  body: none
+  auth: inherit
+}
+
+params:query {
+  months: 6
+}
+
+docs {
+  # Get Profit Loss Trend (Tren Bulanan Laba Rugi)
+  
+  Mendapatkan data tren historis bulanan perbandingan Pendapatan, HPP Bahan Baku, Beban Operasional, dan Laba Bersih untuk visualisasi chart grafik di tab analitik.
+  
+  ### Query Parameters:
+  - `months`: Jumlah bulan historis yang ingin diambil (integer, opsional, default: 6, max: 24)
+  
+  ### Response Example (OK - 200)
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Profit loss trend fetched successfully",
+    "data": [
+      {
+        "month": "Mei 2026",
+        "period_date": "2026-05-01",
+        "pendapatan": 120000000,
+        "hpp": 62000000,
+        "opex": 31000000,
+        "laba_bersih": 27000000
+      },
+      {
+        "month": "Juni 2026",
+        "period_date": "2026-06-01",
+        "pendapatan": 135000000,
+        "hpp": 68000000,
+        "opex": 33000000,
+        "laba_bersih": 34000000
+      }
+    ]
+  }
+  ```
+}

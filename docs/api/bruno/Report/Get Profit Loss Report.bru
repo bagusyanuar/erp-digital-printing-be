@@ -1,0 +1,90 @@
+meta {
+  name: Get Profit Loss Report
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/reports/profit-loss?start_date=2026-10-01&end_date=2026-10-31
+  body: none
+  auth: inherit
+}
+
+params:query {
+  start_date: 2026-10-01
+  end_date: 2026-10-31
+}
+
+docs {
+  # Get Profit Loss Report (Laporan Laba Rugi)
+  
+  Mendapatkan ringkasan laporan laba rugi keuangan perusahaan yang mencakup:
+  1. **Pendapatan Usaha (Revenue)** per kategori produk
+  2. **Beban Pokok Penjualan (HPP / COGS)** bahan baku per kategori produk
+  3. **Laba Kotor (Gross Profit)** dan margin kotor (%)
+  4. **Beban Operasional (Operational Expenses)** per pos kategori biaya
+  5. **Laba Bersih (Net Profit)** dan margin bersih (%)
+  
+  ### Query Parameters:
+  - `start_date`: Tanggal awal periode (format YYYY-MM-DD, opsional, default: awal bulan berjalan)
+  - `end_date`: Tanggal akhir periode (format YYYY-MM-DD, opsional, default: akhir bulan berjalan)
+  
+  ### Response Example (OK - 200)
+  ```json
+  {
+    "code": 200,
+    "status": "OK",
+    "message": "Profit loss report fetched successfully",
+    "data": {
+      "period": "01/10/2026 s/d 31/10/2026",
+      "start_date": "2026-10-01",
+      "end_date": "2026-10-31",
+      "revenue": {
+        "title": "I. Pendapatan Usaha (Revenue)",
+        "items": [
+          {
+            "id": "e0b5f543-0c79-4504-893f-366a5e12ecaa",
+            "name": "Penjualan Banner & Spanduk",
+            "amount": 54000000,
+            "percentage": 37.2
+          }
+        ],
+        "total": 145200000
+      },
+      "cogs": {
+        "title": "II. Beban Pokok Penjualan (HPP / Biaya Bahan Baku)",
+        "items": [
+          {
+            "id": "e0b5f543-0c79-4504-893f-366a5e12ecaa",
+            "name": "Bahan Baku Banner & Spanduk",
+            "amount": 23020000,
+            "percentage": 15.9
+          }
+        ],
+        "total": 71400000
+      },
+      "gross_profit": {
+        "amount": 73800000,
+        "margin_percentage": 50.8
+      },
+      "operational_expenses": {
+        "title": "III. Beban Operasional (Operational Expenses)",
+        "items": [
+          {
+            "id": "11111111-2222-3333-4444-555555555555",
+            "name": "Gaji Karyawan & Upah Lembur Operator",
+            "amount": 18500000,
+            "percentage": 12.7
+          }
+        ],
+        "total": 34500000
+      },
+      "net_profit": {
+        "amount": 39300000,
+        "margin_percentage": 27.1,
+        "is_profit": true
+      }
+    }
+  }
+  ```
+}

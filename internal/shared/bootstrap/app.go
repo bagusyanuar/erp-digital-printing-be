@@ -231,6 +231,8 @@ func (a *App) SetupRoutes() {
 	// Report Routes
 	reportRoutes := protected.Group("/reports")
 	reportRoutes.Get("/sales/export", a.Container.ReportHandler.ExportSalesReport)
+	reportRoutes.Get("/profit-loss", a.Container.ReportHandler.GetProfitLoss)
+	reportRoutes.Get("/profit-loss/trend", a.Container.ReportHandler.GetProfitLossTrend)
 
 	// Dashboard Routes
 	dashboardRoutes := protected.Group("/dashboard")
