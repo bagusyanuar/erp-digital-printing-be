@@ -290,18 +290,31 @@ func (h *ExpenseHandler) FindAllExpenses(c fiber.Ctx) error {
 		}
 	}
 
+	productCategoryIDStr := c.Query("category_id", "")
+	if productCategoryIDStr == "" {
+		productCategoryIDStr = c.Query("product_category_id", "")
+	}
+	var productCategoryID *uuid.UUID
+	if productCategoryIDStr != "" {
+		parsed, err := uuid.Parse(productCategoryIDStr)
+		if err == nil && parsed != uuid.Nil {
+			productCategoryID = &parsed
+		}
+	}
+
 	search := c.Query("search", "")
 	status := c.Query("status", "")
 
 	filter := domain.ExpenseFilter{
-		StartDate:  startDate,
-		EndDate:    endDate,
-		Group:      group,
-		CategoryID: categoryID,
-		Search:     search,
-		Status:     status,
-		Page:       page,
-		Limit:      limit,
+		StartDate:         startDate,
+		EndDate:           endDate,
+		Group:             group,
+		CategoryID:        categoryID,
+		ProductCategoryID: productCategoryID,
+		Search:            search,
+		Status:            status,
+		Page:              page,
+		Limit:             limit,
 	}
 
 	expenses, total, err := h.usecase.FindAllExpenses(c.Context(), filter)
@@ -434,16 +447,29 @@ func (h *ExpenseHandler) GetWidgets(c fiber.Ctx) error {
 		}
 	}
 
+	productCategoryIDStr := c.Query("category_id", "")
+	if productCategoryIDStr == "" {
+		productCategoryIDStr = c.Query("product_category_id", "")
+	}
+	var productCategoryID *uuid.UUID
+	if productCategoryIDStr != "" {
+		parsed, err := uuid.Parse(productCategoryIDStr)
+		if err == nil && parsed != uuid.Nil {
+			productCategoryID = &parsed
+		}
+	}
+
 	search := c.Query("search", "")
 	status := c.Query("status", "")
 
 	filter := domain.ExpenseFilter{
-		StartDate:  startDate,
-		EndDate:    endDate,
-		Group:      group,
-		CategoryID: categoryID,
-		Search:     search,
-		Status:     status,
+		StartDate:         startDate,
+		EndDate:           endDate,
+		Group:             group,
+		CategoryID:        categoryID,
+		ProductCategoryID: productCategoryID,
+		Search:            search,
+		Status:            status,
 	}
 
 	widgets, err := h.usecase.GetWidgets(c.Context(), filter)
@@ -452,4 +478,81 @@ func (h *ExpenseHandler) GetWidgets(c fiber.Ctx) error {
 	}
 
 	return response.Success(c, "Expense widgets fetched successfully", widgets, nil)
+}
+
+func (h *ExpenseHandler) GetCategoryExpenses(c fiber.Ctx) error {
+	var params request.PaginationParam
+	if err := c.Bind().Query(&params); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid query parameters", err.Error())
+	}
+
+	search := c.Query("search", "")
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+	status := c.Query("status", "")
+	group := c.Query("group", "")
+
+	productCategoryIDStr := c.Query("category_id", "")
+	if productCategoryIDStr == "" {
+		productCategoryIDStr = c.Query("product_category_id", "")
+	}
+	var productCategoryID *uuid.UUID
+	if productCategoryIDStr != "" {
+		if cid, err := uuid.Parse(productCategoryIDStr); err == nil && cid != uuid.Nil {
+			productCategoryID = &cid
+		}
+	}
+
+	var startDate, endDate *time.Time
+	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
+	}
+
+	if startDateStr != "" && endDateStr != "" {
+		t1, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+		t2, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
+		if err1 != nil || err2 != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
+		}
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, time.Local)
+		startDate = &t1
+		endDate = &t2
+	}
+
+	data, total, err := h.usecase.GetCategoryExpenses(c.Context(), params, search, startDate, endDate, productCategoryID, group, status)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch category expenses", err.Error())
+	}
+
+	res := make([]dto.CategoryExpenseItemRes, len(data))
+	for i, item := range data {
+		res[i] = dto.CategoryExpenseItemRes{
+			ID:                  item.ID,
+			CategoryID:          item.CategoryID,
+			CategoryName:        item.CategoryName,
+			ExpenseCategoryID:   item.ExpenseCategoryID,
+			ExpenseCategoryName: item.ExpenseCategoryName,
+			Description:         item.Description,
+			TotalExpense:        item.TotalExpense,
+			ExpenseCount:        item.ExpenseCount,
+		}
+	}
+
+	limit := params.GetLimit()
+	totalPages := 1
+	if limit > 0 {
+		totalPages = int(math.Ceil(float64(total) / float64(limit)))
+	}
+
+	meta := response.Meta{
+		Pagination: &response.Pagination{
+			TotalItems:  total,
+			TotalPages:  totalPages,
+			CurrentPage: params.GetPage(),
+			Limit:       limit,
+		},
+	}
+
+	return response.Success(c, "Category expenses fetched successfully", res, meta)
 }

@@ -158,6 +158,10 @@ func (r *expenseRepository) FindAllExpenses(ctx context.Context, filter domain.E
 		// Filter expenses where at least one item belongs to the category
 		db = db.Where("id IN (SELECT expense_id FROM expense_items WHERE expense_category_id = ? AND deleted_at IS NULL)", *filter.CategoryID)
 	}
+	if filter.ProductCategoryID != nil {
+		// Filter expenses where at least one item belongs to the specified product category
+		db = db.Where("id IN (SELECT ei.expense_id FROM expense_items ei JOIN expense_categories ec ON ei.expense_category_id = ec.id WHERE ec.product_category_id = ? AND ei.deleted_at IS NULL AND ec.deleted_at IS NULL)", *filter.ProductCategoryID)
+	}
 	if filter.Group != "" {
 		// Filter expenses where at least one item belongs to a category with the specified group
 		db = db.Where("id IN (SELECT ei.expense_id FROM expense_items ei JOIN expense_categories ec ON ei.expense_category_id = ec.id WHERE ec.group = ? AND ei.deleted_at IS NULL AND ec.deleted_at IS NULL)", filter.Group)
@@ -298,6 +302,9 @@ func (r *expenseRepository) GetWidgets(ctx context.Context, filter domain.Expens
 	if filter.CategoryID != nil {
 		db = db.Where("id IN (SELECT expense_id FROM expense_items WHERE expense_category_id = ? AND deleted_at IS NULL)", *filter.CategoryID)
 	}
+	if filter.ProductCategoryID != nil {
+		db = db.Where("id IN (SELECT ei.expense_id FROM expense_items ei JOIN expense_categories ec ON ei.expense_category_id = ec.id WHERE ec.product_category_id = ? AND ei.deleted_at IS NULL AND ec.deleted_at IS NULL)", *filter.ProductCategoryID)
+	}
 	if filter.Group != "" {
 		db = db.Where("id IN (SELECT ei.expense_id FROM expense_items ei JOIN expense_categories ec ON ei.expense_category_id = ec.id WHERE ec.group = ? AND ei.deleted_at IS NULL AND ec.deleted_at IS NULL)", filter.Group)
 	}
@@ -315,6 +322,93 @@ func (r *expenseRepository) GetWidgets(ctx context.Context, filter domain.Expens
 	widgets.TransactionVolume = transactionVolume
 
 	return &widgets, nil
+}
+
+func (r *expenseRepository) GetCategoryExpenses(
+	ctx context.Context,
+	params request.PaginationParam,
+	search string,
+	startDate *time.Time,
+	endDate *time.Time,
+	productCategoryID *uuid.UUID,
+	group string,
+	status string,
+) ([]domain.CategoryExpenseItem, int64, error) {
+	query := r.db.WithContext(ctx).Table("expense_items ei").
+		Joins("JOIN expenses e ON e.id = ei.expense_id AND e.deleted_at IS NULL").
+		Joins("JOIN expense_categories ec ON ec.id = ei.expense_category_id AND ec.deleted_at IS NULL").
+		Joins("LEFT JOIN categories c ON c.id = ec.product_category_id AND c.deleted_at IS NULL").
+		Where("ei.deleted_at IS NULL").
+		Where("ec.id != '00000000-0000-0000-0000-000000000000'")
+
+	if startDate != nil {
+		query = query.Where("e.expense_date >= ?", *startDate)
+	}
+	if endDate != nil {
+		query = query.Where("e.expense_date <= ?", *endDate)
+	}
+
+	if status != "" {
+		statuses := strings.Split(status, ",")
+		var cleaned []string
+		for _, s := range statuses {
+			if trimmed := strings.TrimSpace(s); trimmed != "" {
+				cleaned = append(cleaned, trimmed)
+			}
+		}
+		if len(cleaned) > 0 {
+			query = query.Where("e.status IN ?", cleaned)
+		}
+	}
+
+	if group != "" {
+		query = query.Where("ec.group = ?", group)
+	}
+
+	if productCategoryID != nil && *productCategoryID != uuid.Nil {
+		query = query.Where("ec.product_category_id = ?", *productCategoryID)
+	}
+
+	if search != "" {
+		searchText := "%" + search + "%"
+		query = query.Where("(ec.name ILIKE ? OR ei.description ILIKE ? OR c.name ILIKE ?)", searchText, searchText, searchText)
+	}
+
+	groupQuery := query.Session(&gorm.Session{}).
+		Select(`
+			ec.id AS id,
+			ec.id AS expense_category_id,
+			ec.name AS expense_category_name,
+			c.id AS category_id,
+			COALESCE(c.name, 'Operasional / Umum') AS category_name,
+			COALESCE(MAX(NULLIF(ei.description, '')), '') AS description,
+			COALESCE(SUM(ei.amount), 0) AS total_expense,
+			COUNT(DISTINCT e.id) AS expense_count
+		`).
+		Group("ec.id, ec.name, c.id, c.name")
+
+	var total int64
+	countQuery := groupQuery.Session(&gorm.Session{})
+	if err := r.db.WithContext(ctx).Table("(?) AS grouped_records", countQuery).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	orderClause := "total_expense DESC"
+	if params.SortBy != "" {
+		orderClause = params.GetSort()
+	}
+
+	queryExec := groupQuery.Session(&gorm.Session{}).Order(orderClause)
+	if params.Limit != -1 {
+		queryExec = queryExec.Limit(params.GetLimit()).Offset(params.GetOffset())
+	}
+
+	var results []domain.CategoryExpenseItem
+	if err := queryExec.Scan(&results).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return results, total, nil
 }
 
 func processDiscount(expense *domain.Expense) {

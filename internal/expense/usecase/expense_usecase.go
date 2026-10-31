@@ -373,3 +373,7 @@ func (u *expenseUsecase) GetByProductCategory(ctx context.Context, startDate *ti
 func (u *expenseUsecase) GetWidgets(ctx context.Context, filter domain.ExpenseFilter) (*domain.ExpenseWidgetsRes, error) {
 	return u.repo.GetWidgets(ctx, filter)
 }
+
+func (u *expenseUsecase) GetCategoryExpenses(ctx context.Context, params request.PaginationParam, search string, startDate *time.Time, endDate *time.Time, productCategoryID *uuid.UUID, group string, status string) ([]domain.CategoryExpenseItem, int64, error) {
+	return u.repo.GetCategoryExpenses(ctx, params, search, startDate, endDate, productCategoryID, group, status)
+}

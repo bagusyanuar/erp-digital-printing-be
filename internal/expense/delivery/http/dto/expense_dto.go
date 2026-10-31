@@ -46,3 +46,14 @@ type PaymentReq struct {
 type PayInstallmentReq struct {
 	Payments []PaymentReq `json:"payments"`
 }
+
+type CategoryExpenseItemRes struct {
+	ID                  uuid.UUID  `json:"id"`
+	CategoryID          *uuid.UUID `json:"category_id"`
+	CategoryName        string     `json:"category_name"`
+	ExpenseCategoryID   uuid.UUID  `json:"expense_category_id"`
+	ExpenseCategoryName string     `json:"expense_category_name"`
+	Description         string     `json:"description"`
+	TotalExpense        float64    `json:"total_expense"`
+	ExpenseCount        int64      `json:"expense_count"`
+}

@@ -116,14 +116,15 @@ func (ep *ExpensePayment) BeforeCreate(tx *gorm.DB) error {
 }
 
 type ExpenseFilter struct {
-	StartDate  *time.Time
-	EndDate    *time.Time
-	Group      string // "PRODUCTION" or "OPERATIONAL"
-	CategoryID *uuid.UUID
-	Search     string
-	Status     string
-	Page       int
-	Limit      int
+	StartDate         *time.Time
+	EndDate           *time.Time
+	Group             string // "PRODUCTION" or "OPERATIONAL"
+	CategoryID        *uuid.UUID
+	ProductCategoryID *uuid.UUID
+	Search            string
+	Status            string
+	Page              int
+	Limit             int
 }
 
 type ExpenseSummaryRes struct {
@@ -142,6 +143,17 @@ type ExpenseByProductCategoryRes struct {
 	ProductCategoryID   *uuid.UUID `json:"product_category_id"`
 	ProductCategoryName string     `json:"product_category_name"`
 	TotalAmount         float64    `json:"total_amount"`
+}
+
+type CategoryExpenseItem struct {
+	ID                  uuid.UUID  `json:"id"`
+	CategoryID          *uuid.UUID `json:"category_id"`
+	CategoryName        string     `json:"category_name"`
+	ExpenseCategoryID   uuid.UUID  `json:"expense_category_id"`
+	ExpenseCategoryName string     `json:"expense_category_name"`
+	Description         string     `json:"description"`
+	TotalExpense        float64    `json:"total_expense"`
+	ExpenseCount        int64      `json:"expense_count"`
 }
 
 type ExpenseRepository interface {
@@ -165,6 +177,7 @@ type ExpenseRepository interface {
 	GetSummary(ctx context.Context, startDate *time.Time, endDate *time.Time) (*ExpenseSummaryRes, error)
 	GetByProductCategory(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]ExpenseByProductCategoryRes, error)
 	GetWidgets(ctx context.Context, filter ExpenseFilter) (*ExpenseWidgetsRes, error)
+	GetCategoryExpenses(ctx context.Context, params request.PaginationParam, search string, startDate *time.Time, endDate *time.Time, productCategoryID *uuid.UUID, group string, status string) ([]CategoryExpenseItem, int64, error)
 
 	GetDB() *gorm.DB
 }
@@ -186,4 +199,5 @@ type ExpenseUsecase interface {
 	GetSummary(ctx context.Context, startDate *time.Time, endDate *time.Time) (*ExpenseSummaryRes, error)
 	GetByProductCategory(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]ExpenseByProductCategoryRes, error)
 	GetWidgets(ctx context.Context, filter ExpenseFilter) (*ExpenseWidgetsRes, error)
+	GetCategoryExpenses(ctx context.Context, params request.PaginationParam, search string, startDate *time.Time, endDate *time.Time, productCategoryID *uuid.UUID, group string, status string) ([]CategoryExpenseItem, int64, error)
 }

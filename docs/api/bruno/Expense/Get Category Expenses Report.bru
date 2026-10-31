@@ -1,0 +1,66 @@
+meta {
+  name: Get Category Expenses Report
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{base_url}}/expenses/reports/category-expenses?page=1&limit=10&search=&start_date=&end_date=&category_id=&group=&status=
+  body: none
+  auth: inherit
+}
+
+query {
+  page: 1
+  limit: 10
+  search: 
+  start_date: 
+  end_date: 
+  category_id: 
+  group: 
+  status: 
+}
+
+docs {
+  # Get Category Expenses Report
+  
+  Mendapatkan data akumulasi/rincian pengeluaran per pos biaya berdasarkan kategori produk (untuk laporan pengeluaran by category) dengan pagination dan filter.
+  
+  ### Query Parameters:
+  - `page`: Nomor halaman (default: 1)
+  - `limit`: Jumlah data per halaman (default: 10, gunakan `-1` untuk semua data)
+  - `search`: Kata kunci pencarian nama pos biaya, keterangan, atau nama kategori produk
+  - `category_id`: Filter berdasarkan Category ID produk (`categories.id`)
+  - `group`: Filter kelompok kategori (`PRODUCTION` atau `OPERATIONAL`)
+  - `status`: Filter status pembayaran pengeluaran (contoh: `PAID`, `PARTIAL`, `UNPAID`)
+  - `start_date`: Tanggal awal transaksi (YYYY-MM-DD)
+  - `end_date`: Tanggal akhir transaksi (YYYY-MM-DD)
+  
+  ### Response Example:
+  ```json
+  {
+    "message": "Category expenses fetched successfully",
+    "data": [
+      {
+        "id": "e67eb9fe-bb8b-4bf1-83c7-cf176aa23078",
+        "category_id": "0b4352e8-c57b-488d-a417-a0684bfbf226",
+        "category_name": "Banner & Spanduk",
+        "expense_category_id": "e67eb9fe-bb8b-4bf1-83c7-cf176aa23078",
+        "expense_category_name": "Bahan Flexi & Frontlite",
+        "description": "Pengadaan bahan gulungan Flexi China 280gr",
+        "total_expense": 16200000,
+        "expense_count": 10
+      }
+    ],
+    "meta": {
+      "pagination": {
+        "total_items": 1,
+        "total_pages": 1,
+        "current_page": 1,
+        "limit": 10
+      }
+    }
+  }
+  ```
+}
+
