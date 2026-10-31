@@ -414,6 +414,12 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 				if item.ProductVariant.Product.Name != "" {
 					itemRes.ProductName = item.ProductVariant.Product.Name
 				}
+				if item.ProductVariant.Product.CategoryID != uuid.Nil {
+					itemRes.CategoryID = &item.ProductVariant.Product.CategoryID
+					if item.ProductVariant.Product.Category.Name != "" {
+						itemRes.CategoryName = item.ProductVariant.Product.Category.Name
+					}
+				}
 			}
 
 			if len(item.Finishings) > 0 {

@@ -37,6 +37,7 @@ func (r *orderRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.O
 		Preload("OrderItems").
 		Preload("OrderItems.ProductVariant").
 		Preload("OrderItems.ProductVariant.Product").
+		Preload("OrderItems.ProductVariant.Product.Category").
 		Preload("OrderItems.Finishings").
 		Preload("OrderPayments").
 		Preload("OrderPayments.Cashier").
@@ -140,6 +141,7 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 		Preload("OrderItems").
 		Preload("OrderItems.ProductVariant").
 		Preload("OrderItems.ProductVariant.Product").
+		Preload("OrderItems.ProductVariant.Product.Category").
 		Preload("OrderItems.Finishings").
 		Preload("OrderPayments").
 		Preload("OrderPayments.Cashier").

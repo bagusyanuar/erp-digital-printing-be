@@ -50,10 +50,12 @@ type FinishingRes struct {
 }
 
 type OrderItemRes struct {
-	ID              uuid.UUID      `json:"id"`
-	ProductVariantID uuid.UUID     `json:"product_variant_id"`
+	ID               uuid.UUID      `json:"id"`
+	ProductVariantID uuid.UUID      `json:"product_variant_id"`
 	ProductName      string         `json:"product_name"`
 	VariantName      string         `json:"variant_name"`
+	CategoryID       *uuid.UUID     `json:"category_id,omitempty"`
+	CategoryName     string         `json:"category_name,omitempty"`
 	UOM              string         `json:"uom"`
 	LengthM          *float64       `json:"length_m,omitempty"`
 	WidthM           *float64       `json:"width_m,omitempty"`
