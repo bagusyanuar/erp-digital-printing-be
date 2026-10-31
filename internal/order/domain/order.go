@@ -143,6 +143,7 @@ type SalesReportWidgetsRes struct {
 	OmsetPenjualan     float64 `json:"omset_penjualan"`
 	VolumeTransaksi    int64   `json:"volume_transaksi"`
 	TotalProdukTerjual int64   `json:"total_produk_terjual"`
+	TotalItemSKU       int64   `json:"total_item_sku"`
 	LunasCount         int64   `json:"lunas_count"`
 	BelumLunasCount    int64   `json:"belum_lunas_count"`
 }

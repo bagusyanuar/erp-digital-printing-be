@@ -437,8 +437,13 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 		return nil, err
 	}
 
-	// 3. Get TotalProdukTerjual (SUM of order_items.quantity)
-	var totalProdukTerjual int64
+	// 3. Get TotalProdukTerjual (SUM of order_items.quantity) & TotalItemSKU (COUNT of distinct product_variants)
+	type itemAggResult struct {
+		TotalQty int64 `gorm:"column:total_qty"`
+		TotalSKU int64 `gorm:"column:total_sku"`
+	}
+	var itemAgg itemAggResult
+
 	qtyQuery := query.Session(&gorm.Session{}).
 		Joins("JOIN order_items ON order_items.order_id = orders.id").
 		Where("order_items.deleted_at IS NULL")
@@ -450,7 +455,7 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 			Where("p.category_id = ?", *categoryID)
 	}
 
-	err = qtyQuery.Select("COALESCE(SUM(order_items.quantity), 0)").Scan(&totalProdukTerjual).Error
+	err = qtyQuery.Select("COALESCE(SUM(order_items.quantity), 0) AS total_qty, COUNT(DISTINCT order_items.product_variant_id) AS total_sku").Scan(&itemAgg).Error
 	if err != nil {
 		return nil, err
 	}
@@ -476,7 +481,8 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 	return &domain.SalesReportWidgetsRes{
 		OmsetPenjualan:     omset,
 		VolumeTransaksi:    volumeTransaksi,
-		TotalProdukTerjual: totalProdukTerjual,
+		TotalProdukTerjual: itemAgg.TotalQty,
+		TotalItemSKU:       itemAgg.TotalSKU,
 		LunasCount:         lunasCount,
 		BelumLunasCount:    belumLunasCount,
 	}, nil

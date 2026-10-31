@@ -865,6 +865,7 @@ func (h *OrderHandler) GetSalesReportWidgets(c fiber.Ctx) error {
 		OmsetPenjualan:     data.OmsetPenjualan,
 		VolumeTransaksi:    data.VolumeTransaksi,
 		TotalProdukTerjual: data.TotalProdukTerjual,
+		TotalItemSKU:       data.TotalItemSKU,
 		LunasCount:         data.LunasCount,
 		BelumLunasCount:    data.BelumLunasCount,
 	}
