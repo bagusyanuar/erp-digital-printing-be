@@ -196,8 +196,8 @@ func (u *orderUsecase) FindByID(ctx context.Context, id uuid.UUID) (*orderDomain
 	return u.orderRepo.FindByID(ctx, id)
 }
 
-func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]orderDomain.Order, int64, error) {
-	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]orderDomain.Order, int64, error) {
+	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 }
 
 func (u *orderUsecase) ProcessPayment(
@@ -328,7 +328,7 @@ func (u *orderUsecase) ProcessPayment(
 		orders, _, err := u.orderRepo.FindAll(ctx, params, []string{
 			orderDomain.StatusInProduction,
 			orderDomain.StatusReadyForPickup,
-		}, nil, nil, nil, nil, "", nil, nil, "")
+		}, nil, nil, nil, nil, "", nil, nil, "", "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch outstanding orders for credit limit validation: %w", err)
 		}
@@ -354,7 +354,11 @@ func (u *orderUsecase) ProcessPayment(
 	order.Status = orderDomain.StatusInProduction
 
 	// Generate INV Number
-	monthStr := time.Now().Format("200601")
+	now := time.Now()
+	if order.InvoicedAt == nil {
+		order.InvoicedAt = &now
+	}
+	monthStr := now.Format("200601")
 	seq, err := u.orderRepo.GetNextInvSeq(ctx, monthStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate invoice number: %w", err)
@@ -601,6 +605,14 @@ func (u *orderUsecase) UpdateStatus(ctx context.Context, id uuid.UUID, newStatus
 		}
 	}
 
+	if newStatus == orderDomain.StatusCancelled {
+		if order.AmountPaid > 0 || order.PaymentStatus != orderDomain.PaymentStatusUnpaid {
+			return nil, fmt.Errorf("cannot cancel order: payment has already been made, please use refund instead")
+		}
+		now := time.Now()
+		order.CancelledAt = &now
+	}
+
 	order.Status = newStatus
 	if err := u.orderRepo.Update(ctx, order); err != nil {
 		return nil, fmt.Errorf("failed to update order status: %w", err)
@@ -712,20 +724,20 @@ func (u *orderUsecase) UpdateDraft(ctx context.Context, id uuid.UUID, orderReq *
 	return order, nil
 }
 
-func (u *orderUsecase) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*orderDomain.OrderReportsWidgetsRes, error) {
-	return u.orderRepo.GetReportsWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+func (u *orderUsecase) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*orderDomain.OrderReportsWidgetsRes, error) {
+	return u.orderRepo.GetReportsWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 }
 
-func (u *orderUsecase) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*orderDomain.SalesReportWidgetsRes, error) {
-	return u.orderRepo.GetSalesReportWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+func (u *orderUsecase) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*orderDomain.SalesReportWidgetsRes, error) {
+	return u.orderRepo.GetSalesReportWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 }
 
-func (u *orderUsecase) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]orderDomain.SalesTrendItem, error) {
-	return u.orderRepo.GetSalesTrend(ctx, trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+func (u *orderUsecase) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]orderDomain.SalesTrendItem, error) {
+	return u.orderRepo.GetSalesTrend(ctx, trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 }
 
-func (u *orderUsecase) GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]orderDomain.CategorySalesItem, error) {
-	return u.orderRepo.GetCategorySales(ctx, startDate, endDate)
+func (u *orderUsecase) GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time, dateBy string) ([]orderDomain.CategorySalesItem, error) {
+	return u.orderRepo.GetCategorySales(ctx, startDate, endDate, dateBy)
 }
 
 func (u *orderUsecase) GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]orderDomain.PaymentMethodSalesItem, error) {
@@ -827,5 +839,40 @@ func (u *orderUsecase) Refund(
 	}
 	return order, nil
 }
+
+func (u *orderUsecase) Cancel(ctx context.Context, id uuid.UUID, reason string) (*orderDomain.Order, error) {
+	order, err := u.orderRepo.FindByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("order not found: %w", err)
+	}
+
+	if order.Status == orderDomain.StatusCancelled {
+		return nil, errors.New("order is already cancelled")
+	}
+
+	if order.Status != orderDomain.StatusDraft && order.Status != orderDomain.StatusPendingPayment {
+		return nil, fmt.Errorf("cannot cancel order in %s status", order.Status)
+	}
+
+	if order.AmountPaid > 0 || order.PaymentStatus != orderDomain.PaymentStatusUnpaid {
+		return nil, errors.New("cannot cancel order: payment has already been made, please use refund instead")
+	}
+
+	now := time.Now()
+	order.Status = orderDomain.StatusCancelled
+	order.CancelReason = &reason
+	order.CancelledAt = &now
+
+	if err := u.orderRepo.Update(ctx, order); err != nil {
+		return nil, fmt.Errorf("failed to cancel order: %w", err)
+	}
+
+	updatedOrder, err := u.orderRepo.FindByID(ctx, order.ID)
+	if err == nil {
+		return updatedOrder, nil
+	}
+	return order, nil
+}
+
 
 

@@ -1,0 +1,39 @@
+meta {
+  name: Cancel Order
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{base_url}}/orders/:id/cancel
+  body: json
+  auth: inherit
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
+body:json {
+  {
+    "reason": "Customer membatalkan pesanan sebelum pembayaran"
+  }
+}
+
+docs {
+  # Cancel Order
+
+  Membatalkan order yang belum dibayar (tanpa DP/cicilan).
+
+  ### Ketentuan:
+  - Hanya dapat dibatalkan jika status order masih `DRAFT` atau `PENDING_PAYMENT`.
+  - Belum ada pembayaran yang masuk (`amount_paid == 0` dan `payment_status == UNPAID`).
+  - Jika sudah ada pembayaran, sistem akan menolak dan mengarahkan ke flow `Refund`.
+
+  ### Path Parameters:
+  - `id`: UUID Order (Required)
+
+  ### Request Body:
+  - `reason`: Alasan pembatalan (Required)
+}
+

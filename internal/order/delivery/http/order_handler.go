@@ -242,6 +242,7 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 	startDateStr := c.Query("start_date", "")
 	endDateStr := c.Query("end_date", "")
 	customerType := c.Query("customer_type", "")
+	dateBy := c.Query("date_by", "created")
 
 	var startDate, endDate *time.Time
 	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
@@ -260,7 +261,7 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch orders", err.Error())
 	}
@@ -342,6 +343,7 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 		TotalProductPrice:    o.TotalProductPrice,
 		GrandTotal:           o.GrandTotal,
 		AmountPaid:           o.AmountPaid,
+		CancelReason:         o.CancelReason,
 		CreatedAt:            o.CreatedAt.Format("2006-01-02 15:04:05"),
 		UpdatedAt:            o.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}
@@ -360,6 +362,16 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 
 	if o.Designer != nil {
 		res.DesignerName = o.Designer.Username
+	}
+
+	if o.CancelledAt != nil {
+		cancelledAtStr := o.CancelledAt.Format("2006-01-02 15:04:05")
+		res.CancelledAt = &cancelledAtStr
+	}
+
+	if o.InvoicedAt != nil {
+		invoicedAtStr := o.InvoicedAt.Format("2006-01-02 15:04:05")
+		res.InvoicedAt = &invoicedAtStr
 	}
 
 	if o.Cashier != nil {
@@ -720,6 +732,7 @@ func (h *OrderHandler) GetReportsWidgets(c fiber.Ctx) error {
 	startDateStr := c.Query("start_date", "")
 	endDateStr := c.Query("end_date", "")
 	customerType := c.Query("customer_type", "")
+	dateBy := c.Query("date_by", "created")
 
 	var startDate, endDate *time.Time
 	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
@@ -738,7 +751,7 @@ func (h *OrderHandler) GetReportsWidgets(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	data, err := h.orderUsecase.GetReportsWidgets(c.Context(), statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+	data, err := h.orderUsecase.GetReportsWidgets(c.Context(), statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch reports widgets", err.Error())
 	}
@@ -804,6 +817,7 @@ func (h *OrderHandler) GetSalesReportWidgets(c fiber.Ctx) error {
 	startDateStr := c.Query("start_date", "")
 	endDateStr := c.Query("end_date", "")
 	customerType := c.Query("customer_type", "")
+	dateBy := c.Query("date_by", "created")
 
 	var startDate, endDate *time.Time
 	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
@@ -822,7 +836,7 @@ func (h *OrderHandler) GetSalesReportWidgets(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	data, err := h.orderUsecase.GetSalesReportWidgets(c.Context(), statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+	data, err := h.orderUsecase.GetSalesReportWidgets(c.Context(), statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch sales report widgets", err.Error())
 	}
@@ -895,6 +909,7 @@ func (h *OrderHandler) GetSalesTrend(c fiber.Ctx) error {
 	startDateStr := c.Query("start_date", "")
 	endDateStr := c.Query("end_date", "")
 	customerType := c.Query("customer_type", "")
+	dateBy := c.Query("date_by", "created")
 
 	var startDate, endDate *time.Time
 	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
@@ -913,7 +928,7 @@ func (h *OrderHandler) GetSalesTrend(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	data, err := h.orderUsecase.GetSalesTrend(c.Context(), trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType)
+	data, err := h.orderUsecase.GetSalesTrend(c.Context(), trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch sales trend", err.Error())
 	}
@@ -932,6 +947,7 @@ func (h *OrderHandler) GetSalesTrend(c fiber.Ctx) error {
 func (h *OrderHandler) GetCategorySales(c fiber.Ctx) error {
 	startDateStr := c.Query("start_date", "")
 	endDateStr := c.Query("end_date", "")
+	dateBy := c.Query("date_by", "created")
 
 	var startDate, endDate *time.Time
 	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
@@ -950,7 +966,7 @@ func (h *OrderHandler) GetCategorySales(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	data, err := h.orderUsecase.GetCategorySales(c.Context(), startDate, endDate)
+	data, err := h.orderUsecase.GetCategorySales(c.Context(), startDate, endDate, dateBy)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch category sales", err.Error())
 	}
@@ -1031,6 +1047,27 @@ func (h *OrderHandler) Refund(c fiber.Ctx) error {
 
 	return response.Success(c, "Refund processed successfully", mapOrderToRes(order), nil)
 }
+
+func (h *OrderHandler) CancelOrder(c fiber.Ctx) error {
+	idStr := c.Params("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid order ID", err.Error())
+	}
+
+	var req dto.CancelOrderReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	order, err := h.orderUsecase.Cancel(c.Context(), id, req.Reason)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Failed to cancel order", err.Error())
+	}
+
+	return response.Success(c, "Order cancelled successfully", mapOrderToRes(order), nil)
+}
+
 
 
 

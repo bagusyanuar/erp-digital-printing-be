@@ -102,6 +102,9 @@ type OrderRes struct {
 	Status              string            `json:"status"`
 	PaymentStatus       string            `json:"payment_status"`
 	Notes               *string           `json:"notes,omitempty"`
+	CancelReason        *string           `json:"cancel_reason,omitempty"`
+	CancelledAt         *string           `json:"cancelled_at,omitempty"`
+	InvoicedAt          *string           `json:"invoiced_at,omitempty"`
 	TotalAdditionalCost float64           `json:"total_additional_cost"`
 	TotalProductPrice   float64           `json:"total_product_price"`
 	GrandTotal          float64           `json:"grand_total"`
@@ -139,6 +142,10 @@ type RefundReq struct {
 	PaymentMethod string  `json:"payment_method" validate:"required,oneof=cash qris transfer tempo"`
 	Amount        float64 `json:"amount" validate:"required,numeric,gt=0"`
 	Reason        string  `json:"reason" validate:"omitempty"`
+}
+
+type CancelOrderReq struct {
+	Reason string `json:"reason" validate:"required"`
 }
 
 type SalesTrendItemRes struct {

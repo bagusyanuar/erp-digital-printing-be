@@ -63,7 +63,7 @@ func (r *orderRepository) FindByIDWithCategoryPreload(ctx context.Context, id uu
 	return &order, nil
 }
 
-func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]domain.Order, int64, error) {
+func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]domain.Order, int64, error) {
 	var orders []domain.Order
 	var total int64
 
@@ -96,7 +96,11 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 	}
 
 	if startDate != nil && endDate != nil {
-		query = query.Where("orders.created_at BETWEEN ? AND ?", startDate, endDate)
+		dateCol := "orders.created_at"
+		if dateBy == "invoice" {
+			dateCol = "COALESCE(orders.invoiced_at, orders.created_at)"
+		}
+		query = query.Where(fmt.Sprintf("%s BETWEEN ? AND ?", dateCol), startDate, endDate)
 	}
 
 	switch customerType {
@@ -249,7 +253,7 @@ func (r *orderRepository) ReplaceItems(ctx context.Context, orderID uuid.UUID, i
 	})
 }
 
-func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*domain.OrderReportsWidgetsRes, error) {
+func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*domain.OrderReportsWidgetsRes, error) {
 	query := r.db.WithContext(ctx).Model(&domain.Order{})
 
 	if len(statuses) > 0 {
@@ -281,7 +285,11 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 	}
 
 	if startDate != nil && endDate != nil {
-		query = query.Where("orders.created_at BETWEEN ? AND ?", startDate, endDate)
+		dateCol := "orders.created_at"
+		if dateBy == "invoice" {
+			dateCol = "COALESCE(orders.invoiced_at, orders.created_at)"
+		}
+		query = query.Where(fmt.Sprintf("%s BETWEEN ? AND ?", dateCol), startDate, endDate)
 	}
 
 	switch customerType {
@@ -324,7 +332,7 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 	}, nil
 }
 
-func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) (*domain.SalesReportWidgetsRes, error) {
+func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*domain.SalesReportWidgetsRes, error) {
 	query := r.db.WithContext(ctx).Model(&domain.Order{})
 
 	if len(statuses) > 0 {
@@ -356,7 +364,11 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 	}
 
 	if startDate != nil && endDate != nil {
-		query = query.Where("orders.created_at BETWEEN ? AND ?", startDate, endDate)
+		dateCol := "orders.created_at"
+		if dateBy == "invoice" {
+			dateCol = "COALESCE(orders.invoiced_at, orders.created_at)"
+		}
+		query = query.Where(fmt.Sprintf("%s BETWEEN ? AND ?", dateCol), startDate, endDate)
 	}
 
 	switch customerType {
@@ -418,7 +430,7 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 	}, nil
 }
 
-func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string) ([]domain.SalesTrendItem, error) {
+func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]domain.SalesTrendItem, error) {
 	subQuery := r.db.WithContext(ctx).Model(&domain.Order{})
 
 	if len(statuses) > 0 {
@@ -448,8 +460,15 @@ func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, s
 		subQuery = subQuery.Where("invoice_number ILIKE ? OR customer_name ILIKE ? OR job_number ILIKE ?", searchText, searchText, searchText)
 	}
 
+	dateCol := "orders.created_at"
+	dateTruncCol := "o.created_at"
+	if dateBy == "invoice" {
+		dateCol = "COALESCE(orders.invoiced_at, orders.created_at)"
+		dateTruncCol = "COALESCE(o.invoiced_at, o.created_at)"
+	}
+
 	if startDate != nil && endDate != nil {
-		subQuery = subQuery.Where("orders.created_at BETWEEN ? AND ?", startDate, endDate)
+		subQuery = subQuery.Where(fmt.Sprintf("%s BETWEEN ? AND ?", dateCol), startDate, endDate)
 	}
 
 	switch customerType {
@@ -487,7 +506,7 @@ func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, s
 	var results []domain.SalesTrendItem
 	err := r.db.WithContext(ctx).
 		Table(fmt.Sprintf("(SELECT %s) d", seriesSelect)).
-		Joins(fmt.Sprintf("LEFT JOIN (?) o ON date_trunc('%s', o.created_at) = d.period_start AND o.deleted_at IS NULL", truncField), subQuery).
+		Joins(fmt.Sprintf("LEFT JOIN (?) o ON date_trunc('%s', %s) = d.period_start AND o.deleted_at IS NULL", truncField, dateTruncCol), subQuery).
 		Select(fmt.Sprintf("%s AS label, COALESCE(SUM(o.grand_total), 0) AS total", labelExpr)).
 		Group(groupByExpr).
 		Order("d.period_start ASC").
@@ -500,15 +519,20 @@ func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, s
 	return results, nil
 }
 
-func (r *orderRepository) GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]domain.CategorySalesItem, error) {
+func (r *orderRepository) GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time, dateBy string) ([]domain.CategorySalesItem, error) {
 	query := r.db.WithContext(ctx).Table("categories c").
 		Select("c.id AS category_id, c.name AS category_name, COALESCE(SUM(oi.subtotal), 0) AS total_sales").
 		Joins("LEFT JOIN products p ON p.category_id = c.id AND p.deleted_at IS NULL").
 		Joins("LEFT JOIN product_variants pv ON pv.product_id = p.id AND pv.deleted_at IS NULL").
 		Joins("LEFT JOIN order_items oi ON oi.product_variant_id = pv.id AND oi.deleted_at IS NULL")
 
+	dateCol := "o.created_at"
+	if dateBy == "invoice" {
+		dateCol = "COALESCE(o.invoiced_at, o.created_at)"
+	}
+
 	if startDate != nil && endDate != nil {
-		query = query.Joins("LEFT JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL AND o.status NOT IN ('DRAFT', 'CANCELLED', 'REFUND') AND o.created_at BETWEEN ? AND ?", startDate, endDate)
+		query = query.Joins(fmt.Sprintf("LEFT JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL AND o.status NOT IN ('DRAFT', 'CANCELLED', 'REFUND') AND %s BETWEEN ? AND ?", dateCol), startDate, endDate)
 	} else {
 		query = query.Joins("LEFT JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL AND o.status NOT IN ('DRAFT', 'CANCELLED', 'REFUND')")
 	}
