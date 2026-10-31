@@ -51,11 +51,16 @@ func (r *resellerRepository) FindAll(ctx context.Context, params request.Paginat
 
 	subquery := "(SELECT COALESCE(SUM(grand_total - amount_paid), 0) FROM orders WHERE orders.reseller_id = resellers.id AND orders.payment_status IN ('UNPAID', 'PARTIAL_PAID') AND orders.status != 'CANCELLED')"
 
+	orderClause := "LOWER(resellers.name) ASC"
+	if params.SortBy != "" {
+		orderClause = params.GetSort()
+	}
+
 	if err := db.Select("resellers.*, " + subquery + " AS outstanding_debt").
 		Preload("CustomerLevel").
 		Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
-		Order(params.GetSort()).
+		Order(orderClause).
 		Find(&resellers).Error; err != nil {
 		return nil, 0, err
 	}
