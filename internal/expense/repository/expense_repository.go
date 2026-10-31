@@ -284,42 +284,59 @@ func (r *expenseRepository) GetWidgets(ctx context.Context, filter domain.Expens
 	widgets.RemainingDebt = remainingDebt
 
 	// 2. Query total_expense and transaction_volume with filters
-	db := r.db.WithContext(ctx).Model(&domain.Expense{})
+	itemQuery := r.db.WithContext(ctx).Table("expense_items ei").
+		Joins("JOIN expenses e ON e.id = ei.expense_id AND e.deleted_at IS NULL").
+		Joins("JOIN expense_categories ec ON ec.id = ei.expense_category_id AND ec.deleted_at IS NULL").
+		Where("ei.deleted_at IS NULL").
+		Where("ec.id != '00000000-0000-0000-0000-000000000000'")
 
 	if filter.Search != "" {
-		db = db.Where("expense_number ILIKE ? OR vendor_name ILIKE ? OR invoice_number ILIKE ?", "%"+filter.Search+"%", "%"+filter.Search+"%", "%"+filter.Search+"%")
+		itemQuery = itemQuery.Where("(e.expense_number ILIKE ? OR e.vendor_name ILIKE ? OR e.invoice_number ILIKE ? OR ec.name ILIKE ? OR ei.description ILIKE ?)", "%"+filter.Search+"%", "%"+filter.Search+"%", "%"+filter.Search+"%", "%"+filter.Search+"%", "%"+filter.Search+"%")
 	}
 	if filter.Status != "" {
 		statuses := strings.Split(filter.Status, ",")
-		db = db.Where("status IN ?", statuses)
+		var cleaned []string
+		for _, s := range statuses {
+			if trimmed := strings.TrimSpace(s); trimmed != "" {
+				cleaned = append(cleaned, trimmed)
+			}
+		}
+		if len(cleaned) > 0 {
+			itemQuery = itemQuery.Where("e.status IN ?", cleaned)
+		}
 	}
 	if filter.StartDate != nil {
-		db = db.Where("expense_date >= ?", *filter.StartDate)
+		itemQuery = itemQuery.Where("e.expense_date >= ?", *filter.StartDate)
 	}
 	if filter.EndDate != nil {
-		db = db.Where("expense_date <= ?", *filter.EndDate)
+		itemQuery = itemQuery.Where("e.expense_date <= ?", *filter.EndDate)
 	}
 	if filter.CategoryID != nil {
-		db = db.Where("id IN (SELECT expense_id FROM expense_items WHERE expense_category_id = ? AND deleted_at IS NULL)", *filter.CategoryID)
+		itemQuery = itemQuery.Where("ei.expense_category_id = ?", *filter.CategoryID)
 	}
 	if filter.ProductCategoryID != nil {
-		db = db.Where("id IN (SELECT ei.expense_id FROM expense_items ei JOIN expense_categories ec ON ei.expense_category_id = ec.id WHERE ec.product_category_id = ? AND ei.deleted_at IS NULL AND ec.deleted_at IS NULL)", *filter.ProductCategoryID)
+		itemQuery = itemQuery.Where("ec.product_category_id = ?", *filter.ProductCategoryID)
 	}
 	if filter.Group != "" {
-		db = db.Where("id IN (SELECT ei.expense_id FROM expense_items ei JOIN expense_categories ec ON ei.expense_category_id = ec.id WHERE ec.group = ? AND ei.deleted_at IS NULL AND ec.deleted_at IS NULL)", filter.Group)
+		if filter.Group != "ALL" {
+			itemQuery = itemQuery.Where("ec.group = ?", filter.Group)
+		}
+	} else if filter.CategoryID == nil {
+		itemQuery = itemQuery.Where("ec.group = ?", domain.GroupProduction)
 	}
 
-	var totalExpense float64
-	if err := db.Select("COALESCE(SUM(amount), 0)").Row().Scan(&totalExpense); err != nil {
+	type widgetStats struct {
+		TotalExpense      float64 `gorm:"column:total_expense"`
+		TransactionVolume int64   `gorm:"column:transaction_volume"`
+	}
+	var stats widgetStats
+	err = itemQuery.Select("COALESCE(SUM(ei.amount), 0) AS total_expense, COUNT(DISTINCT e.id) AS transaction_volume").Scan(&stats).Error
+	if err != nil {
 		return nil, err
 	}
-	widgets.TotalExpense = totalExpense
 
-	var transactionVolume int64
-	if err := db.Count(&transactionVolume).Error; err != nil {
-		return nil, err
-	}
-	widgets.TransactionVolume = transactionVolume
+	widgets.TotalExpense = stats.TotalExpense
+	widgets.TransactionVolume = stats.TransactionVolume
 
 	return &widgets, nil
 }
