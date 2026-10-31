@@ -35,7 +35,8 @@ func (u *reportUsecase) ExportSalesReport(ctx context.Context, startDate *time.T
 
 	// Ambil data order tanpa batas (atau batas sangat besar, ex: 100000)
 	params := request.PaginationParam{Limit: 100000, Page: 1}
-	orders, _, err := u.orderRepo.FindAll(ctx, params, nil, nil, nil, nil, nil, "", startDate, endDate, "", "invoice")
+	isInvoiced := true
+	orders, _, err := u.orderRepo.FindAll(ctx, params, nil, nil, nil, nil, nil, "", startDate, endDate, "", "invoice", nil, &isInvoiced)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch orders: %w", err)
 	}

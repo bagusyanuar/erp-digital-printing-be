@@ -196,8 +196,8 @@ func (u *orderUsecase) FindByID(ctx context.Context, id uuid.UUID) (*orderDomain
 	return u.orderRepo.FindByID(ctx, id)
 }
 
-func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]orderDomain.Order, int64, error) {
-	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
+func (u *orderUsecase) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID, isInvoiced *bool) ([]orderDomain.Order, int64, error) {
+	return u.orderRepo.FindAll(ctx, params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy, categoryID, isInvoiced)
 }
 
 func (u *orderUsecase) ProcessPayment(
@@ -328,7 +328,7 @@ func (u *orderUsecase) ProcessPayment(
 		orders, _, err := u.orderRepo.FindAll(ctx, params, []string{
 			orderDomain.StatusInProduction,
 			orderDomain.StatusReadyForPickup,
-		}, nil, nil, nil, nil, "", nil, nil, "", "")
+		}, nil, nil, nil, nil, "", nil, nil, "", "", nil, nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch outstanding orders for credit limit validation: %w", err)
 		}
@@ -728,12 +728,12 @@ func (u *orderUsecase) GetReportsWidgets(ctx context.Context, statuses []string,
 	return u.orderRepo.GetReportsWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
 }
 
-func (u *orderUsecase) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*orderDomain.SalesReportWidgetsRes, error) {
-	return u.orderRepo.GetSalesReportWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
+func (u *orderUsecase) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) (*orderDomain.SalesReportWidgetsRes, error) {
+	return u.orderRepo.GetSalesReportWidgets(ctx, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy, categoryID)
 }
 
-func (u *orderUsecase) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]orderDomain.SalesTrendItem, error) {
-	return u.orderRepo.GetSalesTrend(ctx, trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
+func (u *orderUsecase) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) ([]orderDomain.SalesTrendItem, error) {
+	return u.orderRepo.GetSalesTrend(ctx, trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy, categoryID)
 }
 
 func (u *orderUsecase) GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time, dateBy string) ([]orderDomain.CategorySalesItem, error) {

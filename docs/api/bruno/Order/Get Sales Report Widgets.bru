@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{base_url}}/orders/reports/sales-widgets?status=&payment_status=&payment_method=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
+  url: {{base_url}}/orders/reports/sales-widgets?status=&payment_status=&payment_method=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=&category_id=&date_by=invoice
   body: none
   auth: inherit
 }
@@ -20,6 +20,8 @@ query {
   start_date: 
   end_date: 
   customer_type: 
+  category_id: 
+  date_by: invoice
 }
 
 docs {
@@ -28,6 +30,8 @@ docs {
   Mendapatkan data statistik ringkasan (widgets) khusus untuk halaman Laporan Penjualan berdasarkan filter.
   
   ### Query Parameters:
+  - `category_id`: Filter berdasarkan Category ID produk
+  - `date_by`: `invoice` atau `created` (default: `created`)
   - `status`: Filter berdasarkan status order (comma separated)
   - `payment_status`: Filter berdasarkan status pembayaran (comma separated)
   - `payment_method`: Filter berdasarkan metode pembayaran (comma separated)

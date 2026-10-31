@@ -244,6 +244,19 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 	customerType := c.Query("customer_type", "")
 	dateBy := c.Query("date_by", "created")
 
+	var categoryID *uuid.UUID
+	if categoryQuery := c.Query("category_id", ""); categoryQuery != "" {
+		if cid, err := uuid.Parse(categoryQuery); err == nil {
+			categoryID = &cid
+		}
+	}
+
+	var isInvoiced *bool
+	if isInvoicedQuery := c.Query("is_invoiced", ""); isInvoicedQuery != "" {
+		val := isInvoicedQuery == "true" || isInvoicedQuery == "1"
+		isInvoiced = &val
+	}
+
 	var startDate, endDate *time.Time
 	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
@@ -261,7 +274,7 @@ func (h *OrderHandler) FindAll(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
+	orders, total, err := h.orderUsecase.FindAll(c.Context(), params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy, categoryID, isInvoiced)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch orders", err.Error())
 	}
@@ -819,6 +832,13 @@ func (h *OrderHandler) GetSalesReportWidgets(c fiber.Ctx) error {
 	customerType := c.Query("customer_type", "")
 	dateBy := c.Query("date_by", "created")
 
+	var categoryID *uuid.UUID
+	if categoryQuery := c.Query("category_id", ""); categoryQuery != "" {
+		if cid, err := uuid.Parse(categoryQuery); err == nil {
+			categoryID = &cid
+		}
+	}
+
 	var startDate, endDate *time.Time
 	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
@@ -836,7 +856,7 @@ func (h *OrderHandler) GetSalesReportWidgets(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	data, err := h.orderUsecase.GetSalesReportWidgets(c.Context(), statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
+	data, err := h.orderUsecase.GetSalesReportWidgets(c.Context(), statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy, categoryID)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch sales report widgets", err.Error())
 	}
@@ -911,6 +931,13 @@ func (h *OrderHandler) GetSalesTrend(c fiber.Ctx) error {
 	customerType := c.Query("customer_type", "")
 	dateBy := c.Query("date_by", "created")
 
+	var categoryID *uuid.UUID
+	if categoryQuery := c.Query("category_id", ""); categoryQuery != "" {
+		if cid, err := uuid.Parse(categoryQuery); err == nil {
+			categoryID = &cid
+		}
+	}
+
 	var startDate, endDate *time.Time
 	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
@@ -928,7 +955,7 @@ func (h *OrderHandler) GetSalesTrend(c fiber.Ctx) error {
 		endDate = &t2
 	}
 
-	data, err := h.orderUsecase.GetSalesTrend(c.Context(), trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy)
+	data, err := h.orderUsecase.GetSalesTrend(c.Context(), trendType, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy, categoryID)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch sales trend", err.Error())
 	}

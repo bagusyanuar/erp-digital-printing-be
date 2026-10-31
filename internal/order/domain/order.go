@@ -168,7 +168,7 @@ type OrderRepository interface {
 	Create(ctx context.Context, order *Order) error
 	Update(ctx context.Context, order *Order) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]Order, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID, isInvoiced *bool) ([]Order, int64, error)
 	GetNextJobSeq(ctx context.Context, dateStr string) (int, error)
 	GetNextInvSeq(ctx context.Context, dateStr string) (int, error)
 	FindFinishingsByIDs(ctx context.Context, ids []uuid.UUID) ([]Finishing, error)
@@ -178,8 +178,8 @@ type OrderRepository interface {
 	CreatePayment(ctx context.Context, payment *OrderPayment) error
 	ReplaceItems(ctx context.Context, orderID uuid.UUID, items []OrderItem) error
 	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*OrderReportsWidgetsRes, error)
-	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*SalesReportWidgetsRes, error)
-	GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]SalesTrendItem, error)
+	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) (*SalesReportWidgetsRes, error)
+	GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) ([]SalesTrendItem, error)
 	GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time, dateBy string) ([]CategorySalesItem, error)
 	GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]PaymentMethodSalesItem, error)
 }
@@ -195,7 +195,7 @@ type OrderUsecase interface {
 	SubmitToCashier(ctx context.Context, order *Order) error
 	SubmitExistingToCashier(ctx context.Context, orderID uuid.UUID) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
-	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]Order, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID, isInvoiced *bool) ([]Order, int64, error)
 	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, payments []PaymentItem) (*Order, error)
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
@@ -204,8 +204,8 @@ type OrderUsecase interface {
 	UpdateStatus(ctx context.Context, id uuid.UUID, status string) (*Order, error)
 	UpdateDraft(ctx context.Context, id uuid.UUID, order *Order) (*Order, error)
 	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*OrderReportsWidgetsRes, error)
-	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*SalesReportWidgetsRes, error)
-	GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]SalesTrendItem, error)
+	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) (*SalesReportWidgetsRes, error)
+	GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) ([]SalesTrendItem, error)
 	GetCategorySales(ctx context.Context, startDate *time.Time, endDate *time.Time, dateBy string) ([]CategorySalesItem, error)
 	GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]PaymentMethodSalesItem, error)
 	Refund(ctx context.Context, id uuid.UUID, cashierID uuid.UUID, paymentMethod string, amount float64, reason string) (*Order, error)

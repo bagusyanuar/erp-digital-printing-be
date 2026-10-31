@@ -63,7 +63,7 @@ func (r *orderRepository) FindByIDWithCategoryPreload(ctx context.Context, id uu
 	return &order, nil
 }
 
-func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]domain.Order, int64, error) {
+func (r *orderRepository) FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID, isInvoiced *bool) ([]domain.Order, int64, error) {
 	var orders []domain.Order
 	var total int64
 
@@ -80,7 +80,6 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 	if len(paymentMethods) > 0 {
 		query = query.Where("EXISTS (SELECT 1 FROM order_payments WHERE order_payments.order_id = orders.id AND order_payments.payment_method IN ? AND order_payments.deleted_at IS NULL)", paymentMethods)
 	}
-
 
 	if designerID != nil && *designerID != uuid.Nil {
 		query = query.Where("designer_id = ?", *designerID)
@@ -108,6 +107,25 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 		query = query.Where("reseller_id IS NOT NULL")
 	case "end_user":
 		query = query.Where("reseller_id IS NULL")
+	}
+
+	if isInvoiced != nil {
+		if *isInvoiced {
+			query = query.Where("orders.invoice_number IS NOT NULL")
+		} else {
+			query = query.Where("orders.invoice_number IS NULL")
+		}
+	}
+
+	if categoryID != nil && *categoryID != uuid.Nil {
+		query = query.Where(`EXISTS (
+			SELECT 1 FROM order_items oi
+			JOIN product_variants pv ON pv.id = oi.product_variant_id AND pv.deleted_at IS NULL
+			JOIN products p ON p.id = pv.product_id AND p.deleted_at IS NULL
+			WHERE oi.order_id = orders.id 
+			  AND p.category_id = ? 
+			  AND oi.deleted_at IS NULL
+		)`, *categoryID)
 	}
 
 	err := query.Count(&total).Error
@@ -332,8 +350,11 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 	}, nil
 }
 
-func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*domain.SalesReportWidgetsRes, error) {
+func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) (*domain.SalesReportWidgetsRes, error) {
 	query := r.db.WithContext(ctx).Model(&domain.Order{})
+
+	// Sales reports only count invoiced orders
+	query = query.Where("orders.invoice_number IS NOT NULL")
 
 	if len(statuses) > 0 {
 		query = query.Where("status IN ?", statuses)
@@ -378,27 +399,58 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 		query = query.Where("reseller_id IS NULL")
 	}
 
-	// 1. Get OmsetPenjualan (SUM of grand_total)
+	if categoryID != nil && *categoryID != uuid.Nil {
+		query = query.Where(`EXISTS (
+			SELECT 1 FROM order_items oi
+			JOIN product_variants pv ON pv.id = oi.product_variant_id AND pv.deleted_at IS NULL
+			JOIN products p ON p.id = pv.product_id AND p.deleted_at IS NULL
+			WHERE oi.order_id = orders.id 
+			  AND p.category_id = ? 
+			  AND oi.deleted_at IS NULL
+		)`, *categoryID)
+	}
+
+	// 1. Get OmsetPenjualan
 	var omset float64
-	err := query.Select("COALESCE(SUM(grand_total), 0)").Scan(&omset).Error
-	if err != nil {
-		return nil, err
+	if categoryID != nil && *categoryID != uuid.Nil {
+		err := query.Session(&gorm.Session{}).
+			Joins("JOIN order_items oi ON oi.order_id = orders.id AND oi.deleted_at IS NULL").
+			Joins("JOIN product_variants pv ON pv.id = oi.product_variant_id AND pv.deleted_at IS NULL").
+			Joins("JOIN products p ON p.id = pv.product_id AND p.deleted_at IS NULL").
+			Where("p.category_id = ?", *categoryID).
+			Select("COALESCE(SUM(oi.subtotal), 0)").
+			Scan(&omset).Error
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := query.Session(&gorm.Session{}).Select("COALESCE(SUM(grand_total), 0)").Scan(&omset).Error
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// 2. Get VolumeTransaksi (COUNT of orders)
 	var volumeTransaksi int64
-	err = query.Session(&gorm.Session{}).Count(&volumeTransaksi).Error
+	err := query.Session(&gorm.Session{}).Count(&volumeTransaksi).Error
 	if err != nil {
 		return nil, err
 	}
 
 	// 3. Get TotalProdukTerjual (SUM of order_items.quantity)
 	var totalProdukTerjual int64
-	err = query.Session(&gorm.Session{}).
+	qtyQuery := query.Session(&gorm.Session{}).
 		Joins("JOIN order_items ON order_items.order_id = orders.id").
-		Where("order_items.deleted_at IS NULL").
-		Select("COALESCE(SUM(order_items.quantity), 0)").
-		Scan(&totalProdukTerjual).Error
+		Where("order_items.deleted_at IS NULL")
+
+	if categoryID != nil && *categoryID != uuid.Nil {
+		qtyQuery = qtyQuery.
+			Joins("JOIN product_variants pv ON pv.id = order_items.product_variant_id AND pv.deleted_at IS NULL").
+			Joins("JOIN products p ON p.id = pv.product_id AND p.deleted_at IS NULL").
+			Where("p.category_id = ?", *categoryID)
+	}
+
+	err = qtyQuery.Select("COALESCE(SUM(order_items.quantity), 0)").Scan(&totalProdukTerjual).Error
 	if err != nil {
 		return nil, err
 	}
@@ -430,8 +482,11 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 	}, nil
 }
 
-func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) ([]domain.SalesTrendItem, error) {
+func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) ([]domain.SalesTrendItem, error) {
 	subQuery := r.db.WithContext(ctx).Model(&domain.Order{})
+
+	// Sales reports only count invoiced orders
+	subQuery = subQuery.Where("orders.invoice_number IS NOT NULL")
 
 	if len(statuses) > 0 {
 		subQuery = subQuery.Where("status IN ?", statuses)
@@ -478,6 +533,18 @@ func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, s
 		subQuery = subQuery.Where("reseller_id IS NULL")
 	}
 
+	if categoryID != nil && *categoryID != uuid.Nil {
+		subQuery = subQuery.
+			Joins("JOIN order_items oi ON oi.order_id = orders.id AND oi.deleted_at IS NULL").
+			Joins("JOIN product_variants pv ON pv.id = oi.product_variant_id AND pv.deleted_at IS NULL").
+			Joins("JOIN products p ON p.id = pv.product_id AND p.deleted_at IS NULL").
+			Where("p.category_id = ?", *categoryID).
+			Select("orders.id, orders.created_at, orders.invoiced_at, orders.deleted_at, SUM(oi.subtotal) AS amount").
+			Group("orders.id, orders.created_at, orders.invoiced_at, orders.deleted_at")
+	} else {
+		subQuery = subQuery.Select("orders.id, orders.created_at, orders.invoiced_at, orders.deleted_at, orders.grand_total AS amount")
+	}
+
 	var seriesSelect string
 	var groupByExpr string
 	var labelExpr string
@@ -507,7 +574,7 @@ func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, s
 	err := r.db.WithContext(ctx).
 		Table(fmt.Sprintf("(SELECT %s) d", seriesSelect)).
 		Joins(fmt.Sprintf("LEFT JOIN (?) o ON date_trunc('%s', %s) = d.period_start AND o.deleted_at IS NULL", truncField, dateTruncCol), subQuery).
-		Select(fmt.Sprintf("%s AS label, COALESCE(SUM(o.grand_total), 0) AS total", labelExpr)).
+		Select(fmt.Sprintf("%s AS label, COALESCE(SUM(o.amount), 0) AS total", labelExpr)).
 		Group(groupByExpr).
 		Order("d.period_start ASC").
 		Scan(&results).Error
@@ -532,9 +599,9 @@ func (r *orderRepository) GetCategorySales(ctx context.Context, startDate *time.
 	}
 
 	if startDate != nil && endDate != nil {
-		query = query.Joins(fmt.Sprintf("LEFT JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL AND o.status NOT IN ('DRAFT', 'CANCELLED', 'REFUND') AND %s BETWEEN ? AND ?", dateCol), startDate, endDate)
+		query = query.Joins(fmt.Sprintf("LEFT JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL AND o.status NOT IN ('DRAFT', 'CANCELLED', 'REFUND') AND o.invoice_number IS NOT NULL AND %s BETWEEN ? AND ?", dateCol), startDate, endDate)
 	} else {
-		query = query.Joins("LEFT JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL AND o.status NOT IN ('DRAFT', 'CANCELLED', 'REFUND')")
+		query = query.Joins("LEFT JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL AND o.status NOT IN ('DRAFT', 'CANCELLED', 'REFUND') AND o.invoice_number IS NOT NULL")
 	}
 
 	var results []domain.CategorySalesItem

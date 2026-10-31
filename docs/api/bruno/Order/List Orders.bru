@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&payment_method=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=
+  url: {{base_url}}/orders?page=1&limit=10&status=&payment_status=&payment_method=&designer_id=&cashier_id=&search=&start_date=&end_date=&customer_type=&category_id=&is_invoiced=&date_by=
   body: none
   auth: inherit
 }
@@ -22,16 +22,22 @@ query {
   start_date: 
   end_date: 
   customer_type: 
+  category_id: 
+  is_invoiced: 
+  date_by: 
 }
 
 docs {
   # List Orders
   
-  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, metode pembayaran, ID designer, ID cashier, pencarian keyword, rentang tanggal order, dan tipe customer.
+  Mendapatkan daftar order dengan dukungan pagination serta filter berdasarkan status order, status pembayaran, metode pembayaran, ID designer, ID cashier, pencarian keyword, rentang tanggal order, tipe customer, kategori produk, status invoice, dan basis tanggal.
   
   ### Query Parameters:
   - `page`: Nomor halaman (default: 1)
   - `limit`: Jumlah data per halaman (default: 10)
+  - `category_id`: Filter berdasarkan Category ID produk yang dipesan
+  - `is_invoiced`: Filter status invoice (`true` untuk order yang sudah ber-invoice, `false` untuk order tiket/belum ber-invoice)
+  - `date_by`: Basis tanggal filter (`created` atau `invoice`, default: `created`)
   - `status`: Filter berdasarkan status order. Mendukung multi-status dengan dipisah menggunakan tanda koma (contoh: `status=PENDING_PAYMENT,IN_PRODUCTION` atau `status=DRAFT`).
     - Pilihan status: `DRAFT`, `PENDING_PAYMENT`, `IN_PRODUCTION`, `READY_FOR_PICKUP`, `COMPLETED`, `CANCELLED`, `REFUND`
   - `payment_status`: Filter berdasarkan status pembayaran. Mendukung multi-status dengan dipisah menggunakan tanda koma (contoh: `payment_status=UNPAID,PARTIAL_PAID` atau `payment_status=PAID`).
