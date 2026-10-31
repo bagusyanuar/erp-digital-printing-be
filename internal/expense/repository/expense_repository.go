@@ -334,11 +334,18 @@ func (r *expenseRepository) GetCategoryExpenses(
 	group string,
 	status string,
 ) ([]domain.CategoryExpenseItem, int64, error) {
+	targetGroup := domain.GroupProduction
+	if group != "" {
+		targetGroup = group
+	}
+
 	query := r.db.WithContext(ctx).Table("expense_items ei").
 		Joins("JOIN expenses e ON e.id = ei.expense_id AND e.deleted_at IS NULL").
 		Joins("JOIN expense_categories ec ON ec.id = ei.expense_category_id AND ec.deleted_at IS NULL").
-		Joins("LEFT JOIN categories c ON c.id = ec.product_category_id AND c.deleted_at IS NULL").
+		Joins("JOIN categories c ON c.id = ec.product_category_id AND c.deleted_at IS NULL").
 		Where("ei.deleted_at IS NULL").
+		Where("ec.group = ?", targetGroup).
+		Where("ec.product_category_id IS NOT NULL").
 		Where("ec.id != '00000000-0000-0000-0000-000000000000'")
 
 	if startDate != nil {
@@ -361,10 +368,6 @@ func (r *expenseRepository) GetCategoryExpenses(
 		}
 	}
 
-	if group != "" {
-		query = query.Where("ec.group = ?", group)
-	}
-
 	if productCategoryID != nil && *productCategoryID != uuid.Nil {
 		query = query.Where("ec.product_category_id = ?", *productCategoryID)
 	}
@@ -380,7 +383,7 @@ func (r *expenseRepository) GetCategoryExpenses(
 			ec.id AS expense_category_id,
 			ec.name AS expense_category_name,
 			c.id AS category_id,
-			COALESCE(c.name, 'Operasional / Umum') AS category_name,
+			c.name AS category_name,
 			COALESCE(MAX(NULLIF(ei.description, '')), '') AS description,
 			COALESCE(SUM(ei.amount), 0) AS total_expense,
 			COUNT(DISTINCT e.id) AS expense_count
