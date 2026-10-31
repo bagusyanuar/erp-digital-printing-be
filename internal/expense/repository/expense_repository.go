@@ -317,12 +317,8 @@ func (r *expenseRepository) GetWidgets(ctx context.Context, filter domain.Expens
 	if filter.ProductCategoryID != nil {
 		itemQuery = itemQuery.Where("ec.product_category_id = ?", *filter.ProductCategoryID)
 	}
-	if filter.Group != "" {
-		if filter.Group != "ALL" {
-			itemQuery = itemQuery.Where("ec.group = ?", filter.Group)
-		}
-	} else if filter.CategoryID == nil {
-		itemQuery = itemQuery.Where("ec.group = ?", domain.GroupProduction)
+	if filter.Group != "" && filter.Group != "ALL" {
+		itemQuery = itemQuery.Where("ec.group = ?", filter.Group)
 	}
 
 	type widgetStats struct {
