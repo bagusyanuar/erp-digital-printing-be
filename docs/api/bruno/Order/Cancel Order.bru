@@ -26,9 +26,9 @@ docs {
   Membatalkan order yang belum dibayar (tanpa DP/cicilan).
 
   ### Ketentuan:
-  - Hanya dapat dibatalkan jika status order masih `DRAFT` atau `PENDING_PAYMENT`.
   - Belum ada pembayaran yang masuk (`amount_paid == 0` dan `payment_status == UNPAID`).
-  - Jika sudah ada pembayaran, sistem akan menolak dan mengarahkan ke flow `Refund`.
+  - Tidak dapat membatalkan order yang sudah `COMPLETED`, `REFUND`, atau `CANCELLED`.
+  - Jika sudah ada pembayaran (DP/lunas), sistem akan menolak dan mengarahkan ke flow `Refund`.
 
   ### Path Parameters:
   - `id`: UUID Order (Required)

@@ -850,8 +850,12 @@ func (u *orderUsecase) Cancel(ctx context.Context, id uuid.UUID, reason string) 
 		return nil, errors.New("order is already cancelled")
 	}
 
-	if order.Status != orderDomain.StatusDraft && order.Status != orderDomain.StatusPendingPayment {
-		return nil, fmt.Errorf("cannot cancel order in %s status", order.Status)
+	if order.Status == orderDomain.StatusCompleted {
+		return nil, errors.New("cannot cancel order: order is already completed")
+	}
+
+	if order.Status == orderDomain.StatusRefund {
+		return nil, errors.New("cannot cancel order: order is already refunded")
 	}
 
 	if order.AmountPaid > 0 || order.PaymentStatus != orderDomain.PaymentStatusUnpaid {
