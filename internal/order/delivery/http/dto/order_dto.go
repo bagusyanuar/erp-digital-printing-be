@@ -162,6 +162,20 @@ type CategorySalesRes struct {
 	TotalSales   float64   `json:"total_sales"`
 }
 
+type ProductSalesItemRes struct {
+	ID           uuid.UUID `json:"id"`
+	ProductID    uuid.UUID `json:"product_id"`
+	ProductName  string    `json:"product_name"`
+	VariantName  string    `json:"variant_name"`
+	CategoryID   uuid.UUID `json:"category_id"`
+	CategoryName string    `json:"category_name"`
+	UOM          string    `json:"uom"`
+	TotalQty     int64     `json:"total_qty"`
+	AvgPrice     float64   `json:"avg_price"`
+	TotalRevenue float64   `json:"total_revenue"`
+	OrderCount   int64     `json:"order_count"`
+}
+
 type PaymentMethodSalesRes struct {
 	PaymentMethod string  `json:"payment_method"`
 	TotalAmount   float64 `json:"total_amount"`

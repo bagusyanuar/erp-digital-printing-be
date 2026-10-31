@@ -740,6 +740,10 @@ func (u *orderUsecase) GetCategorySales(ctx context.Context, startDate *time.Tim
 	return u.orderRepo.GetCategorySales(ctx, startDate, endDate, dateBy)
 }
 
+func (u *orderUsecase) GetProductSales(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) ([]orderDomain.ProductSalesItem, int64, error) {
+	return u.orderRepo.GetProductSales(ctx, params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy, categoryID)
+}
+
 func (u *orderUsecase) GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]orderDomain.PaymentMethodSalesItem, error) {
 	return u.orderRepo.GetPaymentMethodSales(ctx, startDate, endDate)
 }

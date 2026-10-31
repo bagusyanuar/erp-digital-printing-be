@@ -165,6 +165,7 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Get("/reports/sales-widgets", a.Container.OrderHandler.GetSalesReportWidgets)
 	orderRoutes.Get("/reports/sales-trend", a.Container.OrderHandler.GetSalesTrend)
 	orderRoutes.Get("/reports/category-sales", a.Container.OrderHandler.GetCategorySales)
+	orderRoutes.Get("/reports/product-sales", a.Container.OrderHandler.GetProductSales)
 	orderRoutes.Get("/reports/payment-sales", a.Container.OrderHandler.GetPaymentMethodSales)
 	orderRoutes.Get("/", a.Container.OrderHandler.FindAll)
 	orderRoutes.Get("/:id", a.Container.OrderHandler.FindByID)

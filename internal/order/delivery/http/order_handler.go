@@ -1017,6 +1017,130 @@ func (h *OrderHandler) GetCategorySales(c fiber.Ctx) error {
 	return response.Success(c, "Category sales fetched successfully", res, nil)
 }
 
+func (h *OrderHandler) GetProductSales(c fiber.Ctx) error {
+	var params request.PaginationParam
+	if err := c.Bind().Query(&params); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid query parameters", err.Error())
+	}
+
+	var statuses []string
+	if statusQuery := c.Query("status", ""); statusQuery != "" {
+		parts := strings.Split(statusQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				statuses = append(statuses, trimmed)
+			}
+		}
+	}
+
+	var paymentStatuses []string
+	if paymentStatusQuery := c.Query("payment_status", ""); paymentStatusQuery != "" {
+		parts := strings.Split(paymentStatusQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentStatuses = append(paymentStatuses, trimmed)
+			}
+		}
+	}
+
+	var paymentMethods []string
+	if paymentMethodQuery := c.Query("payment_method", ""); paymentMethodQuery != "" {
+		parts := strings.Split(paymentMethodQuery, ",")
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				paymentMethods = append(paymentMethods, trimmed)
+			}
+		}
+	}
+
+	var designerID *uuid.UUID
+	if designerQuery := c.Query("designer_id", ""); designerQuery != "" {
+		if did, err := uuid.Parse(designerQuery); err == nil {
+			designerID = &did
+		}
+	}
+
+	var cashierID *uuid.UUID
+	if cashierQuery := c.Query("cashier_id", ""); cashierQuery != "" {
+		if cid, err := uuid.Parse(cashierQuery); err == nil {
+			cashierID = &cid
+		}
+	}
+
+	search := c.Query("search", "")
+	startDateStr := c.Query("start_date", "")
+	endDateStr := c.Query("end_date", "")
+	customerType := c.Query("customer_type", "")
+	dateBy := c.Query("date_by", "invoice")
+
+	var categoryID *uuid.UUID
+	if categoryQuery := c.Query("category_id", ""); categoryQuery != "" {
+		if cid, err := uuid.Parse(categoryQuery); err == nil {
+			categoryID = &cid
+		}
+	}
+
+	var startDate, endDate *time.Time
+	if (startDateStr == "" && endDateStr != "") || (startDateStr != "" && endDateStr == "") {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid date range", "Both start_date and end_date must be provided together")
+	}
+
+	if startDateStr != "" && endDateStr != "" {
+		t1, err1 := time.ParseInLocation("2006-01-02", startDateStr, time.Local)
+		t2, err2 := time.ParseInLocation("2006-01-02", endDateStr, time.Local)
+		if err1 != nil || err2 != nil {
+			return response.Error(c, fiber.StatusBadRequest, "Invalid date format", "Dates must be in YYYY-MM-DD format")
+		}
+		t1 = time.Date(t1.Year(), t1.Month(), t1.Day(), 0, 0, 0, 0, time.Local)
+		t2 = time.Date(t2.Year(), t2.Month(), t2.Day(), 23, 59, 59, 999999999, time.Local)
+		startDate = &t1
+		endDate = &t2
+	}
+
+	data, total, err := h.orderUsecase.GetProductSales(c.Context(), params, statuses, paymentStatuses, paymentMethods, designerID, cashierID, search, startDate, endDate, customerType, dateBy, categoryID)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch product sales", err.Error())
+	}
+
+	res := make([]dto.ProductSalesItemRes, len(data))
+	for i, item := range data {
+		res[i] = dto.ProductSalesItemRes{
+			ID:           item.ID,
+			ProductID:    item.ProductID,
+			ProductName:  item.ProductName,
+			VariantName:  item.VariantName,
+			CategoryID:   item.CategoryID,
+			CategoryName: item.CategoryName,
+			UOM:          item.UOM,
+			TotalQty:     item.TotalQty,
+			AvgPrice:     item.AvgPrice,
+			TotalRevenue: item.TotalRevenue,
+			OrderCount:   item.OrderCount,
+		}
+	}
+
+	limit := params.GetLimit()
+	totalPages := int(math.Ceil(float64(total) / float64(limit)))
+	if params.Limit == -1 {
+		limit = int(total)
+		totalPages = 1
+	}
+
+	meta := response.Meta{
+		Pagination: &response.Pagination{
+			TotalItems:  total,
+			TotalPages:  totalPages,
+			CurrentPage: params.GetPage(),
+			Limit:       limit,
+		},
+	}
+
+	return response.Success(c, "Product sales fetched successfully", res, meta)
+}
+
 func (h *OrderHandler) GetPaymentMethodSales(c fiber.Ctx) error {
 	startDateStr := c.Query("start_date", "")
 	endDateStr := c.Query("end_date", "")

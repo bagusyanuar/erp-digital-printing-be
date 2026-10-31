@@ -683,5 +683,101 @@ func (r *orderRepository) GetPaymentMethodSales(ctx context.Context, startDate *
 	return results, nil
 }
 
+func (r *orderRepository) GetProductSales(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) ([]domain.ProductSalesItem, int64, error) {
+	query := r.db.WithContext(ctx).Table("order_items oi").
+		Joins("JOIN orders o ON o.id = oi.order_id AND o.deleted_at IS NULL").
+		Joins("JOIN product_variants pv ON pv.id = oi.product_variant_id AND pv.deleted_at IS NULL").
+		Joins("JOIN products p ON p.id = pv.product_id AND p.deleted_at IS NULL").
+		Joins("JOIN categories c ON c.id = p.category_id AND c.deleted_at IS NULL").
+		Where("oi.deleted_at IS NULL").
+		Where("o.invoice_number IS NOT NULL")
+
+	if len(statuses) > 0 {
+		query = query.Where("o.status IN ?", statuses)
+	} else {
+		query = query.Where("o.status NOT IN ?", []string{domain.StatusDraft, domain.StatusCancelled, domain.StatusRefund})
+	}
+
+	if len(paymentStatuses) > 0 {
+		query = query.Where("o.payment_status IN ?", paymentStatuses)
+	}
+
+	if len(paymentMethods) > 0 {
+		query = query.Where("EXISTS (SELECT 1 FROM order_payments op WHERE op.order_id = o.id AND op.payment_method IN ? AND op.deleted_at IS NULL)", paymentMethods)
+	}
+
+	if designerID != nil && *designerID != uuid.Nil {
+		query = query.Where("o.designer_id = ?", *designerID)
+	}
+
+	if cashierID != nil && *cashierID != uuid.Nil {
+		query = query.Where("o.cashier_id = ?", *cashierID)
+	}
+
+	if startDate != nil && endDate != nil {
+		dateCol := "o.created_at"
+		if dateBy == "invoice" {
+			dateCol = "COALESCE(o.invoiced_at, o.created_at)"
+		}
+		query = query.Where(fmt.Sprintf("%s BETWEEN ? AND ?", dateCol), startDate, endDate)
+	}
+
+	switch customerType {
+	case "reseller":
+		query = query.Where("o.reseller_id IS NOT NULL")
+	case "end_user":
+		query = query.Where("o.reseller_id IS NULL")
+	}
+
+	if categoryID != nil && *categoryID != uuid.Nil {
+		query = query.Where("p.category_id = ?", *categoryID)
+	}
+
+	if search != "" {
+		searchText := "%" + search + "%"
+		query = query.Where("(p.name ILIKE ? OR pv.variant_name ILIKE ? OR c.name ILIKE ?)", searchText, searchText, searchText)
+	}
+
+	groupQuery := query.Session(&gorm.Session{}).
+		Select(`
+			pv.id AS id,
+			p.id AS product_id,
+			p.name AS product_name,
+			pv.variant_name AS variant_name,
+			c.id AS category_id,
+			c.name AS category_name,
+			COALESCE(MAX(oi.uom), MAX(p.uom), '') AS uom,
+			COALESCE(SUM(oi.quantity), 0) AS total_qty,
+			COALESCE(ROUND(SUM(oi.subtotal) / NULLIF(SUM(oi.quantity), 0)), 0) AS avg_price,
+			COALESCE(SUM(oi.subtotal), 0) AS total_revenue,
+			COUNT(DISTINCT o.id) AS order_count
+		`).
+		Group("pv.id, p.id, p.name, pv.variant_name, c.id, c.name")
+
+	var total int64
+	countQuery := groupQuery.Session(&gorm.Session{})
+	if err := r.db.WithContext(ctx).Table("(?) AS grouped_records", countQuery).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	orderClause := "total_revenue DESC"
+	if params.SortBy != "" {
+		orderClause = params.GetSort()
+	}
+
+	queryExec := groupQuery.Session(&gorm.Session{}).Order(orderClause)
+	if params.Limit != -1 {
+		queryExec = queryExec.Limit(params.GetLimit()).Offset(params.GetOffset())
+	}
+
+	var results []domain.ProductSalesItem
+	if err := queryExec.Scan(&results).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return results, total, nil
+}
+
+
 
 
