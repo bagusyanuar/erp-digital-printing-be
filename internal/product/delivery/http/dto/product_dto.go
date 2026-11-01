@@ -67,10 +67,11 @@ type ProductVariantRes struct {
 }
 
 type ProductRes struct {
-	ID           uuid.UUID           `json:"id"`
-	CategoryID   uuid.UUID           `json:"category_id"`
-	CategoryName string              `json:"category_name,omitempty"`
-	Name         string              `json:"name"`
+	ID                   uuid.UUID           `json:"id"`
+	CategoryID           uuid.UUID           `json:"category_id"`
+	CategoryName         string              `json:"category_name,omitempty"`
+	CategoryIsProduction bool                `json:"category_is_production"`
+	Name                 string              `json:"name"`
 	SKU          string              `json:"sku"`
 	UOM          string              `json:"uom"`
 	BasePrice    float64             `json:"base_price"`

@@ -111,7 +111,19 @@ func (h *ProductHandler) FindAll(c fiber.Ctx) error {
 		}
 	}
 
-	products, total, err := h.productUsecase.FindAll(c.Context(), params, search, categoryID)
+	var isProduction *bool
+	isProdStr := c.Query("is_production", "")
+	if isProdStr == "" {
+		if categoryID == nil {
+			val := true
+			isProduction = &val
+		}
+	} else if isProdStr != "all" {
+		val := isProdStr == "true" || isProdStr == "1"
+		isProduction = &val
+	}
+
+	products, total, err := h.productUsecase.FindAll(c.Context(), params, search, categoryID, isProduction)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch products", err.Error())
 	}
@@ -325,6 +337,7 @@ func mapProductToRes(p *domain.Product) dto.ProductRes {
 
 	if p.Category.ID != uuid.Nil {
 		res.CategoryName = p.Category.Name
+		res.CategoryIsProduction = p.Category.IsProduction
 	}
 
 	if len(p.Variants) > 0 {

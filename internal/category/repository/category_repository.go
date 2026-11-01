@@ -29,7 +29,7 @@ func (r *categoryRepository) FindByID(ctx context.Context, id uuid.UUID) (*domai
 	return &category, nil
 }
 
-func (r *categoryRepository) FindAll(ctx context.Context, params request.PaginationParam, search string) ([]domain.Category, int64, error) {
+func (r *categoryRepository) FindAll(ctx context.Context, params request.PaginationParam, search string, isProduction *bool) ([]domain.Category, int64, error) {
 	var categories []domain.Category
 	var total int64
 
@@ -38,6 +38,10 @@ func (r *categoryRepository) FindAll(ctx context.Context, params request.Paginat
 	if search != "" {
 		searchText := "%" + search + "%"
 		db = db.Where("name ILIKE ?", searchText)
+	}
+
+	if isProduction != nil {
+		db = db.Where("is_production = ?", *isProduction)
 	}
 
 	if err := db.Count(&total).Error; err != nil {

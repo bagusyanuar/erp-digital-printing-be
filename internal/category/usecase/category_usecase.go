@@ -29,8 +29,8 @@ func (u *categoryUsecase) FindByID(ctx context.Context, id uuid.UUID) (*domain.C
 	return u.categoryRepo.FindByID(ctx, id)
 }
 
-func (u *categoryUsecase) FindAll(ctx context.Context, params request.PaginationParam, search string) ([]domain.Category, int64, error) {
-	return u.categoryRepo.FindAll(ctx, params, search)
+func (u *categoryUsecase) FindAll(ctx context.Context, params request.PaginationParam, search string, isProduction *bool) ([]domain.Category, int64, error) {
+	return u.categoryRepo.FindAll(ctx, params, search, isProduction)
 }
 
 func (u *categoryUsecase) Update(ctx context.Context, category *domain.Category) error {

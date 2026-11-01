@@ -54,9 +54,10 @@ type OrderItemRes struct {
 	ProductVariantID uuid.UUID      `json:"product_variant_id"`
 	ProductName      string         `json:"product_name"`
 	VariantName      string         `json:"variant_name"`
-	CategoryID       *uuid.UUID     `json:"category_id,omitempty"`
-	CategoryName     string         `json:"category_name,omitempty"`
-	UOM              string         `json:"uom"`
+	CategoryID           *uuid.UUID     `json:"category_id,omitempty"`
+	CategoryName         string         `json:"category_name,omitempty"`
+	CategoryIsProduction bool           `json:"category_is_production"`
+	UOM                  string         `json:"uom"`
 	LengthM          *float64       `json:"length_m,omitempty"`
 	WidthM           *float64       `json:"width_m,omitempty"`
 	Quantity         int            `json:"quantity"`
@@ -149,6 +150,10 @@ type RefundReq struct {
 
 type CancelOrderReq struct {
 	Reason string `json:"reason" validate:"required"`
+}
+
+type MergeOrderReq struct {
+	SourceOrderID uuid.UUID `json:"source_order_id" validate:"required"`
 }
 
 type SalesTrendItemRes struct {

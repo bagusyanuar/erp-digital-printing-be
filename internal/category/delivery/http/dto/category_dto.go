@@ -4,11 +4,13 @@ import "github.com/google/uuid"
 
 type CreateCategoryReq struct {
 	Name          string     `json:"name" validate:"required"`
+	IsProduction  *bool      `json:"is_production"`
 	SPKCategoryID *uuid.UUID `json:"spk_category_id,omitempty"`
 }
 
 type UpdateCategoryReq struct {
 	Name          string     `json:"name" validate:"required"`
+	IsProduction  *bool      `json:"is_production"`
 	SPKCategoryID *uuid.UUID `json:"spk_category_id,omitempty"`
 }
 
@@ -20,6 +22,7 @@ type CategoryRes struct {
 	ID            uuid.UUID    `json:"id"`
 	Name          string       `json:"name"`
 	Sequence      int          `json:"sequence"`
+	IsProduction  bool         `json:"is_production"`
 	SPKCategoryID *uuid.UUID   `json:"spk_category_id,omitempty"`
 	SPKCategory   *CategoryRes `json:"spk_category,omitempty"`
 	CreatedAt     string       `json:"created_at"`

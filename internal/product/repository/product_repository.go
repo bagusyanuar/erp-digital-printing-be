@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"strings"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/product/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
@@ -39,23 +40,33 @@ func (r *productRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain
 	return &product, nil
 }
 
-func (r *productRepository) FindAll(ctx context.Context, params request.PaginationParam, search string, categoryID *uuid.UUID) ([]domain.Product, int64, error) {
+func (r *productRepository) FindAll(ctx context.Context, params request.PaginationParam, search string, categoryID *uuid.UUID, isProduction *bool) ([]domain.Product, int64, error) {
 	var products []domain.Product
 	var total int64
 
 	db := r.db.WithContext(ctx).Model(&domain.Product{})
 
 	if categoryID != nil && *categoryID != uuid.Nil {
-		db = db.Where("category_id = ?", *categoryID)
+		db = db.Where("products.category_id = ?", *categoryID)
+	}
+
+	if isProduction != nil {
+		db = db.Joins("JOIN categories ON categories.id = products.category_id AND categories.deleted_at IS NULL").
+			Where("categories.is_production = ?", *isProduction)
 	}
 
 	if search != "" {
 		searchText := "%" + search + "%"
-		db = db.Where("name ILIKE ? OR sku ILIKE ?", searchText, searchText)
+		db = db.Where("products.name ILIKE ? OR products.sku ILIKE ?", searchText, searchText)
 	}
 
 	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, err
+	}
+
+	sortClause := params.GetSort()
+	if !strings.Contains(sortClause, ".") {
+		sortClause = "products." + sortClause
 	}
 
 	err := db.Preload("Category").
@@ -68,8 +79,8 @@ func (r *productRepository) FindAll(ctx context.Context, params request.Paginati
 		Preload("Variants.PriceTiers.CustomerLevel").
 		Limit(params.GetLimit()).
 		Offset(params.GetOffset()).
-		Order("sequence ASC").
-		Order(params.GetSort()).
+		Order("products.sequence ASC").
+		Order(sortClause).
 		Find(&products).Error
 	if err != nil {
 		return nil, 0, err

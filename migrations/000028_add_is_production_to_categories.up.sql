@@ -1,0 +1,2 @@
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS is_production BOOLEAN NOT NULL DEFAULT true;
+

@@ -13,6 +13,7 @@ type Category struct {
 	ID            uuid.UUID      `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Name          string         `gorm:"not null" json:"name"`
 	Sequence      int            `gorm:"type:int;default:0" json:"sequence"`
+	IsProduction  bool           `gorm:"type:boolean;not null;default:true" json:"is_production"`
 	SPKCategoryID *uuid.UUID     `gorm:"type:uuid" json:"spk_category_id,omitempty"`
 	SPKCategory   *Category      `gorm:"foreignKey:SPKCategoryID" json:"spk_category,omitempty"`
 	CreatedAt     time.Time      `json:"created_at"`
@@ -30,7 +31,7 @@ func (c *Category) BeforeCreate(tx *gorm.DB) error {
 type CategoryRepository interface {
 	Create(ctx context.Context, category *Category) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Category, error)
-	FindAll(ctx context.Context, params request.PaginationParam, search string) ([]Category, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, search string, isProduction *bool) ([]Category, int64, error)
 	Update(ctx context.Context, category *Category) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Reorder(ctx context.Context, items []request.ReorderItem) error
@@ -39,7 +40,7 @@ type CategoryRepository interface {
 type CategoryUsecase interface {
 	Create(ctx context.Context, category *Category) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Category, error)
-	FindAll(ctx context.Context, params request.PaginationParam, search string) ([]Category, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, search string, isProduction *bool) ([]Category, int64, error)
 	Update(ctx context.Context, category *Category) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Reorder(ctx context.Context, items []request.ReorderItem) error

@@ -40,8 +40,8 @@ func (u *productUsecase) FindByID(ctx context.Context, id uuid.UUID) (*domain.Pr
 	return u.productRepo.FindByID(ctx, id)
 }
 
-func (u *productUsecase) FindAll(ctx context.Context, params request.PaginationParam, search string, categoryID *uuid.UUID) ([]domain.Product, int64, error) {
-	return u.productRepo.FindAll(ctx, params, search, categoryID)
+func (u *productUsecase) FindAll(ctx context.Context, params request.PaginationParam, search string, categoryID *uuid.UUID, isProduction *bool) ([]domain.Product, int64, error) {
+	return u.productRepo.FindAll(ctx, params, search, categoryID, isProduction)
 }
 
 func (u *productUsecase) Update(ctx context.Context, product *domain.Product) error {

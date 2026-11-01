@@ -631,8 +631,8 @@ func (u *orderUsecase) UpdateDraft(ctx context.Context, id uuid.UUID, orderReq *
 		return nil, fmt.Errorf("order not found: %w", err)
 	}
 
-	if order.Status != orderDomain.StatusDraft {
-		return nil, fmt.Errorf("cannot update order in %s status, only DRAFT status allowed", order.Status)
+	if order.Status != orderDomain.StatusDraft && order.Status != orderDomain.StatusPendingPayment {
+		return nil, fmt.Errorf("cannot update order in %s status, only DRAFT and PENDING_PAYMENT status allowed", order.Status)
 	}
 
 	order.ResellerID = orderReq.ResellerID
@@ -880,6 +880,56 @@ func (u *orderUsecase) Cancel(ctx context.Context, id uuid.UUID, reason string) 
 		return updatedOrder, nil
 	}
 	return order, nil
+}
+
+func (u *orderUsecase) MergeOrder(ctx context.Context, targetOrderID uuid.UUID, sourceOrderID uuid.UUID) (*orderDomain.Order, error) {
+	if targetOrderID == sourceOrderID {
+		return nil, errors.New("cannot merge order into itself")
+	}
+
+	targetOrder, err := u.orderRepo.FindByID(ctx, targetOrderID)
+	if err != nil {
+		return nil, fmt.Errorf("target order not found: %w", err)
+	}
+
+	if targetOrder.Status != orderDomain.StatusDraft && targetOrder.Status != orderDomain.StatusPendingPayment {
+		return nil, fmt.Errorf("target order is in %s status, only DRAFT or PENDING_PAYMENT allowed", targetOrder.Status)
+	}
+
+	sourceOrder, err := u.orderRepo.FindByID(ctx, sourceOrderID)
+	if err != nil {
+		return nil, fmt.Errorf("source order not found: %w", err)
+	}
+
+	if sourceOrder.Status != orderDomain.StatusDraft && sourceOrder.Status != orderDomain.StatusPendingPayment {
+		return nil, fmt.Errorf("source order is in %s status, only DRAFT or PENDING_PAYMENT allowed", sourceOrder.Status)
+	}
+
+	// Combine items
+	combinedItems := make([]orderDomain.OrderItem, 0, len(targetOrder.OrderItems)+len(sourceOrder.OrderItems))
+	combinedItems = append(combinedItems, targetOrder.OrderItems...)
+
+	for _, srcItem := range sourceOrder.OrderItems {
+		newItem := srcItem
+		newItem.ID = uuid.Nil
+		newItem.OrderID = targetOrder.ID
+		combinedItems = append(combinedItems, newItem)
+	}
+
+	targetOrder.OrderItems = combinedItems
+
+	updatedTarget, err := u.UpdateDraft(ctx, targetOrderID, targetOrder)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update target order with merged items: %w", err)
+	}
+
+	// Cancel source order with merge reason
+	reason := fmt.Sprintf("Digabungkan ke pesanan %s", targetOrder.JobNumber)
+	if _, err := u.Cancel(ctx, sourceOrderID, reason); err != nil {
+		return nil, fmt.Errorf("failed to cancel source order: %w", err)
+	}
+
+	return updatedTarget, nil
 }
 
 

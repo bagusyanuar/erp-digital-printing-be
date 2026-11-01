@@ -154,7 +154,7 @@ type PriceCheckResult struct {
 type ProductRepository interface {
 	Create(ctx context.Context, product *Product) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Product, error)
-	FindAll(ctx context.Context, params request.PaginationParam, search string, categoryID *uuid.UUID) ([]Product, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, search string, categoryID *uuid.UUID, isProduction *bool) ([]Product, int64, error)
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	CreateVariant(ctx context.Context, variant *ProductVariant) error
@@ -165,7 +165,7 @@ type ProductRepository interface {
 type ProductUsecase interface {
 	Create(ctx context.Context, product *Product) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Product, error)
-	FindAll(ctx context.Context, params request.PaginationParam, search string, categoryID *uuid.UUID) ([]Product, int64, error)
+	FindAll(ctx context.Context, params request.PaginationParam, search string, categoryID *uuid.UUID, isProduction *bool) ([]Product, int64, error)
 	Update(ctx context.Context, product *Product) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	CreateVariant(ctx context.Context, variant *ProductVariant) error

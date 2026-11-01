@@ -25,8 +25,14 @@ func (h *CategoryHandler) Create(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
+	isProduction := true
+	if req.IsProduction != nil {
+		isProduction = *req.IsProduction
+	}
+
 	category := &domain.Category{
 		Name:          req.Name,
+		IsProduction:  isProduction,
 		SPKCategoryID: req.SPKCategoryID,
 	}
 
@@ -44,8 +50,17 @@ func (h *CategoryHandler) FindAll(c fiber.Ctx) error {
 	}
 
 	search := c.Query("search", "")
+	var isProduction *bool
+	isProdStr := c.Query("is_production", "")
+	if isProdStr == "" {
+		val := true
+		isProduction = &val
+	} else if isProdStr != "all" {
+		val := isProdStr == "true" || isProdStr == "1"
+		isProduction = &val
+	}
 
-	categories, total, err := h.categoryUsecase.FindAll(c.Context(), params, search)
+	categories, total, err := h.categoryUsecase.FindAll(c.Context(), params, search, isProduction)
 	if err != nil {
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to fetch categories", err.Error())
 	}
@@ -95,6 +110,9 @@ func (h *CategoryHandler) Update(c fiber.Ctx) error {
 	}
 
 	category.Name = req.Name
+	if req.IsProduction != nil {
+		category.IsProduction = *req.IsProduction
+	}
 	category.SPKCategoryID = req.SPKCategoryID
 
 	if err := h.categoryUsecase.Update(c.Context(), category); err != nil {

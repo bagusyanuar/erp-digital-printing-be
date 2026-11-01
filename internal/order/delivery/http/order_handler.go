@@ -416,6 +416,7 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 				}
 				if item.ProductVariant.Product.CategoryID != uuid.Nil {
 					itemRes.CategoryID = &item.ProductVariant.Product.CategoryID
+					itemRes.CategoryIsProduction = item.ProductVariant.Product.Category.IsProduction
 					if item.ProductVariant.Product.Category.Name != "" {
 						itemRes.CategoryName = item.ProductVariant.Product.Category.Name
 					}
@@ -497,6 +498,11 @@ func (h *OrderHandler) GetSPKByID(c fiber.Ctx) error {
 
 		if item.ProductVariant != nil && item.ProductVariant.Product.CategoryID != uuid.Nil {
 			category := item.ProductVariant.Product.Category
+			// Exclude non-production categories from SPK
+			if !category.IsProduction {
+				continue
+			}
+
 			if category.SPKCategoryID != nil && *category.SPKCategoryID != uuid.Nil {
 				catID = *category.SPKCategoryID
 				if category.SPKCategory != nil && category.SPKCategory.Name != "" {
@@ -1224,6 +1230,26 @@ func (h *OrderHandler) CancelOrder(c fiber.Ctx) error {
 	}
 
 	return response.Success(c, "Order cancelled successfully", mapOrderToRes(order), nil)
+}
+
+func (h *OrderHandler) MergeOrder(c fiber.Ctx) error {
+	targetIDStr := c.Params("id")
+	targetID, err := uuid.Parse(targetIDStr)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid target order ID", err.Error())
+	}
+
+	var req dto.MergeOrderReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	mergedOrder, err := h.orderUsecase.MergeOrder(c.Context(), targetID, req.SourceOrderID)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to merge orders", err.Error())
+	}
+
+	return response.Success(c, "Order merged successfully", mapOrderToRes(mergedOrder), nil)
 }
 
 

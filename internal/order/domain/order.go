@@ -227,4 +227,5 @@ type OrderUsecase interface {
 	GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]PaymentMethodSalesItem, error)
 	Refund(ctx context.Context, id uuid.UUID, cashierID uuid.UUID, paymentMethod string, amount float64, reason string) (*Order, error)
 	Cancel(ctx context.Context, id uuid.UUID, reason string) (*Order, error)
+	MergeOrder(ctx context.Context, targetOrderID uuid.UUID, sourceOrderID uuid.UUID) (*Order, error)
 }

@@ -161,6 +161,7 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Post("/:id/repay", a.Container.OrderHandler.Repay)
 	orderRoutes.Post("/:id/refund", a.Container.OrderHandler.Refund)
 	orderRoutes.Post("/:id/cancel", a.Container.OrderHandler.CancelOrder)
+	orderRoutes.Post("/:id/merge", a.Container.OrderHandler.MergeOrder)
 	orderRoutes.Get("/reports/widgets", a.Container.OrderHandler.GetReportsWidgets)
 	orderRoutes.Get("/reports/sales-widgets", a.Container.OrderHandler.GetSalesReportWidgets)
 	orderRoutes.Get("/reports/sales-trend", a.Container.OrderHandler.GetSalesTrend)
