@@ -13,7 +13,7 @@ DB_URL=postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?ssl
 MIGRATION_PATH=./migrations
 MIGRATE=migrate
 
-.PHONY: help dev migrate-create migrate-up migrate-down migrate-force migrate-status migrate-drop migrate-fresh
+.PHONY: help dev migrate-create migrate-up migrate-down migrate-force migrate-status migrate-drop migrate-fresh release release-dev release-prod
 
 help: ## Show this help menu
 	@echo "Usage: make [target]"
@@ -73,3 +73,12 @@ build-printer-debug: ## Build printer agent for Windows (with console for debugg
 run-printer: ## Run printer agent locally
 	@echo "Running Printer Agent..."
 	@go run cmd/printer/main.go
+
+release: ## Interactive release bump (dev / prod)
+	@./scripts/release.sh
+
+release-dev: ## Quick bump dev tag (make release-dev [type=patch|minor|major])
+	@./scripts/release.sh dev $(type)
+
+release-prod: ## Quick bump prod tag (make release-prod [type=patch|minor|major])
+	@./scripts/release.sh prod $(type)
