@@ -156,6 +156,45 @@ Pastikan Secrets berikut telah diatur di **GitHub Repository > Settings > Secret
 
 ---
 
+## 🧹 Database Reset (Go-Live / Production Preparation)
+
+Gunakan panduan ini untuk menghapus data testing/transaksi dummy sebelum go-live ke production tanpa menghapus Master Data (Users, RBAC, Produk, Kategori, Reseller, Supplier, Rekening Kas).
+
+### SQL Script Reset Transaksi
+
+Jalankan script berikut (melalui DBeaver / `psql`):
+
+```sql
+BEGIN;
+
+-- 1. Kosongkan semua data transaksi (child -> parent cascade)
+TRUNCATE TABLE 
+    order_item_finishings,
+    order_items,
+    order_payments,
+    orders,
+    expense_items,
+    expense_payments,
+    expenses,
+    fund_transfers,
+    capital_transactions,
+    cash_flows
+CASCADE;
+
+-- 2. Reset saldo akun kas/bank ke 0
+UPDATE cash_accounts SET balance = 0;
+
+COMMIT;
+```
+
+### Cara Eksekusi via DBeaver:
+1. Buka SQL Editor: Klik kanan database/schema `public` ➔ **SQL Editor** ➔ **New SQL Script** (`Cmd + ]` / `Ctrl + ]`).
+2. Paste script di atas.
+3. Jalankan script: Tekan `Option + X` (Mac) atau `Alt + X` (Windows) / klik tombol **Execute SQL Script** di toolbar sebelah kiri.
+4. Refresh tables: Tekan `F5`.
+
+---
+
 ## 📖 Documentation
 - [Docker Deployment Guide](docs/deployment/DOCKER.md)
 - [Database Schema](docs/databases/)
