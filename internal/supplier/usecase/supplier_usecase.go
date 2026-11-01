@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/supplier/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
@@ -24,6 +25,7 @@ func NewSupplierUsecase(supplierRepo domain.SupplierRepository, logger *zap.Logg
 }
 
 func (u *supplierUsecase) Create(ctx context.Context, supplier *domain.Supplier) error {
+	supplier.Name = strings.TrimSpace(supplier.Name)
 	if supplier.Name == "" {
 		return errors.New("supplier name is required")
 	}
@@ -48,6 +50,7 @@ func (u *supplierUsecase) FindAll(ctx context.Context, params request.Pagination
 }
 
 func (u *supplierUsecase) Update(ctx context.Context, supplier *domain.Supplier) error {
+	supplier.Name = strings.TrimSpace(supplier.Name)
 	if supplier.Name == "" {
 		return errors.New("supplier name is required")
 	}

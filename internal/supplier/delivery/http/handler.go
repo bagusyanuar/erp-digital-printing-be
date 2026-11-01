@@ -35,6 +35,9 @@ func (h *SupplierHandler) Create(c fiber.Ctx) error {
 	}
 
 	if err := h.supplierUsecase.Create(c.Context(), supplier); err != nil {
+		if err.Error() == "supplier name already exists" || err.Error() == "supplier name is required" {
+			return response.Error(c, fiber.StatusBadRequest, err.Error(), nil)
+		}
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to create supplier", err.Error())
 	}
 
@@ -108,6 +111,9 @@ func (h *SupplierHandler) Update(c fiber.Ctx) error {
 	}
 
 	if err := h.supplierUsecase.Update(c.Context(), supplier); err != nil {
+		if err.Error() == "supplier name already exists" || err.Error() == "supplier name is required" {
+			return response.Error(c, fiber.StatusBadRequest, err.Error(), nil)
+		}
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to update supplier", err.Error())
 	}
 

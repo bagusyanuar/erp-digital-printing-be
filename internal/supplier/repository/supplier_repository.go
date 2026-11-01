@@ -66,7 +66,7 @@ func (r *supplierRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 func (r *supplierRepository) FindByName(ctx context.Context, name string) (*domain.Supplier, error) {
 	var supplier domain.Supplier
-	if err := r.db.WithContext(ctx).First(&supplier, "name = ?", name).Error; err != nil {
+	if err := r.db.WithContext(ctx).Where("LOWER(TRIM(name)) = LOWER(TRIM(?))", name).First(&supplier).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
