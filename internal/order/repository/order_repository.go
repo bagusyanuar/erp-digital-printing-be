@@ -627,7 +627,7 @@ func (r *orderRepository) GetCategorySales(ctx context.Context, startDate *time.
 
 func (r *orderRepository) GetPaymentMethodSales(ctx context.Context, startDate *time.Time, endDate *time.Time) ([]domain.PaymentMethodSalesItem, error) {
 	query := r.db.WithContext(ctx).Table("order_payments op").
-		Select("op.payment_method, COALESCE(SUM(op.amount), 0) AS total_amount").
+		Select("op.payment_method, COALESCE(SUM(CASE WHEN op.payment_type = 'REFUND' THEN -op.amount ELSE op.amount END), 0) AS total_amount").
 		Joins("JOIN orders o ON o.id = op.order_id AND o.deleted_at IS NULL AND o.status NOT IN ('DRAFT', 'CANCELLED', 'REFUND')")
 
 	if startDate != nil && endDate != nil {

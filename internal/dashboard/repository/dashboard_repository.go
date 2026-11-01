@@ -45,16 +45,20 @@ func (r *dashboardRepository) GetWidgets(ctx context.Context, startDate *time.Ti
 	res.VolumeTransaksi = volume
 
 	// 2. Total Pendapatan
-	paymentsQuery := r.db.WithContext(ctx).Model(&orderDomain.OrderPayment{})
+	paymentsQuery := r.db.WithContext(ctx).Table("order_payments op").
+		Joins("JOIN orders o ON o.id = op.order_id AND o.deleted_at IS NULL").
+		Where("op.deleted_at IS NULL").
+		Where("o.status NOT IN ?", []string{orderDomain.StatusDraft, orderDomain.StatusCancelled, orderDomain.StatusRefund})
+
 	if startDate != nil {
-		paymentsQuery = paymentsQuery.Where("created_at >= ?", *startDate)
+		paymentsQuery = paymentsQuery.Where("op.created_at >= ?", *startDate)
 	}
 	if endDate != nil {
-		paymentsQuery = paymentsQuery.Where("created_at <= ?", *endDate)
+		paymentsQuery = paymentsQuery.Where("op.created_at <= ?", *endDate)
 	}
 
 	var pendapatan float64
-	if err := paymentsQuery.Select("COALESCE(SUM(amount), 0)").Scan(&pendapatan).Error; err != nil {
+	if err := paymentsQuery.Select("COALESCE(SUM(CASE WHEN op.payment_type = 'REFUND' THEN -op.amount ELSE op.amount END), 0)").Scan(&pendapatan).Error; err != nil {
 		return nil, err
 	}
 	res.TotalPendapatan = pendapatan
