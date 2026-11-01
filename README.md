@@ -195,6 +195,120 @@ COMMIT;
 
 ---
 
+## 🖨️ Printer Agent (Print Thermal Lokal)
+
+Printer Agent (`cmd/printer`) adalah aplikasi kecil yang dipasang di **PC kasir (Windows)**, bukan di VPS. Frontend yang dibuka di browser kasir mengirim perintah ESC/POS ke `http://localhost:9876`, lalu agent meneruskannya ke printer thermal melalui Windows Print Spooler.
+
+```
+Browser kasir (FE dari VPS) ──HTTP──▶ Printer Agent (localhost:9876) ──RAW──▶ Printer Thermal
+```
+
+Agent berjalan sebagai **Windows Service** (`ERPPrinterAgent`): otomatis jalan saat boot, tanpa jendela terminal, dan otomatis restart jika crash.
+
+### 1. Build
+
+Dari Mac/Linux/Windows di root repo:
+
+```bash
+GOOS=windows GOARCH=amd64 go build -o printer-agent.exe ./cmd/printer
+```
+
+### 2. Install Service
+
+1. Copy `printer-agent.exe` ke folder permanen di PC kasir, contoh `C:\ERP\PrinterAgent\`.
+2. Pastikan printer thermal sudah terpasang di Windows dengan nama **`PRINTER-POS`** (Settings ➔ Printers & scanners). Nama ini yang dipakai FE.
+3. Buka **Command Prompt sebagai Administrator**, lalu:
+
+```bat
+cd C:\ERP\PrinterAgent
+printer-agent.exe install
+printer-agent.exe start
+```
+
+4. Cek agent berjalan: buka `http://localhost:9876/health` di browser, harus muncul `{"status":"ok", ...}`.
+
+> ⚠️ Jangan pindahkan `.exe` setelah `install` (service menyimpan path-nya). Jika ingin pindah folder: `uninstall` ➔ pindahkan ➔ `install` lagi.
+
+### 3. Perintah Service
+
+Semua dijalankan di Command Prompt **Administrator**:
+
+| Perintah | Fungsi |
+|---|---|
+| `printer-agent.exe install` | Daftarkan service ke Windows |
+| `printer-agent.exe start` | Jalankan service |
+| `printer-agent.exe stop` | Hentikan service |
+| `printer-agent.exe restart` | Restart service |
+| `printer-agent.exe uninstall` | Hapus service dari Windows |
+
+Service juga bisa dikelola lewat `services.msc` ➔ **ERP Printer Agent**.
+
+### 4. Uninstall Service
+
+```bat
+cd C:\ERP\PrinterAgent
+printer-agent.exe stop
+printer-agent.exe uninstall
+```
+
+Setelah itu folder `C:\ERP\PrinterAgent\` boleh dihapus.
+
+### 5. Update ke Versi Baru
+
+```bat
+printer-agent.exe stop
+:: timpa printer-agent.exe dengan hasil build terbaru
+printer-agent.exe start
+```
+
+### 6. Cara Konek dari Frontend
+
+Agent hanya listen di `127.0.0.1:9876`, jadi FE harus memanggil **`http://localhost:9876`** dari browser di PC yang sama.
+
+| Method | Endpoint | Keterangan |
+|---|---|---|
+| `GET` | `/health` | Cek agent hidup |
+| `POST` | `/print` | Kirim data ESC/POS ke printer |
+| `GET` | `/print-test` | Mengembalikan contoh data ESC/POS (tidak langsung print) |
+
+Payload `POST /print`:
+
+```json
+{
+  "printer_name": "PRINTER-POS",
+  "raw_data": "\u001b@Halo dunia\n\n\n\u001dV\u0000"
+}
+```
+
+Contoh pemanggilan dari FE:
+
+```ts
+const response = await fetch("http://localhost:9876/print", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    printer_name: "PRINTER-POS",
+    raw_data: rawData, // string ESC/POS
+  }),
+});
+
+if (!response.ok) {
+  const { error } = await response.json();
+  throw new Error(error);
+}
+```
+
+Mode debug (tanpa service): jalankan `printer-agent.exe` langsung (double-click / dari cmd), log akan tampil di terminal. Tutup dengan `Ctrl + C`.
+
+### 7. Konfigurasi & Troubleshooting
+
+- **Log**: tersimpan di `logs\printer_agent.log` di samping `.exe` (rotasi otomatis 10MB, simpan 5 file, 30 hari).
+- **Ganti port**: set `PRINTER_PORT` di **System** environment variables (bukan User), lalu `printer-agent.exe restart`. Ingat sesuaikan URL di FE.
+- **`Gagal membuka printer`**: nama printer tidak cocok atau tidak terlihat oleh akun service. Service berjalan sebagai `LocalSystem`, sehingga printer jaringan/shared yang di-add per user tidak terlihat. Solusi: pakai printer USB lokal yang terpasang untuk semua user, atau buka `services.msc` ➔ **ERP Printer Agent** ➔ tab **Log On** ➔ pilih akun user kasir ➔ restart service.
+- **FE gagal konek (CORS / `Failed to fetch`)**: pastikan service status *Running* dan `http://localhost:9876/health` bisa dibuka di browser yang sama.
+
+---
+
 ## 📖 Documentation
 - [Docker Deployment Guide](docs/deployment/DOCKER.md)
 - [Database Schema](docs/databases/)
