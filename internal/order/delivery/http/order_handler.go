@@ -164,6 +164,9 @@ func (h *OrderHandler) ProcessPayment(c fiber.Ctx) error {
 		payments,
 	)
 	if err != nil {
+		if strings.Contains(err.Error(), "Credit limit exceeded") {
+			return response.Error(c, fiber.StatusBadRequest, "Batas limit piutang reseller terlampaui", err.Error())
+		}
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to process payment", err.Error())
 	}
 
