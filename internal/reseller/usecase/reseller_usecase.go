@@ -2,6 +2,9 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/reseller/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
@@ -22,6 +25,19 @@ func NewResellerUsecase(resellerRepo domain.ResellerRepository, logger *zap.Logg
 }
 
 func (u *resellerUsecase) Create(ctx context.Context, reseller *domain.Reseller) error {
+	reseller.Name = strings.TrimSpace(reseller.Name)
+	if reseller.Name == "" {
+		return errors.New("reseller name is required")
+	}
+
+	existing, err := u.resellerRepo.FindByName(ctx, reseller.Name)
+	if err != nil {
+		return fmt.Errorf("failed to check existing reseller: %w", err)
+	}
+	if existing != nil {
+		return errors.New("reseller name already exists")
+	}
+
 	if reseller.CustomerLevelID == nil || *reseller.CustomerLevelID == uuid.Nil {
 		defaultLevelID := uuid.MustParse("d2c67ef8-82e4-4d8b-968b-5a1e2f5b6154")
 		reseller.CustomerLevelID = &defaultLevelID
@@ -38,6 +54,19 @@ func (u *resellerUsecase) FindAll(ctx context.Context, params request.Pagination
 }
 
 func (u *resellerUsecase) Update(ctx context.Context, reseller *domain.Reseller) error {
+	reseller.Name = strings.TrimSpace(reseller.Name)
+	if reseller.Name == "" {
+		return errors.New("reseller name is required")
+	}
+
+	existing, err := u.resellerRepo.FindByName(ctx, reseller.Name)
+	if err != nil {
+		return fmt.Errorf("failed to check existing reseller: %w", err)
+	}
+	if existing != nil && existing.ID != reseller.ID {
+		return errors.New("reseller name already exists")
+	}
+
 	return u.resellerRepo.Update(ctx, reseller)
 }
 

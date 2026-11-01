@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/reseller/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
@@ -74,4 +75,15 @@ func (r *resellerRepository) Update(ctx context.Context, reseller *domain.Resell
 
 func (r *resellerRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&domain.Reseller{}, "id = ?", id).Error
+}
+
+func (r *resellerRepository) FindByName(ctx context.Context, name string) (*domain.Reseller, error) {
+	var reseller domain.Reseller
+	if err := r.db.WithContext(ctx).Where("LOWER(TRIM(name)) = LOWER(TRIM(?))", name).First(&reseller).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &reseller, nil
 }

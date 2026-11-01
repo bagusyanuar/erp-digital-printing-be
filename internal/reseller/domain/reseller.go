@@ -38,6 +38,7 @@ type ResellerRepository interface {
 	FindAll(ctx context.Context, params request.PaginationParam, search string) ([]Reseller, int64, error)
 	Update(ctx context.Context, reseller *Reseller) error
 	Delete(ctx context.Context, id uuid.UUID) error
+	FindByName(ctx context.Context, name string) (*Reseller, error)
 }
 
 type ResellerUsecase interface {

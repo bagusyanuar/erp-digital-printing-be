@@ -35,6 +35,9 @@ func (h *ResellerHandler) Create(c fiber.Ctx) error {
 	}
 
 	if err := h.resellerUsecase.Create(c.Context(), reseller); err != nil {
+		if err.Error() == "reseller name already exists" || err.Error() == "reseller name is required" {
+			return response.Error(c, fiber.StatusBadRequest, err.Error(), nil)
+		}
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to create reseller", err.Error())
 	}
 
@@ -106,6 +109,9 @@ func (h *ResellerHandler) Update(c fiber.Ctx) error {
 	reseller.CreditLimit = req.CreditLimit
 
 	if err := h.resellerUsecase.Update(c.Context(), reseller); err != nil {
+		if err.Error() == "reseller name already exists" || err.Error() == "reseller name is required" {
+			return response.Error(c, fiber.StatusBadRequest, err.Error(), nil)
+		}
 		return response.Error(c, fiber.StatusInternalServerError, "Failed to update reseller", err.Error())
 	}
 
