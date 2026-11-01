@@ -83,9 +83,9 @@ jobs:
           script: |
             echo "Deploying to Production Server..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            cd ${{ secrets.PROD_APP_PATH || '/var/www/prod-app' }}
-            docker compose pull
-            docker compose up -d --remove-orphans
+            cd ${{ secrets.PROD_APP_PATH || '/home/made-vps/made-deployment' }}
+            docker compose pull app
+            docker compose up -d app
             docker image prune -f
             echo "Production deployment completed successfully!"
 

@@ -152,7 +152,7 @@ Pastikan Secrets berikut telah diatur di **GitHub Repository > Settings > Secret
 - `PROD_SERVER_USER`: Username SSH server (contoh: `ubuntu`, `root`).
 - `PROD_SSH_PRIVATE_KEY`: Private Key SSH server.
 - `PROD_SERVER_PORT`: Port SSH (default: `22` jika kosong).
-- `PROD_APP_PATH`: Folder docker compose di server (default: `/var/www/prod-app`).
+- `PROD_APP_PATH`: Folder docker compose di server (default: `/home/made-vps/made-deployment`).
 
 ---
 
