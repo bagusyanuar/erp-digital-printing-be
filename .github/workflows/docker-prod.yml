@@ -86,6 +86,8 @@ jobs:
             cd ${{ secrets.PROD_APP_PATH || '/home/made-vps/made-deployment' }}
             docker compose pull app
             docker compose up -d app
+            echo "Running database migrations..."
+            docker compose exec -T app sh -c './migrate -path ./migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST:-db}:${DB_PORT:-5432}/${DB_NAME}?sslmode=${DB_SSLMODE:-disable}" up'
             docker image prune -f
             echo "Production deployment completed successfully!"
 
