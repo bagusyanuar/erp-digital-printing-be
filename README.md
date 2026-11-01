@@ -105,10 +105,10 @@ make release
 Panduan memilih:
 1. **Target:** `1) dev` atau `2) prod`
 2. **Tipe Bump Versi:**
-   - `0) initial` (contoh: `2.1.9` -> rilis versi base saat ini)
-   - `1) patch` (contoh: `2.1.9` -> `2.1.10`)
-   - `2) minor` (contoh: `2.1.9` -> `2.2.0`)
-   - `3) major` (contoh: `2.1.9` -> `3.0.0`)
+   - `0) initial` (contoh: `1.0.0` -> rilis versi base saat ini)
+   - `1) patch` (contoh: `1.0.0` -> `1.0.1`)
+   - `2) minor` (contoh: `1.0.0` -> `1.1.0`)
+   - `3) major` (contoh: `1.0.0` -> `2.0.0`)
    - `4) custom` (masukkan versi manual)
 3. Script akan otomatis:
    - Mengupdate versi di file `VERSION`.
