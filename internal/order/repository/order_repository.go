@@ -319,11 +319,23 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 		query = query.Where("reseller_id IS NULL")
 	}
 
-	// 1. Get OmsetPenjualan (SUM of grand_total)
+	// 1. Get OmsetPenjualan
 	var omset float64
-	err := query.Select("COALESCE(SUM(grand_total), 0)").Scan(&omset).Error
-	if err != nil {
-		return nil, err
+	var err error
+	if len(paymentMethods) > 0 {
+		err = query.Session(&gorm.Session{}).
+			Joins("JOIN order_payments op ON op.order_id = orders.id AND op.deleted_at IS NULL").
+			Where("op.payment_method IN ?", paymentMethods).
+			Select("COALESCE(SUM(CASE WHEN op.payment_type = 'REFUND' THEN -op.amount ELSE op.amount END), 0)").
+			Scan(&omset).Error
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err = query.Select("COALESCE(SUM(grand_total), 0)").Scan(&omset).Error
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// 2. Get TotalPiutang (SUM of grand_total - amount_paid for unpaid & partial paid)
@@ -421,6 +433,15 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 			Joins("JOIN products p ON p.id = pv.product_id AND p.deleted_at IS NULL").
 			Where("p.category_id = ?", *categoryID).
 			Select("COALESCE(SUM(oi.subtotal), 0)").
+			Scan(&omset).Error
+		if err != nil {
+			return nil, err
+		}
+	} else if len(paymentMethods) > 0 {
+		err := query.Session(&gorm.Session{}).
+			Joins("JOIN order_payments op ON op.order_id = orders.id AND op.deleted_at IS NULL").
+			Where("op.payment_method IN ?", paymentMethods).
+			Select("COALESCE(SUM(CASE WHEN op.payment_type = 'REFUND' THEN -op.amount ELSE op.amount END), 0)").
 			Scan(&omset).Error
 		if err != nil {
 			return nil, err
@@ -548,6 +569,12 @@ func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, s
 			Joins("JOIN products p ON p.id = pv.product_id AND p.deleted_at IS NULL").
 			Where("p.category_id = ?", *categoryID).
 			Select("orders.id, orders.created_at, orders.invoiced_at, orders.deleted_at, SUM(oi.subtotal) AS amount").
+			Group("orders.id, orders.created_at, orders.invoiced_at, orders.deleted_at")
+	} else if len(paymentMethods) > 0 {
+		subQuery = subQuery.
+			Joins("JOIN order_payments op ON op.order_id = orders.id AND op.deleted_at IS NULL").
+			Where("op.payment_method IN ?", paymentMethods).
+			Select("orders.id, orders.created_at, orders.invoiced_at, orders.deleted_at, SUM(CASE WHEN op.payment_type = 'REFUND' THEN -op.amount ELSE op.amount END) AS amount").
 			Group("orders.id, orders.created_at, orders.invoiced_at, orders.deleted_at")
 	} else {
 		subQuery = subQuery.Select("orders.id, orders.created_at, orders.invoiced_at, orders.deleted_at, orders.grand_total AS amount")
