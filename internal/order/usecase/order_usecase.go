@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	cashFlowDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/domain"
@@ -15,6 +16,14 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
+
+func roundMoney(val float64) float64 {
+	return math.Round(val*100) / 100
+}
+
+func roundQty(val float64) float64 {
+	return math.Round(val*10000) / 10000
+}
 
 type orderUsecase struct {
 	orderRepo    orderDomain.OrderRepository
@@ -57,14 +66,14 @@ func (u *orderUsecase) validateUOMAndGetQty(item *orderDomain.OrderItem) (float6
 			return 0, errors.New("width_m is required and must be greater than 0 for UOM m2")
 		}
 		areaM2 := *item.LengthM * *item.WidthM * float64(item.Quantity)
-		return areaM2, nil
+		return roundQty(areaM2), nil
 
 	case productDomain.UomMLari:
 		if item.LengthM == nil || *item.LengthM <= 0 {
 			return 0, errors.New("length_m is required and must be greater than 0 for UOM m_lari")
 		}
 		lengthM := *item.LengthM * float64(item.Quantity)
-		return lengthM, nil
+		return roundQty(lengthM), nil
 
 	case productDomain.UomBox, productDomain.UomPcs:
 		item.LengthM = nil
@@ -149,15 +158,15 @@ func (u *orderUsecase) createOrder(ctx context.Context, order *orderDomain.Order
 
 		item.PricePerUnit = priceRes.PricePerUnit
 		item.AdditionalCost = finishingCost
-		item.Subtotal = (priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity))
+		item.Subtotal = roundMoney((priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity)))
 
 		totalProductPrice += priceRes.PricePerUnit * calcQty
 		totalAdditionalCost += finishingCost * float64(item.Quantity)
 	}
 
-	order.TotalProductPrice = totalProductPrice
-	order.TotalAdditionalCost = totalAdditionalCost
-	order.GrandTotal = totalProductPrice + totalAdditionalCost
+	order.TotalProductPrice = roundMoney(totalProductPrice)
+	order.TotalAdditionalCost = roundMoney(totalAdditionalCost)
+	order.GrandTotal = roundMoney(order.TotalProductPrice + order.TotalAdditionalCost)
 
 	// Generate JOB Number
 	dateStr := time.Now().Format("20060102")
@@ -229,6 +238,7 @@ func (u *orderUsecase) ProcessPayment(
 			hasTempo = true
 		}
 	}
+	amountPaid = roundMoney(amountPaid)
 
 	// Set Cashier ID
 	order.CashierID = &cashierID
@@ -289,20 +299,22 @@ func (u *orderUsecase) ProcessPayment(
 
 		item.PricePerUnit = priceRes.PricePerUnit
 		item.AdditionalCost = finishingCost
-		item.Subtotal = (priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity))
+		item.Subtotal = roundMoney((priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity)))
 
 		totalProductPrice += priceRes.PricePerUnit * calcQty
 		totalAdditionalCost += finishingCost * float64(item.Quantity)
 	}
 
-	grandTotal := totalProductPrice + totalAdditionalCost
+	totalProductPrice = roundMoney(totalProductPrice)
+	totalAdditionalCost = roundMoney(totalAdditionalCost)
+	grandTotal := roundMoney(totalProductPrice + totalAdditionalCost)
 	order.TotalProductPrice = totalProductPrice
 	order.TotalAdditionalCost = totalAdditionalCost
 	order.GrandTotal = grandTotal
 	order.AmountPaid = amountPaid
 
 	// Calculate Payment Status dynamically
-	if amountPaid >= grandTotal {
+	if amountPaid >= grandTotal || (grandTotal-amountPaid) <= 0.01 {
 		order.PaymentStatus = orderDomain.PaymentStatusPaid
 	} else if amountPaid > 0 {
 		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
@@ -343,10 +355,14 @@ func (u *orderUsecase) ProcessPayment(
 		}
 
 		// Calculate potential new debt including this order
-		newPotentialDebt := outstandingDebt + (grandTotal - amountPaid)
+		newDebt := grandTotal - amountPaid
+		if newDebt < 0.01 {
+			newDebt = 0
+		}
+		newPotentialDebt := outstandingDebt + newDebt
 		if newPotentialDebt > reseller.CreditLimit {
 			return nil, fmt.Errorf("Credit limit exceeded. Limit: %.2f, Outstanding: %.2f, New Order Debt: %.2f", 
-				reseller.CreditLimit, outstandingDebt, grandTotal-amountPaid)
+				reseller.CreditLimit, outstandingDebt, newDebt)
 		}
 	}
 
@@ -369,7 +385,7 @@ func (u *orderUsecase) ProcessPayment(
 	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if amountPaid > 0 {
 			var paymentType string
-			if amountPaid >= grandTotal {
+			if amountPaid >= grandTotal || (grandTotal-amountPaid) <= 0.01 {
 				paymentType = "FULL_PAYMENT"
 			} else {
 				paymentType = "DOWN_PAYMENT"
@@ -476,21 +492,22 @@ func (u *orderUsecase) Repay(
 		}
 		amountPaid += p.AmountPaid
 	}
+	amountPaid = roundMoney(amountPaid)
 
 	if amountPaid <= 0 {
 		return nil, errors.New("total payment amount must be greater than 0")
 	}
 
-	remainingDebt := order.GrandTotal - order.AmountPaid
-	if amountPaid > remainingDebt {
+	remainingDebt := roundMoney(order.GrandTotal - order.AmountPaid)
+	if amountPaid > remainingDebt && (amountPaid-remainingDebt) > 0.01 {
 		return nil, fmt.Errorf("payment amount (%.2f) exceeds remaining debt (%.2f)", amountPaid, remainingDebt)
 	}
 
 	// Update order amount paid
-	order.AmountPaid += amountPaid
+	order.AmountPaid = roundMoney(order.AmountPaid + amountPaid)
 
 	// Recalculate Payment Status
-	if order.AmountPaid >= order.GrandTotal {
+	if order.AmountPaid >= order.GrandTotal || (order.GrandTotal-order.AmountPaid) <= 0.01 {
 		order.PaymentStatus = orderDomain.PaymentStatusPaid
 	} else {
 		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
@@ -698,15 +715,15 @@ func (u *orderUsecase) UpdateDraft(ctx context.Context, id uuid.UUID, orderReq *
 
 		item.PricePerUnit = priceRes.PricePerUnit
 		item.AdditionalCost = finishingCost
-		item.Subtotal = (priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity))
+		item.Subtotal = roundMoney((priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity)))
 
 		totalProductPrice += priceRes.PricePerUnit * calcQty
 		totalAdditionalCost += finishingCost * float64(item.Quantity)
 	}
 
-	order.TotalProductPrice = totalProductPrice
-	order.TotalAdditionalCost = totalAdditionalCost
-	order.GrandTotal = totalProductPrice + totalAdditionalCost
+	order.TotalProductPrice = roundMoney(totalProductPrice)
+	order.TotalAdditionalCost = roundMoney(totalAdditionalCost)
+	order.GrandTotal = roundMoney(order.TotalProductPrice + order.TotalAdditionalCost)
 	order.OrderItems = orderReq.OrderItems
 
 	if err := u.orderRepo.ReplaceItems(ctx, order.ID, order.OrderItems); err != nil {
@@ -764,19 +781,23 @@ func (u *orderUsecase) Refund(
 		return nil, fmt.Errorf("order not found: %w", err)
 	}
 
+	amount = roundMoney(amount)
 	if amount <= 0 {
 		return nil, errors.New("refund amount must be greater than 0")
 	}
 
-	if amount > order.AmountPaid {
+	if amount > order.AmountPaid && (amount-order.AmountPaid) > 0.01 {
 		return nil, fmt.Errorf("refund amount (%.2f) exceeds amount paid (%.2f)", amount, order.AmountPaid)
 	}
 
-	order.AmountPaid -= amount
+	order.AmountPaid = roundMoney(order.AmountPaid - amount)
 	order.Status = orderDomain.StatusRefund
 
-	if order.AmountPaid <= 0 {
+	if order.AmountPaid <= 0.01 {
+		order.AmountPaid = 0
 		order.PaymentStatus = orderDomain.PaymentStatusUnpaid
+	} else if order.AmountPaid >= order.GrandTotal || (order.GrandTotal-order.AmountPaid) <= 0.01 {
+		order.PaymentStatus = orderDomain.PaymentStatusPaid
 	} else {
 		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
 	}
