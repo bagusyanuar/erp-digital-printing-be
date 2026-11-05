@@ -11,6 +11,7 @@ type OrderItemReq struct {
 	DesignFileURL    *string     `json:"design_file_url" validate:"omitempty,url"`
 	ProductionNotes  *string     `json:"production_notes" validate:"omitempty"`
 	FinishingIDs     []uuid.UUID `json:"finishing_ids" validate:"omitempty"`
+	PricePerUnit     *float64    `json:"price_per_unit" validate:"omitempty,numeric,gte=0"`
 }
 
 type CreateOrderReq struct {
@@ -27,11 +28,17 @@ type PaymentItemReq struct {
 	AmountPaid    float64 `json:"amount_paid" validate:"required,numeric,gt=0"`
 }
 
+type OrderItemPriceReq struct {
+	ID           uuid.UUID `json:"id" validate:"required"`
+	PricePerUnit float64   `json:"price_per_unit" validate:"numeric,gte=0"`
+}
+
 type PaymentProcessReq struct {
-	ResellerID    *uuid.UUID       `json:"reseller_id" validate:"omitempty"`
-	CustomerName  string           `json:"customer_name" validate:"required"`
-	CustomerPhone string           `json:"customer_phone" validate:"required"`
-	Payments      []PaymentItemReq `json:"payments" validate:"required,min=1,dive"`
+	ResellerID    *uuid.UUID          `json:"reseller_id" validate:"omitempty"`
+	CustomerName  string              `json:"customer_name" validate:"required"`
+	CustomerPhone string              `json:"customer_phone" validate:"required"`
+	Payments      []PaymentItemReq    `json:"payments" validate:"required,min=1,dive"`
+	Items         []OrderItemPriceReq `json:"items" validate:"omitempty,dive"`
 }
 
 type OrderRepayReq struct {

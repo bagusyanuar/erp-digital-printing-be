@@ -205,6 +205,11 @@ type PaymentItem struct {
 	AmountPaid    float64
 }
 
+type OrderItemPrice struct {
+	ID           uuid.UUID
+	PricePerUnit float64
+}
+
 // OrderUsecase interface
 type OrderUsecase interface {
 	SaveDraft(ctx context.Context, order *Order) error
@@ -212,7 +217,7 @@ type OrderUsecase interface {
 	SubmitExistingToCashier(ctx context.Context, orderID uuid.UUID) error
 	FindByID(ctx context.Context, id uuid.UUID) (*Order, error)
 	FindAll(ctx context.Context, params request.PaginationParam, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID, isInvoiced *bool) ([]Order, int64, error)
-	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, payments []PaymentItem) (*Order, error)
+	ProcessPayment(ctx context.Context, orderID uuid.UUID, cashierID uuid.UUID, resellerID *uuid.UUID, customerName string, customerPhone string, payments []PaymentItem, itemPrices []OrderItemPrice) (*Order, error)
 	CreateFinishing(ctx context.Context, finishing *Finishing) error
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
 	GetSPKByID(ctx context.Context, id uuid.UUID) (*Order, error)

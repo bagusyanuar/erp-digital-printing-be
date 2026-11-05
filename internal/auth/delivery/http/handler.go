@@ -63,29 +63,45 @@ func (h *AuthHandler) RefreshToken(c fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Logout(c fiber.Ctx) error {
+	isProd := h.cfg.App.Env != "development"
+
+	secure := isProd
+	sameSite := "Lax"
+	if isProd {
+		sameSite = "None"
+	}
+
 	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    "",
-		Expires:  time.Now().Add(-time.Hour),
-		HTTPOnly: true,
-		Secure:   true,
-		SameSite: "None",
-		Partitioned: true,
-		Path:     "/",
+		Name:        "refresh_token",
+		Value:       "",
+		Expires:     time.Now().Add(-time.Hour),
+		HTTPOnly:    true,
+		Secure:      secure,
+		SameSite:    sameSite,
+		Partitioned: isProd,
+		Path:        "/",
 	})
 
 	return response.Success[any](c, "Logout successful", nil, nil)
 }
 
 func (h *AuthHandler) setRefreshTokenCookie(c fiber.Ctx, token string) {
+	isProd := h.cfg.App.Env != "development"
+
+	secure := isProd
+	sameSite := "Lax"
+	if isProd {
+		sameSite = "None"
+	}
+
 	c.Cookie(&fiber.Cookie{
-		Name:     "refresh_token",
-		Value:    token,
-		Expires:  time.Now().Add(time.Hour * 24 * 30),
-		HTTPOnly: true,
-		Secure:   true,   // Wajib true kalau SameSite=None
-		SameSite: "None", // Biar cookie nggak hilang pas reload di cross-site context
-		Partitioned: true, // Tambah partitioned biar nggak kena blokir third-party browser
-		Path:     "/",
+		Name:        "refresh_token",
+		Value:       token,
+		Expires:     time.Now().Add(time.Hour * 24 * 30),
+		HTTPOnly:    true,
+		Secure:      secure,
+		SameSite:    sameSite,
+		Partitioned: isProd,
+		Path:        "/",
 	})
 }

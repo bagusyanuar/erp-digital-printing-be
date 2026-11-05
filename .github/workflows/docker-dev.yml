@@ -2,11 +2,7 @@ name: Docker CI - Development
 
 on:
   push:
-    # Trigger ketika push/merge ke branch develop atau dev
-    branches:
-      - develop
-      - dev
-    # Atau jika ingin trigger via tag dev manual (contoh: dev-v1.0.0 atau dev-1.0)
+    # Trigger HANYA via Git Tag dev (contoh: dev-v1.0.0 atau dev-1.0.0)
     tags:
       - 'dev-*'
       - 'dev-v*.*.*'
@@ -55,8 +51,6 @@ jobs:
             type=sha,prefix=dev-
             # Jika trigger via Git Tag: dev-v1.0.0 -> image tag: dev-1.0.0
             type=match,pattern=dev-v(.*),group=1,prefix=dev-
-            # Jika trigger via branch: dev-develop atau dev-dev
-            type=ref,event=branch,prefix=dev-
 
       - name: Build and push Docker image
         id: build-push
@@ -69,4 +63,29 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ==========================================
+  # JOB 2: CD (Deploy ke Server Development)
+  # ==========================================
+  deploy-dev:
+    needs: build-and-push-dev
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Development Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.DEV_SERVER_PORT || 22 }}
+          script: |
+            echo "Deploying Backend to Dev Server..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            cd ${{ secrets.DEV_APP_PATH || '/home/dystopia/erp-digital-printing-deployment' }}
+            docker compose pull app
+            docker compose up -d app
+            echo "Running database migrations..."
+            docker compose exec -T app sh -c './migrate -path ./migrations -database "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST:-db}:${DB_PORT:-5432}/${DB_NAME}?sslmode=${DB_SSLMODE:-disable}" up'
+            docker image prune -f
+            echo "Backend development deployment completed successfully!"
 

@@ -151,16 +151,22 @@ func (u *orderUsecase) createOrder(ctx context.Context, order *orderDomain.Order
 			qtyInt = 1
 		}
 
-		priceRes, err := u.productRepo.CheckPrice(ctx, item.ProductVariantID, customerLevelID, qtyInt)
-		if err != nil {
-			return fmt.Errorf("failed to check price tier for variant %s: %w", item.ProductVariantID, err)
+		var unitPrice float64
+		if item.PricePerUnit > 0 {
+			unitPrice = item.PricePerUnit
+		} else {
+			priceRes, err := u.productRepo.CheckPrice(ctx, item.ProductVariantID, customerLevelID, qtyInt)
+			if err != nil {
+				return fmt.Errorf("failed to check price tier for variant %s: %w", item.ProductVariantID, err)
+			}
+			unitPrice = priceRes.PricePerUnit
+			item.PricePerUnit = unitPrice
 		}
 
-		item.PricePerUnit = priceRes.PricePerUnit
 		item.AdditionalCost = finishingCost
-		item.Subtotal = roundMoney((priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity)))
+		item.Subtotal = roundMoney((unitPrice * calcQty) + (finishingCost * float64(item.Quantity)))
 
-		totalProductPrice += priceRes.PricePerUnit * calcQty
+		totalProductPrice += unitPrice * calcQty
 		totalAdditionalCost += finishingCost * float64(item.Quantity)
 	}
 
@@ -217,6 +223,7 @@ func (u *orderUsecase) ProcessPayment(
 	customerName string,
 	customerPhone string,
 	payments []orderDomain.PaymentItem,
+	itemPrices []orderDomain.OrderItemPrice,
 ) (*orderDomain.Order, error) {
 	order, err := u.orderRepo.FindByID(ctx, orderID)
 	if err != nil {
@@ -269,6 +276,14 @@ func (u *orderUsecase) ProcessPayment(
 	order.CustomerName = &customerName
 	order.CustomerPhone = &customerPhone
 
+	// Build map of item price overrides from request
+	priceOverrideMap := make(map[uuid.UUID]float64)
+	for _, ip := range itemPrices {
+		if ip.PricePerUnit >= 0 {
+			priceOverrideMap[ip.ID] = ip.PricePerUnit
+		}
+	}
+
 	// Recalculate Pricing
 	var totalProductPrice float64
 	var totalAdditionalCost float64
@@ -287,21 +302,29 @@ func (u *orderUsecase) ProcessPayment(
 			finishingCost += f.Price
 		}
 
-		// Check unit price from price tiers
-		qtyInt := int(calcQty)
-		if qtyInt < 1 {
-			qtyInt = 1
-		}
-		priceRes, err := u.productRepo.CheckPrice(ctx, item.ProductVariantID, customerLevelID, qtyInt)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check price tier for variant %s: %w", item.ProductVariantID, err)
+		var unitPrice float64
+		if overridePrice, exists := priceOverrideMap[item.ID]; exists {
+			unitPrice = overridePrice
+		} else if len(priceOverrideMap) == 0 && item.PricePerUnit > 0 && (resellerID == nil || (order.ResellerID != nil && *order.ResellerID == *resellerID)) {
+			unitPrice = item.PricePerUnit
+		} else {
+			// Check unit price from price tiers
+			qtyInt := int(calcQty)
+			if qtyInt < 1 {
+				qtyInt = 1
+			}
+			priceRes, err := u.productRepo.CheckPrice(ctx, item.ProductVariantID, customerLevelID, qtyInt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check price tier for variant %s: %w", item.ProductVariantID, err)
+			}
+			unitPrice = priceRes.PricePerUnit
 		}
 
-		item.PricePerUnit = priceRes.PricePerUnit
+		item.PricePerUnit = unitPrice
 		item.AdditionalCost = finishingCost
-		item.Subtotal = roundMoney((priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity)))
+		item.Subtotal = roundMoney((unitPrice * calcQty) + (finishingCost * float64(item.Quantity)))
 
-		totalProductPrice += priceRes.PricePerUnit * calcQty
+		totalProductPrice += unitPrice * calcQty
 		totalAdditionalCost += finishingCost * float64(item.Quantity)
 	}
 
@@ -435,6 +458,19 @@ func (u *orderUsecase) ProcessPayment(
 						return fmt.Errorf("failed to create cash flow record: %w", err)
 					}
 				}
+			}
+		}
+
+		// Persist updated price_per_unit, additional_cost, and subtotal to order_items
+		for _, item := range order.OrderItems {
+			if err := tx.Model(&orderDomain.OrderItem{}).
+				Where("id = ?", item.ID).
+				Updates(map[string]any{
+					"price_per_unit":  item.PricePerUnit,
+					"additional_cost": item.AdditionalCost,
+					"subtotal":        item.Subtotal,
+				}).Error; err != nil {
+				return fmt.Errorf("failed to update order item %s: %w", item.ID, err)
 			}
 		}
 
@@ -708,16 +744,22 @@ func (u *orderUsecase) UpdateDraft(ctx context.Context, id uuid.UUID, orderReq *
 			qtyInt = 1
 		}
 
-		priceRes, err := u.productRepo.CheckPrice(ctx, item.ProductVariantID, customerLevelID, qtyInt)
-		if err != nil {
-			return nil, fmt.Errorf("failed to check price tier for variant %s: %w", item.ProductVariantID, err)
+		var unitPrice float64
+		if item.PricePerUnit > 0 {
+			unitPrice = item.PricePerUnit
+		} else {
+			priceRes, err := u.productRepo.CheckPrice(ctx, item.ProductVariantID, customerLevelID, qtyInt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to check price tier for variant %s: %w", item.ProductVariantID, err)
+			}
+			unitPrice = priceRes.PricePerUnit
+			item.PricePerUnit = unitPrice
 		}
 
-		item.PricePerUnit = priceRes.PricePerUnit
 		item.AdditionalCost = finishingCost
-		item.Subtotal = roundMoney((priceRes.PricePerUnit * calcQty) + (finishingCost * float64(item.Quantity)))
+		item.Subtotal = roundMoney((unitPrice * calcQty) + (finishingCost * float64(item.Quantity)))
 
-		totalProductPrice += priceRes.PricePerUnit * calcQty
+		totalProductPrice += unitPrice * calcQty
 		totalAdditionalCost += finishingCost * float64(item.Quantity)
 	}
 

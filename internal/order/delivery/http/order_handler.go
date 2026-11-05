@@ -45,6 +45,10 @@ func buildOrderFromReq(req *dto.CreateOrderReq) *domain.Order {
 			ProductionNotes:  itemReq.ProductionNotes,
 		}
 
+		if itemReq.PricePerUnit != nil {
+			item.PricePerUnit = *itemReq.PricePerUnit
+		}
+
 		if len(itemReq.FinishingIDs) > 0 {
 			item.Finishings = make([]domain.Finishing, len(itemReq.FinishingIDs))
 			for j, fid := range itemReq.FinishingIDs {
@@ -154,6 +158,14 @@ func (h *OrderHandler) ProcessPayment(c fiber.Ctx) error {
 		})
 	}
 
+	var itemPrices []domain.OrderItemPrice
+	for _, it := range req.Items {
+		itemPrices = append(itemPrices, domain.OrderItemPrice{
+			ID:           it.ID,
+			PricePerUnit: it.PricePerUnit,
+		})
+	}
+
 	order, err := h.orderUsecase.ProcessPayment(
 		c.Context(),
 		id,
@@ -162,6 +174,7 @@ func (h *OrderHandler) ProcessPayment(c fiber.Ctx) error {
 		req.CustomerName,
 		req.CustomerPhone,
 		payments,
+		itemPrices,
 	)
 	if err != nil {
 		if strings.Contains(err.Error(), "Credit limit exceeded") {
