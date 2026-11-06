@@ -125,6 +125,7 @@ type CashFlowRepository interface {
 	FindAllAccounts(ctx context.Context) ([]CashAccount, error)
 	FindAccountByNameWithLock(ctx context.Context, tx *gorm.DB, name string) (*CashAccount, error)
 	UpdateAccount(ctx context.Context, tx *gorm.DB, account *CashAccount) error
+	UpdatePaymentMethodByRef(ctx context.Context, tx *gorm.DB, refType string, refID uuid.UUID, newPaymentMethod string) error
 }
 
 type CashFlowUsecase interface {

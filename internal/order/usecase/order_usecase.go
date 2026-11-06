@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	cashFlowDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/domain"
@@ -993,6 +994,101 @@ func (u *orderUsecase) MergeOrder(ctx context.Context, targetOrderID uuid.UUID, 
 	}
 
 	return updatedTarget, nil
+}
+
+func (u *orderUsecase) UpdatePaymentMethod(ctx context.Context, orderID uuid.UUID, paymentID uuid.UUID, newPaymentMethod string) (*orderDomain.Order, error) {
+	newMethod := strings.ToLower(strings.TrimSpace(newPaymentMethod))
+	if newMethod != "cash" && newMethod != "qris" && newMethod != "transfer" {
+		return nil, fmt.Errorf("metode pembayaran tidak valid: hanya cash, qris, transfer yang didukung")
+	}
+
+	order, err := u.orderRepo.FindByID(ctx, orderID)
+	if err != nil {
+		return nil, fmt.Errorf("order tidak ditemukan: %w", err)
+	}
+
+	payment, err := u.orderRepo.FindPaymentByID(ctx, paymentID)
+	if err != nil {
+		return nil, fmt.Errorf("pembayaran tidak ditemukan: %w", err)
+	}
+
+	if payment.OrderID != orderID {
+		return nil, errors.New("pembayaran bukan milik order ini")
+	}
+
+	oldMethod := strings.ToLower(strings.TrimSpace(payment.PaymentMethod))
+	if oldMethod == newMethod {
+		return order, nil
+	}
+
+	if oldMethod != "cash" && oldMethod != "qris" && oldMethod != "transfer" {
+		return nil, fmt.Errorf("metode pembayaran saat ini (%s) tidak dapat dimutasi otomatis", oldMethod)
+	}
+
+	err = u.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Deadlock prevention: sort account names alphabetically before acquiring row locks
+		firstAccName, secondAccName := oldMethod, newMethod
+		if firstAccName > secondAccName {
+			firstAccName, secondAccName = newMethod, oldMethod
+		}
+
+		acc1, err := u.cashFlowRepo.FindAccountByNameWithLock(ctx, tx, firstAccName)
+		if err != nil {
+			return fmt.Errorf("gagal menemukan akun kas %s: %w", firstAccName, err)
+		}
+		acc2, err := u.cashFlowRepo.FindAccountByNameWithLock(ctx, tx, secondAccName)
+		if err != nil {
+			return fmt.Errorf("gagal menemukan akun kas %s: %w", secondAccName, err)
+		}
+
+		var oldAcc, newAcc *cashFlowDomain.CashAccount
+		if oldMethod == acc1.Name {
+			oldAcc = acc1
+			newAcc = acc2
+		} else {
+			oldAcc = acc2
+			newAcc = acc1
+		}
+
+		// Update balances according to payment type
+		if payment.PaymentType == "REFUND" {
+			oldAcc.Balance = roundMoney(oldAcc.Balance + payment.Amount)
+			newAcc.Balance = roundMoney(newAcc.Balance - payment.Amount)
+		} else {
+			oldAcc.Balance = roundMoney(oldAcc.Balance - payment.Amount)
+			newAcc.Balance = roundMoney(newAcc.Balance + payment.Amount)
+		}
+
+		if err := u.cashFlowRepo.UpdateAccount(ctx, tx, oldAcc); err != nil {
+			return fmt.Errorf("gagal memperbarui saldo akun %s: %w", oldAcc.Name, err)
+		}
+		if err := u.cashFlowRepo.UpdateAccount(ctx, tx, newAcc); err != nil {
+			return fmt.Errorf("gagal memperbarui saldo akun %s: %w", newAcc.Name, err)
+		}
+
+		// Update order_payments
+		payment.PaymentMethod = newMethod
+		if err := u.orderRepo.UpdatePayment(ctx, tx, payment); err != nil {
+			return fmt.Errorf("gagal memperbarui metode bayar pembayaran: %w", err)
+		}
+
+		// Update cash_flows
+		refType := cashFlowDomain.RefOrderPayment
+		if payment.PaymentType == "REFUND" {
+			refType = cashFlowDomain.RefRefund
+		}
+		if err := u.cashFlowRepo.UpdatePaymentMethodByRef(ctx, tx, refType, payment.ID, newMethod); err != nil {
+			return fmt.Errorf("gagal memperbarui catatan cash flow: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return u.orderRepo.FindByID(ctx, orderID)
 }
 
 

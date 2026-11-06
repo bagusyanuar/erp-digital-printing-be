@@ -247,6 +247,22 @@ func (r *orderRepository) CreatePayment(ctx context.Context, payment *domain.Ord
 	return r.db.WithContext(ctx).Create(payment).Error
 }
 
+func (r *orderRepository) FindPaymentByID(ctx context.Context, id uuid.UUID) (*domain.OrderPayment, error) {
+	var payment domain.OrderPayment
+	if err := r.db.WithContext(ctx).First(&payment, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &payment, nil
+}
+
+func (r *orderRepository) UpdatePayment(ctx context.Context, tx *gorm.DB, payment *domain.OrderPayment) error {
+	db := r.db
+	if tx != nil {
+		db = tx
+	}
+	return db.WithContext(ctx).Save(payment).Error
+}
+
 func (r *orderRepository) ReplaceItems(ctx context.Context, orderID uuid.UUID, items []domain.OrderItem) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		var oldItems []domain.OrderItem

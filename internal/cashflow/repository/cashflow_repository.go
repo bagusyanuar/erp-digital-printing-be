@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/domain"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -185,4 +186,14 @@ func (r *cashFlowRepository) UpdateAccount(ctx context.Context, tx *gorm.DB, acc
 		db = tx
 	}
 	return db.WithContext(ctx).Save(account).Error
+}
+
+func (r *cashFlowRepository) UpdatePaymentMethodByRef(ctx context.Context, tx *gorm.DB, refType string, refID uuid.UUID, newPaymentMethod string) error {
+	db := r.db
+	if tx != nil {
+		db = tx
+	}
+	return db.WithContext(ctx).Model(&domain.CashFlow{}).
+		Where("reference_type = ? AND reference_id = ?", refType, refID).
+		Update("payment_method", newPaymentMethod).Error
 }

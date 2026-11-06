@@ -171,6 +171,8 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Get("/", a.Container.OrderHandler.FindAll)
 	orderRoutes.Get("/:id", a.Container.OrderHandler.FindByID)
 	orderRoutes.Get("/:id/payments", a.Container.OrderHandler.GetPaymentsByOrderID)
+	orderRoutes.Patch("/:id/payments/:payment_id", a.Container.OrderHandler.UpdatePaymentMethod)
+	orderRoutes.Put("/:id/payments/:payment_id", a.Container.OrderHandler.UpdatePaymentMethod)
 	orderRoutes.Get("/:id/spk", a.Container.OrderHandler.GetSPKByID)
 	orderRoutes.Patch("/:id/status", a.Container.OrderHandler.UpdateStatus)
 

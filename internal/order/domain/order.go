@@ -191,6 +191,8 @@ type OrderRepository interface {
 	FindAllFinishings(ctx context.Context) ([]Finishing, error)
 	FindByIDWithCategoryPreload(ctx context.Context, id uuid.UUID) (*Order, error)
 	CreatePayment(ctx context.Context, payment *OrderPayment) error
+	FindPaymentByID(ctx context.Context, id uuid.UUID) (*OrderPayment, error)
+	UpdatePayment(ctx context.Context, tx *gorm.DB, payment *OrderPayment) error
 	ReplaceItems(ctx context.Context, orderID uuid.UUID, items []OrderItem) error
 	GetReportsWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string) (*OrderReportsWidgetsRes, error)
 	GetSalesReportWidgets(ctx context.Context, statuses []string, paymentStatuses []string, paymentMethods []string, designerID *uuid.UUID, cashierID *uuid.UUID, search string, startDate *time.Time, endDate *time.Time, customerType string, dateBy string, categoryID *uuid.UUID) (*SalesReportWidgetsRes, error)
@@ -233,4 +235,5 @@ type OrderUsecase interface {
 	Refund(ctx context.Context, id uuid.UUID, cashierID uuid.UUID, paymentMethod string, amount float64, reason string) (*Order, error)
 	Cancel(ctx context.Context, id uuid.UUID, reason string) (*Order, error)
 	MergeOrder(ctx context.Context, targetOrderID uuid.UUID, sourceOrderID uuid.UUID) (*Order, error)
+	UpdatePaymentMethod(ctx context.Context, orderID uuid.UUID, paymentID uuid.UUID, newPaymentMethod string) (*Order, error)
 }

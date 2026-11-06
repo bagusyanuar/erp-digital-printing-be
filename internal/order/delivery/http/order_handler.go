@@ -1268,6 +1268,30 @@ func (h *OrderHandler) MergeOrder(c fiber.Ctx) error {
 	return response.Success(c, "Order merged successfully", mapOrderToRes(mergedOrder), nil)
 }
 
+func (h *OrderHandler) UpdatePaymentMethod(c fiber.Ctx) error {
+	orderID, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid order ID", err.Error())
+	}
+
+	paymentID, err := uuid.Parse(c.Params("payment_id"))
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid payment ID", err.Error())
+	}
+
+	var req dto.UpdatePaymentMethodReq
+	if err := c.Bind().Body(&req); err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
+	}
+
+	order, err := h.orderUsecase.UpdatePaymentMethod(c.Context(), orderID, paymentID, req.PaymentMethod)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Failed to update payment method", err.Error())
+	}
+
+	return response.Success(c, "Payment method updated successfully", mapOrderToRes(order), nil)
+}
+
 
 
 

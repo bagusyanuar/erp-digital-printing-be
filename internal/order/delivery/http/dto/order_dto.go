@@ -163,6 +163,10 @@ type MergeOrderReq struct {
 	SourceOrderID uuid.UUID `json:"source_order_id" validate:"required"`
 }
 
+type UpdatePaymentMethodReq struct {
+	PaymentMethod string `json:"payment_method" validate:"required,oneof=cash qris transfer"`
+}
+
 type SalesTrendItemRes struct {
 	Label string  `json:"label"`
 	Total float64 `json:"total"`
