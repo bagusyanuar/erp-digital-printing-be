@@ -176,6 +176,12 @@ func (a *App) SetupRoutes() {
 	orderRoutes.Get("/:id/spk", a.Container.OrderHandler.GetSPKByID)
 	orderRoutes.Patch("/:id/status", a.Container.OrderHandler.UpdateStatus)
 
+	// Receivable Routes
+	receivableRoutes := protected.Group("/customer-receivables")
+	receivableRoutes.Get("/", a.Container.ReceivableHandler.GetCustomerReceivables)
+	receivableRoutes.Get("/settled", a.Container.ReceivableHandler.GetSettledInvoices)
+	receivableRoutes.Get("/summary", a.Container.ReceivableHandler.GetSummary)
+
 	// Cash Flow Routes
 	cashFlowRoutes := protected.Group("/reports/cash-flow")
 	cashFlowRoutes.Get("/", a.Container.CashFlowHandler.GetReport)

@@ -7,6 +7,7 @@ import (
 	orderHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/order/delivery/http"
 	productHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/product/delivery/http"
 	rbacHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/rbac/delivery/http"
+	receivableHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/receivable/delivery/http"
 	resellerHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/reseller/delivery/http"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/shared/config"
 	userHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/user/delivery/http"
@@ -30,6 +31,7 @@ type Container struct {
 	AttributeHandler  *productHttp.AttributeHandler
 	ProductHandler    *productHttp.ProductHandler
 	OrderHandler      *orderHttp.OrderHandler
+	ReceivableHandler *receivableHttp.ReceivableHandler
 	CashFlowHandler  *cfHttp.CashFlowHandler
 	ExpenseHandler   *expenseHttp.ExpenseHandler
 	SupplierHandler  *supplierHttp.SupplierHandler
@@ -48,21 +50,24 @@ func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Containe
 		logger.Fatal("failed to initialize casbin", zap.Error(err))
 	}
 
+	orderUsecase := newOrderUsecase(db, logger)
+
 	return &Container{
-		UserHandler:      newUserHandler(db, logger),
-		AuthHandler:      newAuthHandler(db, cfg, logger, jwtUtil),
-		RBACHandler:      newRBACHandler(db, csb, logger),
-		ResellerHandler:  newResellerHandler(db, logger),
+		UserHandler:       newUserHandler(db, logger),
+		AuthHandler:       newAuthHandler(db, cfg, logger, jwtUtil),
+		RBACHandler:       newRBACHandler(db, csb, logger),
+		ResellerHandler:   newResellerHandler(db, logger),
 		CategoryHandler:   newCategoryHandler(db, logger),
 		AttributeHandler:  newAttributeHandler(db, logger),
 		ProductHandler:    newProductHandler(db, logger),
-		OrderHandler:      newOrderHandler(db, logger),
-		CashFlowHandler:  newCashFlowHandler(db, logger),
-		ExpenseHandler:   newExpenseHandler(db, logger),
-		SupplierHandler:  newSupplierHandler(db, logger),
-		CapitalHandler:   newCapitalHandler(db, logger),
-		DashboardHandler: newDashboardHandler(db, logger),
-		ReportHandler:    newReportHandler(db, logger),
+		OrderHandler:      newOrderHandler(orderUsecase),
+		ReceivableHandler: newReceivableHandler(db, logger),
+		CashFlowHandler:   newCashFlowHandler(db, logger),
+		ExpenseHandler:    newExpenseHandler(db, logger),
+		SupplierHandler:   newSupplierHandler(db, logger),
+		CapitalHandler:    newCapitalHandler(db, logger),
+		DashboardHandler:  newDashboardHandler(db, logger),
+		ReportHandler:     newReportHandler(db, logger),
 		JWTUtil:           jwtUtil,
 		Casbin:            csb,
 	}
