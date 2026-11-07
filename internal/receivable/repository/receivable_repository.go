@@ -65,7 +65,8 @@ func (r *receivableRepository) FindCustomerReceivables(
 		FROM orders o
 		JOIN resellers r ON o.reseller_id = r.id
 		WHERE o.payment_status IN ('UNPAID', 'PARTIAL_PAID')
-		  AND o.status NOT IN ('CANCELLED', 'REFUND')
+		  AND o.status NOT IN ('DRAFT', 'PENDING_PAYMENT', 'CANCELLED', 'REFUND')
+		  AND o.invoice_number IS NOT NULL
 		  AND o.deleted_at IS NULL
 		  %s
 		GROUP BY r.id, r.name, r.phone
@@ -89,7 +90,8 @@ func (r *receivableRepository) FindCustomerReceivables(
 		FROM orders o
 		WHERE o.reseller_id IS NULL
 		  AND o.payment_status IN ('UNPAID', 'PARTIAL_PAID')
-		  AND o.status NOT IN ('CANCELLED', 'REFUND')
+		  AND o.status NOT IN ('DRAFT', 'PENDING_PAYMENT', 'CANCELLED', 'REFUND')
+		  AND o.invoice_number IS NOT NULL
 		  AND o.deleted_at IS NULL
 		  %s
 		GROUP BY 
@@ -158,7 +160,8 @@ func (r *receivableRepository) FindCustomerReceivables(
 		}).
 		Preload("OrderPayments.Cashier").
 		Where("payment_status IN ('UNPAID', 'PARTIAL_PAID')").
-		Where("status NOT IN ('CANCELLED', 'REFUND')").
+		Where("status NOT IN ('DRAFT', 'PENDING_PAYMENT', 'CANCELLED', 'REFUND')").
+		Where("invoice_number IS NOT NULL").
 		Where("deleted_at IS NULL")
 
 	if startDate != nil && endDate != nil {
@@ -242,7 +245,8 @@ func (r *receivableRepository) FindSettledInvoices(
 	db := r.db.WithContext(ctx).Model(&orderDomain.Order{}).
 		Joins("LEFT JOIN resellers r ON orders.reseller_id = r.id").
 		Where("orders.payment_status = ?", orderDomain.PaymentStatusPaid).
-		Where("orders.status NOT IN ('CANCELLED', 'REFUND')").
+		Where("orders.status NOT IN ('DRAFT', 'PENDING_PAYMENT', 'CANCELLED', 'REFUND')").
+		Where("orders.invoice_number IS NOT NULL").
 		Where("orders.deleted_at IS NULL")
 
 	if strings.TrimSpace(search) != "" {
@@ -376,7 +380,8 @@ func (r *receivableRepository) GetSummary(ctx context.Context) (*domain.Customer
 		Model(&orderDomain.Order{}).
 		Select("COALESCE(SUM(grand_total - amount_paid), 0)").
 		Where("payment_status IN ('UNPAID', 'PARTIAL_PAID')").
-		Where("status NOT IN ('CANCELLED', 'REFUND')").
+		Where("status NOT IN ('DRAFT', 'PENDING_PAYMENT', 'CANCELLED', 'REFUND')").
+		Where("invoice_number IS NOT NULL").
 		Where("deleted_at IS NULL").
 		Scan(&res.TotalActiveReceivable).Error
 	if err != nil {
@@ -401,7 +406,8 @@ func (r *receivableRepository) GetSummary(ctx context.Context) (*domain.Customer
 			FROM orders o
 			JOIN resellers r ON o.reseller_id = r.id
 			WHERE o.payment_status IN ('UNPAID', 'PARTIAL_PAID')
-			  AND o.status NOT IN ('CANCELLED', 'REFUND')
+			  AND o.status NOT IN ('DRAFT', 'PENDING_PAYMENT', 'CANCELLED', 'REFUND')
+			  AND o.invoice_number IS NOT NULL
 			  AND o.deleted_at IS NULL
 			GROUP BY r.id
 
@@ -416,7 +422,8 @@ func (r *receivableRepository) GetSummary(ctx context.Context) (*domain.Customer
 			FROM orders o
 			WHERE o.reseller_id IS NULL
 			  AND o.payment_status IN ('UNPAID', 'PARTIAL_PAID')
-			  AND o.status NOT IN ('CANCELLED', 'REFUND')
+			  AND o.status NOT IN ('DRAFT', 'PENDING_PAYMENT', 'CANCELLED', 'REFUND')
+			  AND o.invoice_number IS NOT NULL
 			  AND o.deleted_at IS NULL
 			GROUP BY 
 				CASE 
