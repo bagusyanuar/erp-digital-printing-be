@@ -76,11 +76,19 @@ func (r *receivableRepository) FindCustomerReceivables(
 		SELECT 
 			CASE 
 				WHEN NULLIF(TRIM(o.customer_phone), '') IS NOT NULL 
-					THEN 'retail:phone:' || TRIM(o.customer_phone)
+				 AND TRIM(o.customer_phone) NOT IN ('-', '0', 'null')
+				 AND LENGTH(REGEXP_REPLACE(o.customer_phone, '\D', '', 'g')) >= 5
+					THEN 'retail:phone:' || REGEXP_REPLACE(o.customer_phone, '\D', '', 'g')
 				ELSE 'retail:order:' || o.id::text 
 			END AS id,
 			COALESCE(NULLIF(MAX(o.customer_name), ''), 'Pelanggan Umum') AS customer_name,
-			COALESCE(NULLIF(MAX(o.customer_phone), ''), '-') AS customer_phone,
+			CASE 
+				WHEN NULLIF(TRIM(MAX(o.customer_phone)), '') IS NOT NULL 
+				 AND TRIM(MAX(o.customer_phone)) NOT IN ('-', '0', 'null')
+				 AND LENGTH(REGEXP_REPLACE(MAX(o.customer_phone), '\D', '', 'g')) >= 5
+					THEN MAX(o.customer_phone)
+				ELSE '-'
+			END AS customer_phone,
 			'RETAIL' AS customer_type,
 			COUNT(o.id) AS total_invoices_count,
 			COUNT(o.id) AS unpaid_invoices_count,
@@ -97,7 +105,9 @@ func (r *receivableRepository) FindCustomerReceivables(
 		GROUP BY 
 			CASE 
 				WHEN NULLIF(TRIM(o.customer_phone), '') IS NOT NULL 
-					THEN 'retail:phone:' || TRIM(o.customer_phone)
+				 AND TRIM(o.customer_phone) NOT IN ('-', '0', 'null')
+				 AND LENGTH(REGEXP_REPLACE(o.customer_phone, '\D', '', 'g')) >= 5
+					THEN 'retail:phone:' || REGEXP_REPLACE(o.customer_phone, '\D', '', 'g')
 				ELSE 'retail:order:' || o.id::text 
 			END
 	`, dateFilterReseller, dateFilterRetail)
@@ -176,7 +186,15 @@ func (r *receivableRepository) FindCustomerReceivables(
 		condArgs = append(condArgs, resellerIDs)
 	}
 	if len(retailKeys) > 0 {
-		conditions = append(conditions, "(CASE WHEN NULLIF(TRIM(customer_phone), '') IS NOT NULL THEN 'retail:phone:' || TRIM(customer_phone) ELSE 'retail:order:' || id::text END) IN (?)")
+		conditions = append(conditions, `(
+			CASE 
+				WHEN NULLIF(TRIM(customer_phone), '') IS NOT NULL 
+				 AND TRIM(customer_phone) NOT IN ('-', '0', 'null')
+				 AND LENGTH(REGEXP_REPLACE(customer_phone, '\D', '', 'g')) >= 5
+					THEN 'retail:phone:' || REGEXP_REPLACE(customer_phone, '\D', '', 'g')
+				ELSE 'retail:order:' || id::text 
+			END
+		) IN (?)`)
 		condArgs = append(condArgs, retailKeys)
 	}
 
@@ -195,12 +213,12 @@ func (r *receivableRepository) FindCustomerReceivables(
 		if o.ResellerID != nil {
 			custKey = o.ResellerID.String()
 		} else {
-			phone := ""
+			p := ""
 			if o.CustomerPhone != nil {
-				phone = strings.TrimSpace(*o.CustomerPhone)
+				p = cleanPhone(*o.CustomerPhone)
 			}
-			if phone != "" {
-				custKey = "retail:phone:" + phone
+			if p != "" {
+				custKey = "retail:phone:" + p
 			} else {
 				custKey = "retail:order:" + o.ID.String()
 			}
@@ -297,18 +315,19 @@ func (r *receivableRepository) FindSettledInvoices(
 			custName = o.Reseller.Name
 			custPhone = o.Reseller.Phone
 		} else {
-			phone := ""
-			if o.CustomerPhone != nil && *o.CustomerPhone != "" {
-				phone = strings.TrimSpace(*o.CustomerPhone)
-				custPhone = phone
+			p := ""
+			if o.CustomerPhone != nil {
+				p = cleanPhone(*o.CustomerPhone)
+			}
+			if p != "" {
+				custID = "retail:phone:" + p
+				custPhone = *o.CustomerPhone
+			} else {
+				custID = "retail:order:" + o.ID.String()
+				custPhone = "-"
 			}
 			if o.CustomerName != nil && *o.CustomerName != "" {
 				custName = *o.CustomerName
-			}
-			if phone != "" {
-				custID = "retail:phone:" + phone
-			} else {
-				custID = "retail:order:" + o.ID.String()
 			}
 		}
 
@@ -416,7 +435,9 @@ func (r *receivableRepository) GetSummary(ctx context.Context) (*domain.Customer
 			SELECT 
 				CASE 
 					WHEN NULLIF(TRIM(o.customer_phone), '') IS NOT NULL 
-						THEN 'retail:phone:' || TRIM(o.customer_phone)
+					 AND TRIM(o.customer_phone) NOT IN ('-', '0', 'null')
+					 AND LENGTH(REGEXP_REPLACE(o.customer_phone, '\D', '', 'g')) >= 5
+						THEN 'retail:phone:' || REGEXP_REPLACE(o.customer_phone, '\D', '', 'g')
 					ELSE 'retail:order:' || o.id::text 
 				END
 			FROM orders o
@@ -428,7 +449,9 @@ func (r *receivableRepository) GetSummary(ctx context.Context) (*domain.Customer
 			GROUP BY 
 				CASE 
 					WHEN NULLIF(TRIM(o.customer_phone), '') IS NOT NULL 
-						THEN 'retail:phone:' || TRIM(o.customer_phone)
+					 AND TRIM(o.customer_phone) NOT IN ('-', '0', 'null')
+					 AND LENGTH(REGEXP_REPLACE(o.customer_phone, '\D', '', 'g')) >= 5
+						THEN 'retail:phone:' || REGEXP_REPLACE(o.customer_phone, '\D', '', 'g')
 					ELSE 'retail:order:' || o.id::text 
 				END
 		) AS active_cust
@@ -480,4 +503,18 @@ func mapOrderToReceivableInvoice(o orderDomain.Order) domain.ReceivableInvoiceIt
 		Notes:           o.Notes,
 		Payments:        payments,
 	}
+}
+
+func cleanPhone(phone string) string {
+	var sb strings.Builder
+	for _, r := range phone {
+		if r >= '0' && r <= '9' {
+			sb.WriteRune(r)
+		}
+	}
+	res := sb.String()
+	if len(res) >= 5 {
+		return res
+	}
+	return ""
 }
