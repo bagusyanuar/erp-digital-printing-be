@@ -182,6 +182,12 @@ func (a *App) SetupRoutes() {
 	receivableRoutes.Get("/settled", a.Container.ReceivableHandler.GetSettledInvoices)
 	receivableRoutes.Get("/summary", a.Container.ReceivableHandler.GetSummary)
 
+	// Payable Routes
+	payableRoutes := protected.Group("/vendor-payables")
+	payableRoutes.Get("/", a.Container.PayableHandler.GetVendorPayables)
+	payableRoutes.Get("/settled", a.Container.PayableHandler.GetSettledPayables)
+	payableRoutes.Get("/summary", a.Container.PayableHandler.GetSummary)
+
 	// Cash Flow Routes
 	cashFlowRoutes := protected.Group("/reports/cash-flow")
 	cashFlowRoutes.Get("/", a.Container.CashFlowHandler.GetReport)
@@ -215,6 +221,7 @@ func (a *App) SetupRoutes() {
 	expenseRoutes.Get("/", a.Container.ExpenseHandler.FindAllExpenses)
 	expenseRoutes.Get("/:id", a.Container.ExpenseHandler.FindExpenseByID)
 	expenseRoutes.Post("/:id/payments", a.Container.ExpenseHandler.PayInstallment)
+	expenseRoutes.Post("/:id/pay", a.Container.PayableHandler.PayExpense)
 	expenseRoutes.Delete("/:id", a.Container.ExpenseHandler.DeleteExpense)
 
 	// Expenses Analytics Routes

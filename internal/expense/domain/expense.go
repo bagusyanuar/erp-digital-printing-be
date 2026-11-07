@@ -6,6 +6,7 @@ import (
 
 	categoryDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/category/domain"
 	supplierDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/supplier/domain"
+	userDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/user/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -97,8 +98,9 @@ type ExpensePayment struct {
 	ExpenseID     uuid.UUID      `gorm:"type:uuid;not null" json:"expense_id"`
 	Amount        float64        `gorm:"type:decimal(15,2);not null;default:0" json:"amount"`
 	PaymentDate   time.Time      `gorm:"type:timestamp;default:now()" json:"payment_date"`
-	PaymentMethod string         `gorm:"type:varchar(50);not null" json:"payment_method"`
-	CashierID     uuid.UUID      `gorm:"type:uuid;not null" json:"cashier_id"`
+	PaymentMethod string           `gorm:"type:varchar(50);not null" json:"payment_method"`
+	CashierID     uuid.UUID        `gorm:"type:uuid;not null" json:"cashier_id"`
+	Cashier       *userDomain.User `gorm:"foreignKey:CashierID" json:"cashier,omitempty"`
 	
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`

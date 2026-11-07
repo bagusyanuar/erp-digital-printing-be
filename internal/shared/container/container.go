@@ -5,6 +5,7 @@ import (
 	categoryHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/category/delivery/http"
 	cfHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/delivery/http"
 	orderHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/order/delivery/http"
+	payableHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/payable/delivery/http"
 	productHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/product/delivery/http"
 	rbacHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/rbac/delivery/http"
 	receivableHttp "github.com/bagusyanuar/erp-digital-printing-be/internal/receivable/delivery/http"
@@ -32,6 +33,7 @@ type Container struct {
 	ProductHandler    *productHttp.ProductHandler
 	OrderHandler      *orderHttp.OrderHandler
 	ReceivableHandler *receivableHttp.ReceivableHandler
+	PayableHandler    *payableHttp.PayableHandler
 	CashFlowHandler  *cfHttp.CashFlowHandler
 	ExpenseHandler   *expenseHttp.ExpenseHandler
 	SupplierHandler  *supplierHttp.SupplierHandler
@@ -51,6 +53,7 @@ func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Containe
 	}
 
 	orderUsecase := newOrderUsecase(db, logger)
+	expenseUsecase := newExpenseUsecase(db, logger)
 
 	return &Container{
 		UserHandler:       newUserHandler(db, logger),
@@ -62,8 +65,9 @@ func NewContainer(db *gorm.DB, cfg *config.Config, logger *zap.Logger) *Containe
 		ProductHandler:    newProductHandler(db, logger),
 		OrderHandler:      newOrderHandler(orderUsecase),
 		ReceivableHandler: newReceivableHandler(db, logger),
+		PayableHandler:    newPayableHandler(db, expenseUsecase, logger),
 		CashFlowHandler:   newCashFlowHandler(db, logger),
-		ExpenseHandler:    newExpenseHandler(db, logger),
+		ExpenseHandler:    newExpenseHandler(expenseUsecase),
 		SupplierHandler:   newSupplierHandler(db, logger),
 		CapitalHandler:    newCapitalHandler(db, logger),
 		DashboardHandler:  newDashboardHandler(db, logger),
