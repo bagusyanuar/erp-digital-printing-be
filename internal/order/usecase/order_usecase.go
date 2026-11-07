@@ -693,6 +693,7 @@ func (u *orderUsecase) UpdateDraft(ctx context.Context, id uuid.UUID, orderReq *
 	order.CustomerName = orderReq.CustomerName
 	order.CustomerPhone = orderReq.CustomerPhone
 	order.Notes = orderReq.Notes
+	order.Deadline = orderReq.Deadline
 
 	var customerLevelID uuid.UUID
 	if order.ResellerID != nil && *order.ResellerID != uuid.Nil {

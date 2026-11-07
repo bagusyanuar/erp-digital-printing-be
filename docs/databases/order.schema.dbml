@@ -11,6 +11,7 @@ Table orders {
   status varchar(50) [not null, default: 'DRAFT'] // DRAFT, PENDING_PAYMENT, IN_PRODUCTION, READY_FOR_PICKUP, COMPLETED, CANCELLED
   payment_status varchar(50) [not null, default: 'UNPAID'] // UNPAID, DOWN_PAYMENT, PAID
   notes text [null]
+  deadline timestamp [null]
   
   total_additional_cost decimal(15,2) [default: 0]
   total_product_price decimal(15,2) [default: 0]

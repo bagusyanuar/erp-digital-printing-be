@@ -1,6 +1,7 @@
 package http
 
 import (
+	"fmt"
 	"math"
 	"sort"
 	"strings"
@@ -22,15 +23,42 @@ func NewOrderHandler(orderUsecase domain.OrderUsecase) *OrderHandler {
 	return &OrderHandler{orderUsecase: orderUsecase}
 }
 
+func parseDateTime(str *string) (*time.Time, error) {
+	if str == nil || strings.TrimSpace(*str) == "" {
+		return nil, nil
+	}
+	val := strings.TrimSpace(*str)
+	layouts := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02T15:04",
+		"2006-01-02 15:04:05",
+		"2006-01-02 15:04",
+		"2006-01-02",
+	}
+	for _, layout := range layouts {
+		if t, err := time.ParseInLocation(layout, val, time.Local); err == nil {
+			return &t, nil
+		}
+	}
+	return nil, fmt.Errorf("invalid deadline format: %s", val)
+}
+
 // buildOrderFromReq maps a CreateOrderReq DTO into a domain Order entity.
 // Extracted to eliminate duplication between SaveDraft and SubmitToCashier handlers.
-func buildOrderFromReq(req *dto.CreateOrderReq) *domain.Order {
+func buildOrderFromReq(req *dto.CreateOrderReq) (*domain.Order, error) {
+	deadline, err := parseDateTime(req.Deadline)
+	if err != nil {
+		return nil, err
+	}
+
 	order := &domain.Order{
 		DesignerID:    req.DesignerID,
 		ResellerID:    req.ResellerID,
 		CustomerName:  req.CustomerName,
 		CustomerPhone: req.CustomerPhone,
 		Notes:         req.Notes,
+		Deadline:      deadline,
 	}
 
 	order.OrderItems = make([]domain.OrderItem, len(req.Items))
@@ -59,7 +87,7 @@ func buildOrderFromReq(req *dto.CreateOrderReq) *domain.Order {
 		order.OrderItems[i] = item
 	}
 
-	return order
+	return order, nil
 }
 
 func (h *OrderHandler) SaveDraft(c fiber.Ctx) error {
@@ -73,7 +101,10 @@ func (h *OrderHandler) SaveDraft(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
-	order := buildOrderFromReq(&req)
+	order, err := buildOrderFromReq(&req)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request", err.Error())
+	}
 	order.DesignerID = designerID
 
 	if err := h.orderUsecase.SaveDraft(c.Context(), order); err != nil {
@@ -99,7 +130,10 @@ func (h *OrderHandler) SubmitToCashier(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
-	order := buildOrderFromReq(&req)
+	order, err := buildOrderFromReq(&req)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request", err.Error())
+	}
 	order.DesignerID = designerID
 
 	if err := h.orderUsecase.SubmitToCashier(c.Context(), order); err != nil {
@@ -398,6 +432,11 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 		res.CancelledAt = &cancelledAtStr
 	}
 
+	if o.Deadline != nil {
+		deadlineStr := o.Deadline.Format("2006-01-02 15:04:05")
+		res.Deadline = &deadlineStr
+	}
+
 	if o.InvoicedAt != nil {
 		invoicedAtStr := o.InvoicedAt.Format("2006-01-02 15:04:05")
 		res.InvoicedAt = &invoicedAtStr
@@ -579,6 +618,12 @@ func (h *OrderHandler) GetSPKByID(c fiber.Ctx) error {
 		spkByCategoryList[i] = *categoryMap[catID]
 	}
 
+	var deadlineStr *string
+	if order.Deadline != nil {
+		formatted := order.Deadline.Format("2006-01-02 15:04:05")
+		deadlineStr = &formatted
+	}
+
 	res := dto.OrderSPKRes{
 		OrderID:       order.ID,
 		JobNumber:     order.JobNumber,
@@ -586,6 +631,7 @@ func (h *OrderHandler) GetSPKByID(c fiber.Ctx) error {
 		CustomerName:  order.CustomerName,
 		CustomerPhone: order.CustomerPhone,
 		Status:        order.Status,
+		Deadline:      deadlineStr,
 		SPKByCategory: spkByCategoryList,
 	}
 
@@ -711,7 +757,10 @@ func (h *OrderHandler) UpdateDraft(c fiber.Ctx) error {
 		return response.Error(c, fiber.StatusBadRequest, "Invalid request body", err.Error())
 	}
 
-	order := buildOrderFromReq(&req)
+	order, err := buildOrderFromReq(&req)
+	if err != nil {
+		return response.Error(c, fiber.StatusBadRequest, "Invalid request", err.Error())
+	}
 
 	updatedOrder, err := h.orderUsecase.UpdateDraft(c.Context(), id, order)
 	if err != nil {

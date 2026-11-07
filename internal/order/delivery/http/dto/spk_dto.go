@@ -28,5 +28,6 @@ type OrderSPKRes struct {
 	CustomerName   *string            `json:"customer_name,omitempty"`
 	CustomerPhone  *string            `json:"customer_phone,omitempty"`
 	Status         string             `json:"status"`
+	Deadline       *string            `json:"deadline,omitempty"`
 	SPKByCategory  []SPKByCategoryRes `json:"spk_by_category"`
 }

@@ -63,6 +63,7 @@ type Order struct {
 	Status               string                   `gorm:"type:varchar(50);not null;default:'DRAFT'" json:"status"`
 	PaymentStatus        string                   `gorm:"type:varchar(50);not null;default:'UNPAID'" json:"payment_status"`
 	Notes                *string                  `gorm:"type:text" json:"notes,omitempty"`
+	Deadline             *time.Time               `gorm:"type:timestamptz" json:"deadline,omitempty"`
 	CancelReason         *string                  `gorm:"type:text" json:"cancel_reason,omitempty"`
 	CancelledAt          *time.Time               `json:"cancelled_at,omitempty"`
 	InvoicedAt           *time.Time               `json:"invoiced_at,omitempty"`

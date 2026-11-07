@@ -19,6 +19,7 @@ type CreateOrderReq struct {
 	ResellerID    *uuid.UUID     `json:"reseller_id" validate:"omitempty"`
 	CustomerName  *string        `json:"customer_name" validate:"omitempty"`
 	CustomerPhone *string        `json:"customer_phone" validate:"omitempty"`
+	Deadline      *string        `json:"deadline" validate:"omitempty"`
 	Notes         *string        `json:"notes" validate:"omitempty"`
 	Items         []OrderItemReq `json:"items" validate:"required,dive"`
 }
@@ -112,6 +113,7 @@ type OrderRes struct {
 	Status              string            `json:"status"`
 	PaymentStatus       string            `json:"payment_status"`
 	Notes               *string           `json:"notes,omitempty"`
+	Deadline            *string           `json:"deadline,omitempty"`
 	CancelReason        *string           `json:"cancel_reason,omitempty"`
 	CancelledAt         *string           `json:"cancelled_at,omitempty"`
 	InvoicedAt          *string           `json:"invoiced_at,omitempty"`
