@@ -335,6 +335,28 @@ func (u *orderUsecase) ProcessPayment(
 	order.TotalProductPrice = totalProductPrice
 	order.TotalAdditionalCost = totalAdditionalCost
 	order.GrandTotal = grandTotal
+
+	// If total payments exceed grandTotal (e.g. cash overpayment with change returned to customer),
+	// clamp amountPaid to grandTotal and deduct excess from the cash payment
+	if amountPaid > grandTotal {
+		excess := roundMoney(amountPaid - grandTotal)
+		for i := range payments {
+			if strings.EqualFold(payments[i].PaymentMethod, "cash") && payments[i].AmountPaid >= excess {
+				payments[i].AmountPaid = roundMoney(payments[i].AmountPaid - excess)
+				excess = 0
+				break
+			}
+		}
+		if excess > 0 {
+			for i := len(payments) - 1; i >= 0; i-- {
+				if payments[i].AmountPaid >= excess {
+					payments[i].AmountPaid = roundMoney(payments[i].AmountPaid - excess)
+					break
+				}
+			}
+		}
+		amountPaid = grandTotal
+	}
 	order.AmountPaid = amountPaid
 
 	// Calculate Payment Status dynamically
