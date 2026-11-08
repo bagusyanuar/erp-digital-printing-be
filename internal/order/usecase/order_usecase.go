@@ -851,7 +851,7 @@ func (u *orderUsecase) Refund(
 		return nil, errors.New("cannot refund cancelled order")
 	}
 
-	if order.Status == orderDomain.StatusRefund {
+	if order.Status == orderDomain.StatusRefund && order.AmountPaid <= 0.01 {
 		return nil, errors.New("order is already fully refunded")
 	}
 
@@ -870,8 +870,6 @@ func (u *orderUsecase) Refund(
 		order.AmountPaid = 0
 		order.PaymentStatus = orderDomain.PaymentStatusUnpaid
 		order.Status = orderDomain.StatusRefund
-	} else if order.AmountPaid >= order.GrandTotal || (order.GrandTotal-order.AmountPaid) <= 0.01 {
-		order.PaymentStatus = orderDomain.PaymentStatusPaid
 	} else {
 		order.PaymentStatus = orderDomain.PaymentStatusPartialPaid
 	}

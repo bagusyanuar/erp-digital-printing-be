@@ -411,6 +411,20 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 		UpdatedAt:            o.UpdatedAt.Format("2006-01-02 15:04:05"),
 	}
 
+	if o.Status == domain.StatusRefund || o.Status == domain.StatusCancelled {
+		res.RemainingDebt = 0
+		if o.Status == domain.StatusRefund {
+			res.PendingRefund = math.Round(o.AmountPaid*100) / 100
+		}
+	} else {
+		debt := o.GrandTotal - o.AmountPaid
+		if debt > 0.01 {
+			res.RemainingDebt = math.Round(debt*100) / 100
+		} else {
+			res.RemainingDebt = 0
+		}
+	}
+
 	if o.Reseller != nil {
 		res.ResellerName = &o.Reseller.Name
 		res.Reseller = &dto.ResellerRes{

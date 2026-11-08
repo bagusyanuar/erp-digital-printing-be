@@ -74,9 +74,7 @@ func (r *orderRepository) FindAll(ctx context.Context, params request.Pagination
 		query = query.Where("status IN ?", statuses)
 	}
 
-	if len(paymentStatuses) > 0 {
-		query = query.Where("payment_status IN ?", paymentStatuses)
-	}
+	query = applyPaymentStatusFilter(query, "orders", paymentStatuses)
 
 	if len(paymentMethods) > 0 {
 		query = query.Where("EXISTS (SELECT 1 FROM order_payments WHERE order_payments.order_id = orders.id AND order_payments.payment_method IN ? AND order_payments.deleted_at IS NULL)", paymentMethods)
@@ -299,9 +297,7 @@ func (r *orderRepository) GetReportsWidgets(ctx context.Context, statuses []stri
 		query = query.Where("status NOT IN ?", []string{domain.StatusDraft, domain.StatusCancelled, domain.StatusRefund})
 	}
 
-	if len(paymentStatuses) > 0 {
-		query = query.Where("payment_status IN ?", paymentStatuses)
-	}
+	query = applyPaymentStatusFilter(query, "orders", paymentStatuses)
 
 	if len(paymentMethods) > 0 {
 		query = query.Where("EXISTS (SELECT 1 FROM order_payments WHERE order_payments.order_id = orders.id AND order_payments.payment_method IN ? AND order_payments.deleted_at IS NULL)", paymentMethods)
@@ -393,9 +389,7 @@ func (r *orderRepository) GetSalesReportWidgets(ctx context.Context, statuses []
 		query = query.Where("status NOT IN ?", []string{domain.StatusDraft, domain.StatusCancelled, domain.StatusRefund})
 	}
 
-	if len(paymentStatuses) > 0 {
-		query = query.Where("payment_status IN ?", paymentStatuses)
-	}
+	query = applyPaymentStatusFilter(query, "orders", paymentStatuses)
 
 	if len(paymentMethods) > 0 {
 		query = query.Where("EXISTS (SELECT 1 FROM order_payments WHERE order_payments.order_id = orders.id AND order_payments.payment_method IN ? AND order_payments.deleted_at IS NULL)", paymentMethods)
@@ -539,9 +533,7 @@ func (r *orderRepository) GetSalesTrend(ctx context.Context, trendType string, s
 		subQuery = subQuery.Where("status NOT IN ?", []string{domain.StatusDraft, domain.StatusCancelled, domain.StatusRefund})
 	}
 
-	if len(paymentStatuses) > 0 {
-		subQuery = subQuery.Where("payment_status IN ?", paymentStatuses)
-	}
+	subQuery = applyPaymentStatusFilter(subQuery, "orders", paymentStatuses)
 
 	if len(paymentMethods) > 0 {
 		subQuery = subQuery.Where("EXISTS (SELECT 1 FROM order_payments WHERE order_payments.order_id = orders.id AND order_payments.payment_method IN ? AND order_payments.deleted_at IS NULL)", paymentMethods)
@@ -741,9 +733,7 @@ func (r *orderRepository) GetProductSales(ctx context.Context, params request.Pa
 		query = query.Where("o.status NOT IN ?", []string{domain.StatusDraft, domain.StatusCancelled, domain.StatusRefund})
 	}
 
-	if len(paymentStatuses) > 0 {
-		query = query.Where("o.payment_status IN ?", paymentStatuses)
-	}
+	query = applyPaymentStatusFilter(query, "o", paymentStatuses)
 
 	if len(paymentMethods) > 0 {
 		query = query.Where("EXISTS (SELECT 1 FROM order_payments op WHERE op.order_id = o.id AND op.payment_method IN ? AND op.deleted_at IS NULL)", paymentMethods)
@@ -819,6 +809,41 @@ func (r *orderRepository) GetProductSales(ctx context.Context, params request.Pa
 	}
 
 	return results, total, nil
+}
+
+func applyPaymentStatusFilter(db *gorm.DB, orderTableAlias string, paymentStatuses []string) *gorm.DB {
+	if len(paymentStatuses) == 0 {
+		return db
+	}
+
+	var stdStatuses []string
+	var hasPartiallyRefunded bool
+
+	for _, ps := range paymentStatuses {
+		trimmed := strings.TrimSpace(ps)
+		if strings.EqualFold(trimmed, "PARTIALLY_REFUNDED") {
+			hasPartiallyRefunded = true
+		} else if trimmed != "" {
+			stdStatuses = append(stdStatuses, strings.ToUpper(trimmed))
+		}
+	}
+
+	refundClause := fmt.Sprintf(`(%s.amount_paid > 0.01 AND EXISTS (
+		SELECT 1 FROM order_payments op 
+		WHERE op.order_id = %s.id 
+		  AND op.payment_type = 'REFUND' 
+		  AND op.deleted_at IS NULL
+	))`, orderTableAlias, orderTableAlias)
+
+	if hasPartiallyRefunded && len(stdStatuses) == 0 {
+		return db.Where(refundClause)
+	}
+
+	if hasPartiallyRefunded && len(stdStatuses) > 0 {
+		return db.Where(fmt.Sprintf("(%s.payment_status IN ? OR %s)", orderTableAlias, refundClause), stdStatuses)
+	}
+
+	return db.Where(fmt.Sprintf("%s.payment_status IN ?", orderTableAlias), stdStatuses)
 }
 
 
