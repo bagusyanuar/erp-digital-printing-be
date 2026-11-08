@@ -121,6 +121,8 @@ type OrderRes struct {
 	TotalProductPrice   float64           `json:"total_product_price"`
 	GrandTotal          float64           `json:"grand_total"`
 	AmountPaid          float64           `json:"amount_paid"`
+	HasRefund           bool              `json:"has_refund"`
+	RefundAmount        float64           `json:"refund_amount"`
 	OrderItems          []OrderItemRes    `json:"order_items,omitempty"`
 	OrderPayments       []OrderPaymentRes `json:"order_payments,omitempty"`
 	CreatedAt           string            `json:"created_at"`

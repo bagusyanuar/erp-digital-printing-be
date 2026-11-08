@@ -502,8 +502,13 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 		res.OrderPayments = make([]dto.OrderPaymentRes, len(o.OrderPayments))
 		batchMap := make(map[string]int)
 		currentBatchNum := 0
+		var totalRefund float64
 
 		for i, op := range o.OrderPayments {
+			if op.PaymentType == "REFUND" {
+				totalRefund += op.Amount
+			}
+
 			timeKey := op.CreatedAt.Format("2006-01-02 15:04:05")
 			batchNum, exists := batchMap[timeKey]
 			if !exists {
@@ -525,6 +530,11 @@ func mapOrderToRes(o *domain.Order) dto.OrderRes {
 				opRes.CashierName = op.Cashier.Username
 			}
 			res.OrderPayments[i] = opRes
+		}
+
+		if totalRefund > 0 {
+			res.HasRefund = true
+			res.RefundAmount = totalRefund
 		}
 	}
 

@@ -847,6 +847,14 @@ func (u *orderUsecase) Refund(
 		return nil, fmt.Errorf("order not found: %w", err)
 	}
 
+	if order.Status == orderDomain.StatusCancelled {
+		return nil, errors.New("cannot refund cancelled order")
+	}
+
+	if order.Status == orderDomain.StatusRefund {
+		return nil, errors.New("order is already fully refunded")
+	}
+
 	amount = roundMoney(amount)
 	if amount <= 0 {
 		return nil, errors.New("refund amount must be greater than 0")
@@ -857,11 +865,11 @@ func (u *orderUsecase) Refund(
 	}
 
 	order.AmountPaid = roundMoney(order.AmountPaid - amount)
-	order.Status = orderDomain.StatusRefund
 
 	if order.AmountPaid <= 0.01 {
 		order.AmountPaid = 0
 		order.PaymentStatus = orderDomain.PaymentStatusUnpaid
+		order.Status = orderDomain.StatusRefund
 	} else if order.AmountPaid >= order.GrandTotal || (order.GrandTotal-order.AmountPaid) <= 0.01 {
 		order.PaymentStatus = orderDomain.PaymentStatusPaid
 	} else {
