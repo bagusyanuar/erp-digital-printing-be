@@ -6,6 +6,7 @@ import (
 
 	userDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/user/domain"
 	"github.com/google/uuid"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -133,5 +134,6 @@ type CashFlowUsecase interface {
 	GetSummary(ctx context.Context, filter CashFlowFilter) (*CashFlowSummaryRes, error)
 	CreateAdjustment(ctx context.Context, cashierID uuid.UUID, amount float64, flowType string, paymentMethod string, description string) (*CashFlow, error)
 	FindAllAccounts(ctx context.Context) ([]CashAccount, error)
+	ExportExcel(ctx context.Context, filter CashFlowFilter) (*excelize.File, error)
 }
 

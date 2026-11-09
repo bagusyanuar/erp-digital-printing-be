@@ -71,6 +71,7 @@ func (a *App) SetupRoutes() {
 	a.Fiber.Use(cors.New(cors.Config{
 		AllowOrigins:     a.Config.App.AllowedOrigins,
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Disposition"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowCredentials: true,
 	}))
@@ -191,6 +192,7 @@ func (a *App) SetupRoutes() {
 	// Cash Flow Routes
 	cashFlowRoutes := protected.Group("/reports/cash-flow")
 	cashFlowRoutes.Get("/", a.Container.CashFlowHandler.GetReport)
+	cashFlowRoutes.Get("/export", a.Container.CashFlowHandler.ExportExcel)
 	cashFlowRoutes.Get("/summary", a.Container.CashFlowHandler.GetSummary)
 	cashFlowRoutes.Post("/adjustment", a.Container.CashFlowHandler.CreateAdjustment)
 	cashFlowRoutes.Get("/accounts", a.Container.CashFlowHandler.FindAllAccounts)

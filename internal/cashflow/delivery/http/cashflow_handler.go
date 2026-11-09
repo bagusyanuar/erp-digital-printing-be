@@ -1,6 +1,8 @@
 package http
 
 import (
+	"bytes"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -94,6 +96,92 @@ func (h *CashFlowHandler) GetReport(c fiber.Ctx) error {
 	}
 
 	return response.Success(c, "Cash flow report fetched successfully", report, meta)
+}
+
+func (h *CashFlowHandler) ExportExcel(c fiber.Ctx) error {
+	var startDate, endDate time.Time
+
+	dateQuery := c.Query("date")
+	startQuery := c.Query("start_date")
+	endQuery := c.Query("end_date")
+
+	if dateQuery != "" && startQuery == "" && endQuery == "" {
+		if t, err := time.ParseInLocation("2006-01-02", dateQuery, time.Local); err == nil {
+			startDate = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
+			endDate = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, time.Local)
+		}
+	} else {
+		if startQuery != "" {
+			if t, err := time.ParseInLocation("2006-01-02", startQuery, time.Local); err == nil {
+				startDate = time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.Local)
+			}
+		}
+		if endQuery != "" {
+			if t, err := time.ParseInLocation("2006-01-02", endQuery, time.Local); err == nil {
+				endDate = time.Date(t.Year(), t.Month(), t.Day(), 23, 59, 59, 999999999, time.Local)
+			}
+		}
+	}
+
+	// Default fallback to current month if not specified
+	if startDate.IsZero() {
+		now := time.Now()
+		startDate = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.Local)
+	}
+	if endDate.IsZero() {
+		now := time.Now()
+		endDate = time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 999999999, time.Local)
+	}
+
+	paymentMethod := c.Query("payment_method", "")
+	flowType := c.Query("type", "")
+	refType := c.Query("reference_type", "")
+	cashierIDStr := c.Query("cashier_id", "")
+	search := c.Query("search", "")
+
+	var cashierID *uuid.UUID
+	if cashierIDStr != "" {
+		if parsedID, err := uuid.Parse(cashierIDStr); err == nil {
+			cashierID = &parsedID
+		}
+	}
+
+	filter := domain.CashFlowFilter{
+		StartDate:     startDate,
+		EndDate:       endDate,
+		PaymentMethod: paymentMethod,
+		Type:          flowType,
+		ReferenceType: refType,
+		CashierID:     cashierID,
+		Search:        search,
+		Page:          1,
+		Limit:         100000,
+	}
+
+	f, err := h.usecase.ExportExcel(c.Context(), filter)
+	if err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to export cash flow report", err.Error())
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	var buf bytes.Buffer
+	if err := f.Write(&buf); err != nil {
+		return response.Error(c, fiber.StatusInternalServerError, "Failed to write excel to buffer", err.Error())
+	}
+
+	filename := fmt.Sprintf("Laporan_Arus_Kas_%s.xlsx", time.Now().Format("20060102150405"))
+	if startDate.Format("20060102") == endDate.Format("20060102") {
+		filename = fmt.Sprintf("Laporan_Arus_Kas_%s.xlsx", startDate.Format("20060102"))
+	} else {
+		filename = fmt.Sprintf("Laporan_Arus_Kas_%s_%s.xlsx", startDate.Format("20060102"), endDate.Format("20060102"))
+	}
+
+	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+
+	return c.Send(buf.Bytes())
 }
 
 func (h *CashFlowHandler) GetSummary(c fiber.Ctx) error {
