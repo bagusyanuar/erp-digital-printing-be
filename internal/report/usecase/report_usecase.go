@@ -622,3 +622,612 @@ func (u *reportUsecase) GetProfitLoss(ctx context.Context, startDate, endDate *t
 func (u *reportUsecase) GetProfitLossTrend(ctx context.Context, months int) ([]reportDomain.ProfitLossTrendItem, error) {
 	return u.reportRepo.GetMonthlyProfitLossTrend(ctx, months)
 }
+
+func (u *reportUsecase) ExportProfitLoss(ctx context.Context, startDate, endDate *time.Time) (*excelize.File, error) {
+	// 1. Fetch Profit Loss statement data
+	pl, err := u.GetProfitLoss(ctx, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get profit loss: %w", err)
+	}
+
+	// 2. Fetch Trend data (12 months)
+	trends, err := u.GetProfitLossTrend(ctx, 12)
+	if err != nil {
+		u.logger.Warn("failed to get profit loss trend for export, continuing with empty trend", zap.Error(err))
+		trends = []reportDomain.ProfitLossTrendItem{}
+	}
+
+	f := excelize.NewFile()
+
+	sheet1 := "Laba Rugi"
+	sheet2 := "Tren Bulanan"
+
+	_ = f.SetSheetName("Sheet1", sheet1)
+	_, err = f.NewSheet(sheet2)
+	if err != nil {
+		_ = f.Close()
+		return nil, fmt.Errorf("failed to create sheet: %w", err)
+	}
+	f.SetActiveSheet(0)
+
+	// Styles
+	titleStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "1E3A8A", Size: 14},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+	})
+
+	periodStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: false, Color: "4B5563", Size: 10, Italic: true},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+	})
+
+	statusSurplusStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "065F46", Size: 10},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"D1FAE5"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "A7F3D0", Style: 1},
+			{Type: "bottom", Color: "A7F3D0", Style: 1},
+			{Type: "left", Color: "A7F3D0", Style: 1},
+			{Type: "right", Color: "A7F3D0", Style: 1},
+		},
+	})
+
+	statusDefisitStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "991B1B", Size: 10},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FEE2E2"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "FCA5A5", Style: 1},
+			{Type: "bottom", Color: "FCA5A5", Style: 1},
+			{Type: "left", Color: "FCA5A5", Style: 1},
+			{Type: "right", Color: "FCA5A5", Style: 1},
+		},
+	})
+
+	tableHeaderStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "FFFFFF", Size: 10},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"1E3A8A"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "D1D5DB", Style: 1},
+			{Type: "bottom", Color: "D1D5DB", Style: 1},
+			{Type: "left", Color: "D1D5DB", Style: 1},
+			{Type: "right", Color: "D1D5DB", Style: 1},
+		},
+	})
+
+	sectionHeaderStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "1E3A8A", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"EEF2FF"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "C7D2FE", Style: 1},
+			{Type: "bottom", Color: "C7D2FE", Style: 1},
+			{Type: "left", Color: "C7D2FE", Style: 1},
+			{Type: "right", Color: "C7D2FE", Style: 1},
+		},
+	})
+
+	sectionCogsHeaderStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "991B1B", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FEF2F2"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "FECACA", Style: 1},
+			{Type: "bottom", Color: "FECACA", Style: 1},
+			{Type: "left", Color: "FECACA", Style: 1},
+			{Type: "right", Color: "FECACA", Style: 1},
+		},
+	})
+
+	sectionOpexHeaderStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "92400E", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FFFBEB"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "FDE68A", Style: 1},
+			{Type: "bottom", Color: "FDE68A", Style: 1},
+			{Type: "left", Color: "FDE68A", Style: 1},
+			{Type: "right", Color: "FDE68A", Style: 1},
+		},
+	})
+
+	itemTextStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Color: "1F2937", Size: 10},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "E5E7EB", Style: 1},
+			{Type: "bottom", Color: "E5E7EB", Style: 1},
+			{Type: "left", Color: "E5E7EB", Style: 1},
+			{Type: "right", Color: "E5E7EB", Style: 1},
+		},
+	})
+
+	itemPctStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Color: "4B5563", Size: 10},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "E5E7EB", Style: 1},
+			{Type: "bottom", Color: "E5E7EB", Style: 1},
+			{Type: "left", Color: "E5E7EB", Style: 1},
+			{Type: "right", Color: "E5E7EB", Style: 1},
+		},
+	})
+
+	numFmt := "#,##0"
+	itemNumStyle, _ := f.NewStyle(&excelize.Style{
+		CustomNumFmt: &numFmt,
+		Font:         &excelize.Font{Color: "1F2937", Size: 10},
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "E5E7EB", Style: 1},
+			{Type: "bottom", Color: "E5E7EB", Style: 1},
+			{Type: "left", Color: "E5E7EB", Style: 1},
+			{Type: "right", Color: "E5E7EB", Style: 1},
+		},
+	})
+
+	subtotalLabelStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "1F2937", Size: 10},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"F3F4F6"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "D1D5DB", Style: 1},
+			{Type: "bottom", Color: "D1D5DB", Style: 1},
+			{Type: "left", Color: "D1D5DB", Style: 1},
+			{Type: "right", Color: "D1D5DB", Style: 1},
+		},
+	})
+
+	subtotalPctStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "1F2937", Size: 10},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"F3F4F6"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "D1D5DB", Style: 1},
+			{Type: "bottom", Color: "D1D5DB", Style: 1},
+			{Type: "left", Color: "D1D5DB", Style: 1},
+			{Type: "right", Color: "D1D5DB", Style: 1},
+		},
+	})
+
+	subtotalNumStyle, _ := f.NewStyle(&excelize.Style{
+		CustomNumFmt: &numFmt,
+		Font:         &excelize.Font{Bold: true, Color: "1F2937", Size: 10},
+		Fill:         excelize.Fill{Type: "pattern", Color: []string{"F3F4F6"}, Pattern: 1},
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "D1D5DB", Style: 1},
+			{Type: "bottom", Color: "D1D5DB", Style: 1},
+			{Type: "left", Color: "D1D5DB", Style: 1},
+			{Type: "right", Color: "D1D5DB", Style: 1},
+		},
+	})
+
+	grossProfitLabelStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "1E40AF", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"DBEAFE"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "93C5FD", Style: 1},
+			{Type: "bottom", Color: "93C5FD", Style: 1},
+			{Type: "left", Color: "93C5FD", Style: 1},
+			{Type: "right", Color: "93C5FD", Style: 1},
+		},
+	})
+
+	grossProfitPctStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "1E40AF", Size: 10},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"DBEAFE"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "93C5FD", Style: 1},
+			{Type: "bottom", Color: "93C5FD", Style: 1},
+			{Type: "left", Color: "93C5FD", Style: 1},
+			{Type: "right", Color: "93C5FD", Style: 1},
+		},
+	})
+
+	grossProfitNumStyle, _ := f.NewStyle(&excelize.Style{
+		CustomNumFmt: &numFmt,
+		Font:         &excelize.Font{Bold: true, Color: "1E40AF", Size: 11},
+		Fill:         excelize.Fill{Type: "pattern", Color: []string{"DBEAFE"}, Pattern: 1},
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "93C5FD", Style: 1},
+			{Type: "bottom", Color: "93C5FD", Style: 1},
+			{Type: "left", Color: "93C5FD", Style: 1},
+			{Type: "right", Color: "93C5FD", Style: 1},
+		},
+	})
+
+	netProfitSurplusLabelStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "065F46", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"D1FAE5"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "6EE7B7", Style: 1},
+			{Type: "bottom", Color: "047857", Style: 6},
+			{Type: "left", Color: "6EE7B7", Style: 1},
+			{Type: "right", Color: "6EE7B7", Style: 1},
+		},
+	})
+
+	netProfitSurplusPctStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "065F46", Size: 10},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"D1FAE5"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "6EE7B7", Style: 1},
+			{Type: "bottom", Color: "047857", Style: 6},
+			{Type: "left", Color: "6EE7B7", Style: 1},
+			{Type: "right", Color: "6EE7B7", Style: 1},
+		},
+	})
+
+	netProfitSurplusNumStyle, _ := f.NewStyle(&excelize.Style{
+		CustomNumFmt: &numFmt,
+		Font:         &excelize.Font{Bold: true, Color: "065F46", Size: 11},
+		Fill:         excelize.Fill{Type: "pattern", Color: []string{"D1FAE5"}, Pattern: 1},
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "6EE7B7", Style: 1},
+			{Type: "bottom", Color: "047857", Style: 6},
+			{Type: "left", Color: "6EE7B7", Style: 1},
+			{Type: "right", Color: "6EE7B7", Style: 1},
+		},
+	})
+
+	netProfitDefisitLabelStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "991B1B", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FEE2E2"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "FCA5A5", Style: 1},
+			{Type: "bottom", Color: "B91C1C", Style: 6},
+			{Type: "left", Color: "FCA5A5", Style: 1},
+			{Type: "right", Color: "FCA5A5", Style: 1},
+		},
+	})
+
+	netProfitDefisitPctStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "991B1B", Size: 10},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FEE2E2"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "FCA5A5", Style: 1},
+			{Type: "bottom", Color: "B91C1C", Style: 6},
+			{Type: "left", Color: "FCA5A5", Style: 1},
+			{Type: "right", Color: "FCA5A5", Style: 1},
+		},
+	})
+
+	netProfitDefisitNumStyle, _ := f.NewStyle(&excelize.Style{
+		CustomNumFmt: &numFmt,
+		Font:         &excelize.Font{Bold: true, Color: "991B1B", Size: 11},
+		Fill:         excelize.Fill{Type: "pattern", Color: []string{"FEE2E2"}, Pattern: 1},
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "FCA5A5", Style: 1},
+			{Type: "bottom", Color: "B91C1C", Style: 6},
+			{Type: "left", Color: "FCA5A5", Style: 1},
+			{Type: "right", Color: "FCA5A5", Style: 1},
+		},
+	})
+
+	// Sheet 1 Column widths & heights
+	_ = f.SetColWidth(sheet1, "A", "A", 48)
+	_ = f.SetColWidth(sheet1, "B", "B", 26)
+	_ = f.SetColWidth(sheet1, "C", "C", 26)
+
+	_ = f.SetRowHeight(sheet1, 1, 24)
+	_ = f.SetRowHeight(sheet1, 2, 18)
+	_ = f.SetRowHeight(sheet1, 3, 20)
+
+	_ = f.SetCellValue(sheet1, "A1", "LAPORAN LABA RUGI KOMPREHENSIF")
+	_ = f.SetCellStyle(sheet1, "A1", "A1", titleStyle)
+	_ = f.SetCellValue(sheet1, "A2", fmt.Sprintf("Periode: %s", pl.Period))
+	_ = f.SetCellStyle(sheet1, "A2", "A2", periodStyle)
+
+	if pl.NetProfit.IsProfit {
+		_ = f.SetCellValue(sheet1, "A3", "Kondisi Finansial: SURPLUS KEUNTUNGAN BERSIH")
+		_ = f.SetCellStyle(sheet1, "A3", "A3", statusSurplusStyle)
+	} else {
+		_ = f.SetCellValue(sheet1, "A3", "Kondisi Finansial: DEFISIT RUGI OPERASIONAL")
+		_ = f.SetCellStyle(sheet1, "A3", "A3", statusDefisitStyle)
+	}
+
+	// Table Headers Row 5
+	_ = f.SetRowHeight(sheet1, 5, 26)
+	_ = f.SetCellValue(sheet1, "A5", "KOMPONEN KEUANGAN")
+	_ = f.SetCellValue(sheet1, "B5", "% TERHADAP OMSET")
+	_ = f.SetCellValue(sheet1, "C5", "JUMLAH (RP)")
+	_ = f.SetCellStyle(sheet1, "A5", "C5", tableHeaderStyle)
+
+	currRow := 6
+
+	// --- SECTION I: PENDAPATAN ---
+	_ = f.SetRowHeight(sheet1, currRow, 22)
+	_ = f.MergeCell(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("C%d", currRow))
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), pl.Revenue.Title)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("C%d", currRow), sectionHeaderStyle)
+	currRow++
+
+	if len(pl.Revenue.Items) == 0 {
+		_ = f.SetRowHeight(sheet1, currRow, 20)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), "  (Tidak ada transaksi pendapatan pada periode ini)")
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), "0.0%")
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), 0)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), itemTextStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), itemPctStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), itemNumStyle)
+		currRow++
+	} else {
+		for _, it := range pl.Revenue.Items {
+			_ = f.SetRowHeight(sheet1, currRow, 20)
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("  %s", it.Name))
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("%.1f%%", it.Percentage))
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), it.Amount)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), itemTextStyle)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), itemPctStyle)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), itemNumStyle)
+			currRow++
+		}
+	}
+
+	// Subtotal Revenue
+	_ = f.SetRowHeight(sheet1, currRow, 22)
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), "TOTAL PENDAPATAN USAHA BERSIH")
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), "100.0%")
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), pl.Revenue.Total)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), subtotalLabelStyle)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), subtotalPctStyle)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), subtotalNumStyle)
+	currRow++
+
+	// Spacer
+	_ = f.SetRowHeight(sheet1, currRow, 10)
+	currRow++
+
+	// --- SECTION II: BEBAN POKOK PENJUALAN (HPP) ---
+	_ = f.SetRowHeight(sheet1, currRow, 22)
+	_ = f.MergeCell(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("C%d", currRow))
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), pl.COGS.Title)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("C%d", currRow), sectionCogsHeaderStyle)
+	currRow++
+
+	if len(pl.COGS.Items) == 0 {
+		_ = f.SetRowHeight(sheet1, currRow, 20)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), "  (Tidak ada beban HPP pada periode ini)")
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), "0.0%")
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), 0)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), itemTextStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), itemPctStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), itemNumStyle)
+		currRow++
+	} else {
+		for _, it := range pl.COGS.Items {
+			_ = f.SetRowHeight(sheet1, currRow, 20)
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("  %s", it.Name))
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("%.1f%%", it.Percentage))
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), it.Amount)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), itemTextStyle)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), itemPctStyle)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), itemNumStyle)
+			currRow++
+		}
+	}
+
+	// Subtotal HPP
+	cogsPct := 0.0
+	if pl.Revenue.Total > 0 {
+		cogsPct = math.Round((pl.COGS.Total/pl.Revenue.Total)*1000) / 10
+	}
+	_ = f.SetRowHeight(sheet1, currRow, 22)
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), "TOTAL BEBAN POKOK PENJUALAN (HPP)")
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("%.1f%%", cogsPct))
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), pl.COGS.Total)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), subtotalLabelStyle)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), subtotalPctStyle)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), subtotalNumStyle)
+	currRow++
+
+	// Spacer
+	_ = f.SetRowHeight(sheet1, currRow, 10)
+	currRow++
+
+	// --- HIGHLIGHT: LABA KOTOR (GROSS PROFIT) ---
+	_ = f.SetRowHeight(sheet1, currRow, 26)
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), "LABA KOTOR (GROSS PROFIT)")
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("Gross Margin: %.1f%%", pl.GrossProfit.MarginPercentage))
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), pl.GrossProfit.Amount)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), grossProfitLabelStyle)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), grossProfitPctStyle)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), grossProfitNumStyle)
+	currRow++
+
+	// Spacer
+	_ = f.SetRowHeight(sheet1, currRow, 10)
+	currRow++
+
+	// --- SECTION III: BEBAN OPERASIONAL (OPEX) ---
+	_ = f.SetRowHeight(sheet1, currRow, 22)
+	_ = f.MergeCell(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("C%d", currRow))
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), pl.OperationalExpenses.Title)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("C%d", currRow), sectionOpexHeaderStyle)
+	currRow++
+
+	if len(pl.OperationalExpenses.Items) == 0 {
+		_ = f.SetRowHeight(sheet1, currRow, 20)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), "  (Tidak ada beban operasional pada periode ini)")
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), "0.0%")
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), 0)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), itemTextStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), itemPctStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), itemNumStyle)
+		currRow++
+	} else {
+		for _, it := range pl.OperationalExpenses.Items {
+			_ = f.SetRowHeight(sheet1, currRow, 20)
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("  %s", it.Name))
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("%.1f%%", it.Percentage))
+			_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), it.Amount)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), itemTextStyle)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), itemPctStyle)
+			_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), itemNumStyle)
+			currRow++
+		}
+	}
+
+	// Subtotal OPEX
+	opexPct := 0.0
+	if pl.Revenue.Total > 0 {
+		opexPct = math.Round((pl.OperationalExpenses.Total/pl.Revenue.Total)*1000) / 10
+	}
+	_ = f.SetRowHeight(sheet1, currRow, 22)
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), "TOTAL BEBAN OPERASIONAL (OPEX)")
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("%.1f%%", opexPct))
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), pl.OperationalExpenses.Total)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), subtotalLabelStyle)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), subtotalPctStyle)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), subtotalNumStyle)
+	currRow++
+
+	// Spacer
+	_ = f.SetRowHeight(sheet1, currRow, 10)
+	currRow++
+
+	// --- GRAND SUMMARY: LABA BERSIH (NET PROFIT) ---
+	_ = f.SetRowHeight(sheet1, currRow, 28)
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", currRow), "LABA BERSIH OPERASIONAL (NET PROFIT)")
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("Net Margin: %.1f%%", pl.NetProfit.MarginPercentage))
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", currRow), pl.NetProfit.Amount)
+
+	if pl.NetProfit.IsProfit {
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), netProfitSurplusLabelStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), netProfitSurplusPctStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), netProfitSurplusNumStyle)
+	} else {
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", currRow), fmt.Sprintf("A%d", currRow), netProfitDefisitLabelStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", currRow), fmt.Sprintf("B%d", currRow), netProfitDefisitPctStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("C%d", currRow), fmt.Sprintf("C%d", currRow), netProfitDefisitNumStyle)
+	}
+
+	// ============================================
+	// SHEET 2: TREN BULANAN
+	// ============================================
+	_ = f.SetColWidth(sheet2, "A", "A", 6)
+	_ = f.SetColWidth(sheet2, "B", "B", 18)
+	_ = f.SetColWidth(sheet2, "C", "F", 24)
+	_ = f.SetColWidth(sheet2, "G", "G", 18)
+
+	_ = f.SetRowHeight(sheet2, 1, 24)
+	_ = f.SetRowHeight(sheet2, 2, 18)
+	_ = f.SetRowHeight(sheet2, 4, 26)
+
+	_ = f.SetCellValue(sheet2, "A1", "TREN PERFORMA LABA RUGI BULANAN")
+	_ = f.SetCellStyle(sheet2, "A1", "A1", titleStyle)
+	_ = f.SetCellValue(sheet2, "A2", "Historis Performa Finansial Multi-Bulan (Omset, HPP, Beban Operasional, Laba Bersih)")
+	_ = f.SetCellStyle(sheet2, "A2", "A2", periodStyle)
+
+	trendHeaders := []string{
+		"No.", "Periode Bulan", "Omset Penjualan (Rp)", "HPP Bahan Baku (Rp)",
+		"Beban Operasional (Rp)", "Laba Bersih (Rp)", "Net Profit Margin",
+	}
+
+	for i, h := range trendHeaders {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 4)
+		_ = f.SetCellValue(sheet2, cell, h)
+		_ = f.SetCellStyle(sheet2, cell, cell, tableHeaderStyle)
+	}
+
+	debitNumStyle, _ := f.NewStyle(&excelize.Style{
+		Font:         &excelize.Font{Bold: true, Color: "059669", Size: 10},
+		CustomNumFmt: &numFmt,
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "E5E7EB", Style: 1},
+			{Type: "bottom", Color: "E5E7EB", Style: 1},
+			{Type: "left", Color: "E5E7EB", Style: 1},
+			{Type: "right", Color: "E5E7EB", Style: 1},
+		},
+	})
+
+	creditNumStyle, _ := f.NewStyle(&excelize.Style{
+		Font:         &excelize.Font{Bold: true, Color: "DC2626", Size: 10},
+		CustomNumFmt: &numFmt,
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "E5E7EB", Style: 1},
+			{Type: "bottom", Color: "E5E7EB", Style: 1},
+			{Type: "left", Color: "E5E7EB", Style: 1},
+			{Type: "right", Color: "E5E7EB", Style: 1},
+		},
+	})
+
+	var sumPendapatan, sumHPP, sumOpex, sumLaba float64
+	trendRowIdx := 5
+
+	for i, t := range trends {
+		_ = f.SetRowHeight(sheet2, trendRowIdx, 20)
+
+		marginStr := "0.0%"
+		if t.Pendapatan > 0 {
+			margin := math.Round((t.LabaBersih/t.Pendapatan)*1000) / 10
+			marginStr = fmt.Sprintf("%.1f%%", margin)
+		}
+
+		sumPendapatan += t.Pendapatan
+		sumHPP += t.HPP
+		sumOpex += t.Opex
+		sumLaba += t.LabaBersih
+
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("A%d", trendRowIdx), i+1)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("B%d", trendRowIdx), t.Month)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("C%d", trendRowIdx), t.Pendapatan)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("D%d", trendRowIdx), t.HPP)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("E%d", trendRowIdx), t.Opex)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("F%d", trendRowIdx), t.LabaBersih)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("G%d", trendRowIdx), marginStr)
+
+		_ = f.SetCellStyle(sheet2, fmt.Sprintf("A%d", trendRowIdx), fmt.Sprintf("A%d", trendRowIdx), itemPctStyle)
+		_ = f.SetCellStyle(sheet2, fmt.Sprintf("B%d", trendRowIdx), fmt.Sprintf("B%d", trendRowIdx), itemPctStyle)
+		_ = f.SetCellStyle(sheet2, fmt.Sprintf("C%d", trendRowIdx), fmt.Sprintf("E%d", trendRowIdx), itemNumStyle)
+
+		if t.LabaBersih >= 0 {
+			_ = f.SetCellStyle(sheet2, fmt.Sprintf("F%d", trendRowIdx), fmt.Sprintf("F%d", trendRowIdx), debitNumStyle)
+		} else {
+			_ = f.SetCellStyle(sheet2, fmt.Sprintf("F%d", trendRowIdx), fmt.Sprintf("F%d", trendRowIdx), creditNumStyle)
+		}
+
+		_ = f.SetCellStyle(sheet2, fmt.Sprintf("G%d", trendRowIdx), fmt.Sprintf("G%d", trendRowIdx), itemPctStyle)
+
+		trendRowIdx++
+	}
+
+	// Sheet 2 Total Row
+	if len(trends) > 0 {
+		_ = f.SetRowHeight(sheet2, trendRowIdx, 24)
+		_ = f.MergeCell(sheet2, fmt.Sprintf("A%d", trendRowIdx), fmt.Sprintf("B%d", trendRowIdx))
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("A%d", trendRowIdx), "TOTAL AKUMULASI")
+		_ = f.SetCellStyle(sheet2, fmt.Sprintf("A%d", trendRowIdx), fmt.Sprintf("B%d", trendRowIdx), subtotalLabelStyle)
+
+		overallMarginStr := "0.0%"
+		if sumPendapatan > 0 {
+			overallMargin := math.Round((sumLaba/sumPendapatan)*1000) / 10
+			overallMarginStr = fmt.Sprintf("%.1f%%", overallMargin)
+		}
+
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("C%d", trendRowIdx), sumPendapatan)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("D%d", trendRowIdx), sumHPP)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("E%d", trendRowIdx), sumOpex)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("F%d", trendRowIdx), sumLaba)
+		_ = f.SetCellValue(sheet2, fmt.Sprintf("G%d", trendRowIdx), overallMarginStr)
+
+		_ = f.SetCellStyle(sheet2, fmt.Sprintf("C%d", trendRowIdx), fmt.Sprintf("F%d", trendRowIdx), subtotalNumStyle)
+		_ = f.SetCellStyle(sheet2, fmt.Sprintf("G%d", trendRowIdx), fmt.Sprintf("G%d", trendRowIdx), subtotalPctStyle)
+	}
+
+	return f, nil
+}

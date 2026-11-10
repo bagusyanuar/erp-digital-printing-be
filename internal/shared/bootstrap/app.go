@@ -218,6 +218,7 @@ func (a *App) SetupRoutes() {
 	// Expenses Routes
 	expenseRoutes := protected.Group("/expenses")
 	expenseRoutes.Post("/", a.Container.ExpenseHandler.CreateExpense)
+	expenseRoutes.Get("/export", a.Container.ExpenseHandler.ExportExcel)
 	expenseRoutes.Get("/reports/widgets", a.Container.ExpenseHandler.GetWidgets)
 	expenseRoutes.Get("/reports/category-expenses", a.Container.ExpenseHandler.GetCategoryExpenses)
 	expenseRoutes.Get("/", a.Container.ExpenseHandler.FindAllExpenses)
@@ -249,7 +250,9 @@ func (a *App) SetupRoutes() {
 	// Report Routes
 	reportRoutes := protected.Group("/reports")
 	reportRoutes.Get("/sales/export", a.Container.ReportHandler.ExportSalesReport)
+	reportRoutes.Get("/expenses/export", a.Container.ExpenseHandler.ExportExcel)
 	reportRoutes.Get("/profit-loss", a.Container.ReportHandler.GetProfitLoss)
+	reportRoutes.Get("/profit-loss/export", a.Container.ReportHandler.ExportProfitLoss)
 	reportRoutes.Get("/profit-loss/trend", a.Container.ReportHandler.GetProfitLossTrend)
 
 	// Dashboard Routes

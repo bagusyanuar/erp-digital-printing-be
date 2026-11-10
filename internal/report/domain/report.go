@@ -60,6 +60,7 @@ type ReportRepository interface {
 
 type ReportUsecase interface {
 	ExportSalesReport(ctx context.Context, startDate *time.Time, endDate *time.Time) (*excelize.File, error)
+	ExportProfitLoss(ctx context.Context, startDate, endDate *time.Time) (*excelize.File, error)
 	GetProfitLoss(ctx context.Context, startDate, endDate *time.Time) (*ProfitLossRes, error)
 	GetProfitLossTrend(ctx context.Context, months int) ([]ProfitLossTrendItem, error)
 }

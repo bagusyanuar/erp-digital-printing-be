@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	cfDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/cashflow/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/internal/expense/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
 	"github.com/google/uuid"
+	"github.com/xuri/excelize/v2"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -376,4 +378,403 @@ func (u *expenseUsecase) GetWidgets(ctx context.Context, filter domain.ExpenseFi
 
 func (u *expenseUsecase) GetCategoryExpenses(ctx context.Context, params request.PaginationParam, search string, startDate *time.Time, endDate *time.Time, productCategoryID *uuid.UUID, group string, status string) ([]domain.CategoryExpenseItem, int64, error) {
 	return u.repo.GetCategoryExpenses(ctx, params, search, startDate, endDate, productCategoryID, group, status)
+}
+
+func (u *expenseUsecase) ExportExcel(ctx context.Context, filter domain.ExpenseFilter) (*excelize.File, error) {
+	// 1. Fetch expenses without pagination limit
+	filter.Page = 1
+	filter.Limit = 100000
+	expenses, _, err := u.repo.FindAllExpenses(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch expenses: %w", err)
+	}
+
+	f := excelize.NewFile()
+
+	sheet1 := "Pengeluaran"
+	sheet2 := "Detail Item Pengeluaran"
+
+	_ = f.SetSheetName("Sheet1", sheet1)
+	_, err = f.NewSheet(sheet2)
+	if err != nil {
+		_ = f.Close()
+		return nil, fmt.Errorf("failed to create sheet: %w", err)
+	}
+	f.SetActiveSheet(0)
+
+	// Period text
+	var periodeText string
+	if filter.StartDate != nil && filter.EndDate != nil {
+		if filter.StartDate.Format("2006-01-02") == filter.EndDate.Format("2006-01-02") {
+			periodeText = fmt.Sprintf("Periode: %s", filter.StartDate.Format("02/01/2006"))
+		} else {
+			periodeText = fmt.Sprintf("Periode: %s s/d %s", filter.StartDate.Format("02/01/2006"), filter.EndDate.Format("02/01/2006"))
+		}
+	} else if filter.StartDate != nil {
+		periodeText = fmt.Sprintf("Periode: Mulai %s", filter.StartDate.Format("02/01/2006"))
+	} else if filter.EndDate != nil {
+		periodeText = fmt.Sprintf("Periode: Sampai %s", filter.EndDate.Format("02/01/2006"))
+	} else {
+		periodeText = "Periode: Semua Periode"
+	}
+
+	// Styles
+	titleStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "1E3A8A", Size: 14},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+	})
+
+	periodStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: false, Color: "4B5563", Size: 10, Italic: true},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+	})
+
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "FFFFFF", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"1E3A8A"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
+		Border: []excelize.Border{
+			{Type: "top", Color: "D1D5DB", Style: 1},
+			{Type: "bottom", Color: "D1D5DB", Style: 1},
+			{Type: "left", Color: "D1D5DB", Style: 1},
+			{Type: "right", Color: "D1D5DB", Style: 1},
+		},
+	})
+
+	textLeftStyle, _ := f.NewStyle(&excelize.Style{
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "E5E7EB", Style: 1},
+			{Type: "bottom", Color: "E5E7EB", Style: 1},
+			{Type: "left", Color: "E5E7EB", Style: 1},
+			{Type: "right", Color: "E5E7EB", Style: 1},
+		},
+	})
+
+	textCenterStyle, _ := f.NewStyle(&excelize.Style{
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "E5E7EB", Style: 1},
+			{Type: "bottom", Color: "E5E7EB", Style: 1},
+			{Type: "left", Color: "E5E7EB", Style: 1},
+			{Type: "right", Color: "E5E7EB", Style: 1},
+		},
+	})
+
+	numFmt := "#,##0"
+	numRightStyle, _ := f.NewStyle(&excelize.Style{
+		CustomNumFmt: &numFmt,
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "E5E7EB", Style: 1},
+			{Type: "bottom", Color: "E5E7EB", Style: 1},
+			{Type: "left", Color: "E5E7EB", Style: 1},
+			{Type: "right", Color: "E5E7EB", Style: 1},
+		},
+	})
+
+	totalLabelStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "1F2937"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"F3F4F6"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "1F2937", Style: 1},
+			{Type: "bottom", Color: "1F2937", Style: 6},
+			{Type: "left", Color: "1F2937", Style: 1},
+			{Type: "right", Color: "1F2937", Style: 1},
+		},
+	})
+
+	totalNumStyle, _ := f.NewStyle(&excelize.Style{
+		Font:         &excelize.Font{Bold: true, Color: "1F2937"},
+		Fill:         excelize.Fill{Type: "pattern", Color: []string{"F3F4F6"}, Pattern: 1},
+		CustomNumFmt: &numFmt,
+		Alignment:    &excelize.Alignment{Horizontal: "right", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "1F2937", Style: 1},
+			{Type: "bottom", Color: "1F2937", Style: 6},
+			{Type: "left", Color: "1F2937", Style: 1},
+			{Type: "right", Color: "1F2937", Style: 1},
+		},
+	})
+
+	paidCenterStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "065F46"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"D1FAE5"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "A7F3D0", Style: 1},
+			{Type: "bottom", Color: "A7F3D0", Style: 1},
+			{Type: "left", Color: "A7F3D0", Style: 1},
+			{Type: "right", Color: "A7F3D0", Style: 1},
+		},
+	})
+
+	partialCenterStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "92400E"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FEF3C7"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "FDE68A", Style: 1},
+			{Type: "bottom", Color: "FDE68A", Style: 1},
+			{Type: "left", Color: "FDE68A", Style: 1},
+			{Type: "right", Color: "FDE68A", Style: 1},
+		},
+	})
+
+	unpaidCenterStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Color: "991B1B"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"FEE2E2"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border: []excelize.Border{
+			{Type: "top", Color: "FCA5A5", Style: 1},
+			{Type: "bottom", Color: "FCA5A5", Style: 1},
+			{Type: "left", Color: "FCA5A5", Style: 1},
+			{Type: "right", Color: "FCA5A5", Style: 1},
+		},
+	})
+
+	// Sheet 1: Setup Header
+	_ = f.SetRowHeight(sheet1, 1, 24)
+	_ = f.SetRowHeight(sheet1, 2, 18)
+	_ = f.SetRowHeight(sheet1, 4, 26)
+
+	_ = f.SetCellValue(sheet1, "A1", "LAPORAN PENGELUARAN")
+	_ = f.SetCellStyle(sheet1, "A1", "A1", titleStyle)
+	_ = f.SetCellValue(sheet1, "A2", periodeText)
+	_ = f.SetCellStyle(sheet1, "A2", "A2", periodStyle)
+
+	sheet1Headers := []string{
+		"No.", "No. Pengeluaran", "No. Invoice", "Tanggal", "Vendor / Supplier",
+		"Status Bayar", "Metode Bayar", "Keterangan", "Total Nominal", "Terbayar", "Sisa Hutang",
+	}
+
+	for i, h := range sheet1Headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 4)
+		_ = f.SetCellValue(sheet1, cell, h)
+		_ = f.SetCellStyle(sheet1, cell, cell, headerStyle)
+	}
+
+	_ = f.SetColWidth(sheet1, "A", "A", 6)
+	_ = f.SetColWidth(sheet1, "B", "C", 22)
+	_ = f.SetColWidth(sheet1, "D", "D", 16)
+	_ = f.SetColWidth(sheet1, "E", "E", 26)
+	_ = f.SetColWidth(sheet1, "F", "F", 16)
+	_ = f.SetColWidth(sheet1, "G", "G", 18)
+	_ = f.SetColWidth(sheet1, "H", "H", 30)
+	_ = f.SetColWidth(sheet1, "I", "K", 18)
+
+	// Sheet 2: Setup Header
+	_ = f.SetRowHeight(sheet2, 1, 24)
+	_ = f.SetRowHeight(sheet2, 2, 18)
+	_ = f.SetRowHeight(sheet2, 4, 26)
+
+	_ = f.SetCellValue(sheet2, "A1", "DETAIL ITEM PENGELUARAN")
+	_ = f.SetCellStyle(sheet2, "A1", "A1", titleStyle)
+	_ = f.SetCellValue(sheet2, "A2", periodeText)
+	_ = f.SetCellStyle(sheet2, "A2", "A2", periodStyle)
+
+	sheet2Headers := []string{
+		"No.", "No. Pengeluaran", "Tanggal", "Vendor / Supplier",
+		"Grup Biaya", "Kategori Biaya", "Kategori Produk", "Deskripsi Item", "Nominal",
+	}
+
+	for i, h := range sheet2Headers {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 4)
+		_ = f.SetCellValue(sheet2, cell, h)
+		_ = f.SetCellStyle(sheet2, cell, cell, headerStyle)
+	}
+
+	_ = f.SetColWidth(sheet2, "A", "A", 6)
+	_ = f.SetColWidth(sheet2, "B", "B", 22)
+	_ = f.SetColWidth(sheet2, "C", "C", 16)
+	_ = f.SetColWidth(sheet2, "D", "D", 26)
+	_ = f.SetColWidth(sheet2, "E", "E", 18)
+	_ = f.SetColWidth(sheet2, "F", "F", 24)
+	_ = f.SetColWidth(sheet2, "G", "G", 20)
+	_ = f.SetColWidth(sheet2, "H", "H", 32)
+	_ = f.SetColWidth(sheet2, "I", "I", 18)
+
+	var grandTotalExpense, grandTotalPaid, grandTotalRemaining float64
+	var grandTotalItemAmount float64
+
+	itemRowIdx := 5
+	itemSeq := 1
+
+	for i, exp := range expenses {
+		expRowIdx := i + 5
+
+		inv := "-"
+		if exp.InvoiceNumber != nil && *exp.InvoiceNumber != "" {
+			inv = *exp.InvoiceNumber
+		}
+
+		vendor := exp.VendorName
+		if vendor == "" && exp.Supplier != nil && exp.Supplier.Name != "" {
+			vendor = exp.Supplier.Name
+		} else if exp.Supplier != nil && exp.Supplier.Name != "" && exp.Supplier.Name != vendor {
+			vendor = fmt.Sprintf("%s (%s)", vendor, exp.Supplier.Name)
+		}
+		if vendor == "" {
+			vendor = "-"
+		}
+
+		desc := "-"
+		if exp.Description != nil && *exp.Description != "" {
+			desc = *exp.Description
+		}
+
+		var totalPaid float64
+		var methods []string
+		for _, p := range exp.Payments {
+			totalPaid += p.Amount
+			if p.PaymentMethod != "" {
+				found := false
+				for _, m := range methods {
+					if m == p.PaymentMethod {
+						found = true
+						break
+					}
+				}
+				if !found {
+					methods = append(methods, p.PaymentMethod)
+				}
+			}
+		}
+
+		if exp.Status == domain.StatusPaid && totalPaid == 0 {
+			totalPaid = exp.Amount
+		}
+
+		remaining := exp.Amount - totalPaid
+		if remaining < 0 {
+			remaining = 0
+		}
+
+		paymentMethodStr := "-"
+		if len(methods) > 0 {
+			paymentMethodStr = strings.Join(methods, ", ")
+		}
+
+		statusText := "Belum Lunas"
+		if exp.Status == domain.StatusPaid {
+			statusText = "Lunas"
+		}
+
+		grandTotalExpense += exp.Amount
+		grandTotalPaid += totalPaid
+		grandTotalRemaining += remaining
+
+		// Sheet 1 row
+		_ = f.SetRowHeight(sheet1, expRowIdx, 20)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", expRowIdx), i+1)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("B%d", expRowIdx), exp.ExpenseNumber)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("C%d", expRowIdx), inv)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("D%d", expRowIdx), exp.ExpenseDate.Format("02/01/2006 15:04"))
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("E%d", expRowIdx), vendor)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("F%d", expRowIdx), statusText)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("G%d", expRowIdx), paymentMethodStr)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("H%d", expRowIdx), desc)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("I%d", expRowIdx), exp.Amount)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("J%d", expRowIdx), totalPaid)
+		_ = f.SetCellValue(sheet1, fmt.Sprintf("K%d", expRowIdx), remaining)
+
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", expRowIdx), fmt.Sprintf("A%d", expRowIdx), textCenterStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("B%d", expRowIdx), fmt.Sprintf("C%d", expRowIdx), textCenterStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("D%d", expRowIdx), fmt.Sprintf("D%d", expRowIdx), textCenterStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("E%d", expRowIdx), fmt.Sprintf("E%d", expRowIdx), textLeftStyle)
+
+		statusCell := fmt.Sprintf("F%d", expRowIdx)
+		switch exp.Status {
+		case domain.StatusPaid:
+			_ = f.SetCellStyle(sheet1, statusCell, statusCell, paidCenterStyle)
+		case domain.StatusPartial:
+			_ = f.SetCellStyle(sheet1, statusCell, statusCell, partialCenterStyle)
+		case domain.StatusUnpaid:
+			_ = f.SetCellStyle(sheet1, statusCell, statusCell, unpaidCenterStyle)
+		default:
+			_ = f.SetCellStyle(sheet1, statusCell, statusCell, textCenterStyle)
+		}
+
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("G%d", expRowIdx), fmt.Sprintf("G%d", expRowIdx), textCenterStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("H%d", expRowIdx), fmt.Sprintf("H%d", expRowIdx), textLeftStyle)
+		_ = f.SetCellStyle(sheet1, fmt.Sprintf("I%d", expRowIdx), fmt.Sprintf("K%d", expRowIdx), numRightStyle)
+
+		// Sheet 2 rows (Items)
+		for _, item := range exp.Items {
+			_ = f.SetRowHeight(sheet2, itemRowIdx, 20)
+
+			groupName := item.ExpenseCategory.Group
+			if groupName == domain.GroupProduction {
+				groupName = "PRODUKSI"
+			} else if groupName == domain.GroupOperational {
+				groupName = "OPERASIONAL"
+			}
+
+			catName := item.ExpenseCategory.Name
+			if catName == "" {
+				catName = "-"
+			}
+
+			prodCatName := "-"
+			if item.ExpenseCategory.ProductCategory != nil && item.ExpenseCategory.ProductCategory.Name != "" {
+				prodCatName = item.ExpenseCategory.ProductCategory.Name
+			}
+
+			itemDesc := "-"
+			if item.Description != nil && *item.Description != "" {
+				itemDesc = *item.Description
+			}
+
+			grandTotalItemAmount += item.Amount
+
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("A%d", itemRowIdx), itemSeq)
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("B%d", itemRowIdx), exp.ExpenseNumber)
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("C%d", itemRowIdx), exp.ExpenseDate.Format("02/01/2006 15:04"))
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("D%d", itemRowIdx), vendor)
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("E%d", itemRowIdx), groupName)
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("F%d", itemRowIdx), catName)
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("G%d", itemRowIdx), prodCatName)
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("H%d", itemRowIdx), itemDesc)
+			_ = f.SetCellValue(sheet2, fmt.Sprintf("I%d", itemRowIdx), item.Amount)
+
+			_ = f.SetCellStyle(sheet2, fmt.Sprintf("A%d", itemRowIdx), fmt.Sprintf("A%d", itemRowIdx), textCenterStyle)
+			_ = f.SetCellStyle(sheet2, fmt.Sprintf("B%d", itemRowIdx), fmt.Sprintf("C%d", itemRowIdx), textCenterStyle)
+			_ = f.SetCellStyle(sheet2, fmt.Sprintf("D%d", itemRowIdx), fmt.Sprintf("D%d", itemRowIdx), textLeftStyle)
+			_ = f.SetCellStyle(sheet2, fmt.Sprintf("E%d", itemRowIdx), fmt.Sprintf("G%d", itemRowIdx), textCenterStyle)
+			_ = f.SetCellStyle(sheet2, fmt.Sprintf("H%d", itemRowIdx), fmt.Sprintf("H%d", itemRowIdx), textLeftStyle)
+			_ = f.SetCellStyle(sheet2, fmt.Sprintf("I%d", itemRowIdx), fmt.Sprintf("I%d", itemRowIdx), numRightStyle)
+
+			itemRowIdx++
+			itemSeq++
+		}
+	}
+
+	// Total Row Sheet 1
+	totRow1 := len(expenses) + 5
+	_ = f.SetRowHeight(sheet1, totRow1, 24)
+	_ = f.MergeCell(sheet1, fmt.Sprintf("A%d", totRow1), fmt.Sprintf("H%d", totRow1))
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("A%d", totRow1), "TOTAL")
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("A%d", totRow1), fmt.Sprintf("H%d", totRow1), totalLabelStyle)
+
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("I%d", totRow1), grandTotalExpense)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("I%d", totRow1), fmt.Sprintf("I%d", totRow1), totalNumStyle)
+
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("J%d", totRow1), grandTotalPaid)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("J%d", totRow1), fmt.Sprintf("J%d", totRow1), totalNumStyle)
+
+	_ = f.SetCellValue(sheet1, fmt.Sprintf("K%d", totRow1), grandTotalRemaining)
+	_ = f.SetCellStyle(sheet1, fmt.Sprintf("K%d", totRow1), fmt.Sprintf("K%d", totRow1), totalNumStyle)
+
+	// Total Row Sheet 2
+	totRow2 := itemRowIdx
+	_ = f.SetRowHeight(sheet2, totRow2, 24)
+	_ = f.MergeCell(sheet2, fmt.Sprintf("A%d", totRow2), fmt.Sprintf("H%d", totRow2))
+	_ = f.SetCellValue(sheet2, fmt.Sprintf("A%d", totRow2), "TOTAL")
+	_ = f.SetCellStyle(sheet2, fmt.Sprintf("A%d", totRow2), fmt.Sprintf("H%d", totRow2), totalLabelStyle)
+
+	_ = f.SetCellValue(sheet2, fmt.Sprintf("I%d", totRow2), grandTotalItemAmount)
+	_ = f.SetCellStyle(sheet2, fmt.Sprintf("I%d", totRow2), fmt.Sprintf("I%d", totRow2), totalNumStyle)
+
+	return f, nil
 }

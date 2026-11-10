@@ -9,6 +9,7 @@ import (
 	userDomain "github.com/bagusyanuar/erp-digital-printing-be/internal/user/domain"
 	"github.com/bagusyanuar/erp-digital-printing-be/pkg/request"
 	"github.com/google/uuid"
+	"github.com/xuri/excelize/v2"
 	"gorm.io/gorm"
 )
 
@@ -196,6 +197,7 @@ type ExpenseUsecase interface {
 	PayInstallment(ctx context.Context, expenseID uuid.UUID, cashierID uuid.UUID, payments []ExpensePayment) error
 	FindExpenseByID(ctx context.Context, id uuid.UUID) (*Expense, error)
 	FindAllExpenses(ctx context.Context, filter ExpenseFilter) ([]Expense, int64, error)
+	ExportExcel(ctx context.Context, filter ExpenseFilter) (*excelize.File, error)
 	DeleteExpense(ctx context.Context, id uuid.UUID) error
 
 	GetSummary(ctx context.Context, startDate *time.Time, endDate *time.Time) (*ExpenseSummaryRes, error)
